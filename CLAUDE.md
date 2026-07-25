@@ -77,10 +77,13 @@ consequences (auth/infra/deploy model, new dependency, security trade-off) gets 
 existing ADRs before changing auth, deploy, or hosting — they explain why things are the way they
 are.
 
-**Hand manual work back as a runbook.** When something can't be done from here — dashboard config, a
-credential only the user holds, live DNS, a destructive production action — the `manual-steps` skill
-in `.claude/skills/manual-steps/` covers the format: verify it's genuinely not automatable first,
-then an ordered list of exact commands rather than prose.
+**Hand manual work back as a runbook file, not a chat message.** When something can't be done from
+here — dashboard config, a credential only the user holds, live DNS, a destructive production action
+— write the steps to `docs/runbooks/<slug>.md` and reply with just a link. This runs in a terminal,
+so mermaid doesn't render and long lists scroll away; a file opens in markdown preview and stays
+open beside the dashboard being configured. The `manual-steps` skill in
+`.claude/skills/manual-steps/` has the format, including verifying something is genuinely not
+automatable before declaring it manual.
 
 **`main` is protected — no direct pushes.** Work on a branch, open a PR, merge. This is enforced for
 the repo owner too. Note that toggling repo visibility on GitHub can silently strip branch
