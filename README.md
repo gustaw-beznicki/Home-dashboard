@@ -4,21 +4,28 @@ Mobile-first dashboard for tracking recurring household chores — watering plan
 
 ## Stack
 
-Vite + React + Tailwind CSS, client-only (localStorage persistence, no backend).
+Vite + React + Tailwind CSS frontend, backed by a Cloudflare Worker (`worker/`) with a D1
+database for shared, multi-device task state and per-person completion attribution.
+Authentication is Cloudflare Access (Google SSO); authorization is the app's own `users` table.
+See `docs/adl/` for the architectural decisions behind this setup.
 
 ## Development
 
 ```bash
 npm install
-npm run dev       # dev server
-npm test          # Vitest unit tests
-npm run build     # production build to dist/
-npm run preview   # preview the production build
+npm run dev              # frontend dev server
+npm run dev:worker        # wrangler dev, for testing the Worker + D1 locally
+npm test                  # Vitest unit tests
+npm run build             # production build to dist/
+npm run preview            # preview the production build
+npm run db:migrate:local   # apply D1 migrations to the local dev database
 ```
 
 ## Deploy
 
-Static output in `dist/` — deploy to Cloudflare Pages by connecting this repo (build command `npm run build`, output directory `dist`) or via `npx wrangler pages deploy dist`.
+CI/CD is a GitHub Actions pipeline (`.github/workflows/deploy.yml`): on every push to `main`,
+it runs the test suite, builds, applies any pending D1 migrations, then deploys the Worker via
+`wrangler deploy`. Deploys require a `CLOUDFLARE_API_TOKEN` repo secret.
 
 ## Features
 
