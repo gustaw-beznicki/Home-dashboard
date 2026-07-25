@@ -19,6 +19,9 @@
     }
   ],
   "vars": {
+    // Public by design (it ships in the frontend bundle) — but the Worker needs it too:
+    // authenticateRequest() 500s with "Publishable key is missing" without it.
+    "CLERK_PUBLISHABLE_KEY": "pk_live_Y2xlcmsuaG9tZS1kYXNoYm9hcmQuYXBwJA",
     "CF_ACCESS_TEAM_DOMAIN": "https://withered-thunder-37cf.cloudflareaccess.com",
     "CF_ACCESS_AUD": "51bbecd6562d3569fb0e020b323413ee9126d47a101c1707b54a265ddabdac01",
     "ENVIRONMENT": "production"
