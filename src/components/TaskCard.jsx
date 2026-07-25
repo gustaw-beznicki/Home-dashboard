@@ -28,7 +28,12 @@ export function TaskCard({ task, today, onMarkDone, onEdit, onDelete, onTogglePi
 
       <div className="flex flex-wrap gap-2 text-xs text-gray-500 dark:text-gray-400">
         <span>{CATEGORY_LABELS[task.category]}</span>
-        {task.lastDone && <span>Ostatnio: {task.lastDone}</span>}
+        {task.lastDone && (
+          <span>
+            Ostatnio: {task.lastDone}
+            {task.completedBy && ` (${task.completedBy.name || task.completedBy.email})`}
+          </span>
+        )}
         {dueHint && <span>{dueHint}</span>}
       </div>
 
