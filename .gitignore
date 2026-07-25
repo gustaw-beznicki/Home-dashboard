@@ -5,3 +5,6 @@ dist-ssr
 .dev.vars
 .DS_Store
 .wrangler
+.agents/
+skills-lock.json
+.claude/skills/clerk*
