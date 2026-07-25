@@ -1,66 +1,165 @@
-import { useCallback } from 'react'
-import { useLocalStorage } from './useLocalStorage'
-import { STORAGE_KEY } from '../lib/constants'
+import { useCallback, useEffect, useState } from 'react'
 import { toISODate } from '../lib/taskLogic'
 
-export function useTasks() {
-  const [tasks, setTasks] = useLocalStorage(STORAGE_KEY, [])
+const JSON_HEADERS = { 'Content-Type': 'application/json' }
 
-  const addTask = useCallback(
-    (draft) => {
-      const task = {
-        id: crypto.randomUUID(),
-        name: draft.name,
-        lastDone: null,
-        interval: draft.interval,
-        priority: draft.priority ?? 'medium',
-        note: draft.note ?? '',
-        category: draft.category,
-        pinned: false,
-        archived: false,
-      }
-      setTasks((prev) => [...prev, task])
-      return task
-    },
-    [setTasks]
-  )
+async function assertOk(res) {
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    throw new Error(body.error || `Request failed: ${res.status}`)
+  }
+  return res.status === 204 ? null : res.json()
+}
+
+export function useTasks() {
+  const [tasks, setTasks] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  const fetchTasks = useCallback(async () => {
+    setIsLoading(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/tasks')
+      setTasks(await assertOk(res))
+    } catch (e) {
+      setError(e)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchTasks()
+  }, [fetchTasks])
+
+  // Applies `updater` to local state immediately (optimistic), fires the API
+  // call, and either merges the server response via `onSuccess` or rolls the
+  // local state back on failure. A household app should feel instant even on
+  // flaky mobile data — an occasional visible rollback is a smaller cost than
+  // every tap waiting on a round trip.
+  const mutate = useCallback((updater, apiCall, onSuccess) => {
+    let previous
+    setTasks((prev) => {
+      previous = prev
+      return updater(prev)
+    })
+    apiCall()
+      .then((result) => {
+        if (onSuccess) setTasks((prev) => onSuccess(prev, result))
+      })
+      .catch((e) => {
+        setTasks(previous)
+        setError(e)
+      })
+  }, [])
+
+  const addTask = useCallback((draft) => {
+    const tempId = crypto.randomUUID()
+    const task = {
+      id: tempId,
+      lastDone: null,
+      pinned: false,
+      archived: false,
+      priority: 'medium',
+      note: '',
+      completedBy: null,
+      ...draft,
+    }
+    setTasks((prev) => [...prev, task])
+    fetch('/api/tasks', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify(draft) })
+      .then(assertOk)
+      .then((saved) => setTasks((prev) => prev.map((t) => (t.id === tempId ? saved : t))))
+      .catch((e) => {
+        setTasks((prev) => prev.filter((t) => t.id !== tempId))
+        setError(e)
+      })
+    return task
+  }, [])
 
   const editTask = useCallback(
     (id, patch) => {
-      setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)))
+      mutate(
+        (prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)),
+        () =>
+          fetch(`/api/tasks/${id}`, {
+            method: 'PATCH',
+            headers: JSON_HEADERS,
+            body: JSON.stringify(patch),
+          }).then(assertOk)
+      )
     },
-    [setTasks]
+    [mutate]
   )
 
   const deleteTask = useCallback(
     (id) => {
-      setTasks((prev) => prev.filter((t) => t.id !== id))
+      mutate(
+        (prev) => prev.filter((t) => t.id !== id),
+        () => fetch(`/api/tasks/${id}`, { method: 'DELETE' }).then(assertOk)
+      )
     },
-    [setTasks]
+    [mutate]
   )
 
   const markDone = useCallback(
     (id, today = new Date()) => {
-      setTasks((prev) =>
-        prev.map((t) => (t.id === id ? { ...t, lastDone: toISODate(today) } : t))
+      const iso = toISODate(today)
+      mutate(
+        (prev) => prev.map((t) => (t.id === id ? { ...t, lastDone: iso } : t)),
+        () =>
+          fetch(`/api/tasks/${id}/complete`, {
+            method: 'POST',
+            headers: JSON_HEADERS,
+            body: JSON.stringify({ date: iso }),
+          }).then(assertOk),
+        (prev, saved) => prev.map((t) => (t.id === id ? saved : t))
       )
     },
-    [setTasks]
+    [mutate]
   )
 
   const togglePin = useCallback(
     (id) => {
-      setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, pinned: !t.pinned } : t)))
+      const current = tasks.find((t) => t.id === id)
+      mutate(
+        (prev) => prev.map((t) => (t.id === id ? { ...t, pinned: !t.pinned } : t)),
+        () =>
+          fetch(`/api/tasks/${id}`, {
+            method: 'PATCH',
+            headers: JSON_HEADERS,
+            body: JSON.stringify({ pinned: !current?.pinned }),
+          }).then(assertOk)
+      )
     },
-    [setTasks]
+    [mutate, tasks]
   )
 
   const archiveTask = useCallback(
     (id, archived = true) => {
-      setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, archived } : t)))
+      mutate(
+        (prev) => prev.map((t) => (t.id === id ? { ...t, archived } : t)),
+        () =>
+          fetch(`/api/tasks/${id}`, {
+            method: 'PATCH',
+            headers: JSON_HEADERS,
+            body: JSON.stringify({ archived }),
+          }).then(assertOk)
+      )
     },
-    [setTasks]
+    [mutate]
   )
 
-  return { tasks, addTask, editTask, deleteTask, markDone, togglePin, archiveTask }
+  return {
+    tasks,
+    isLoading,
+    error,
+    retry: fetchTasks,
+    addTask,
+    editTask,
+    deleteTask,
+    markDone,
+    togglePin,
+    archiveTask,
+  }
 }
