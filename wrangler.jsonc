@@ -14,9 +14,7 @@
     {
       "binding": "DB",
       "database_name": "home-dashboard-db",
-      // Placeholder — replace with the real id after running:
-      //   npx wrangler d1 create home-dashboard-db
-      "database_id": "REPLACE_WITH_D1_DATABASE_ID"
+      "database_id": "4e5e084a-d1e5-4fcc-8390-35aeeb478021"
     }
   ],
   "vars": {
