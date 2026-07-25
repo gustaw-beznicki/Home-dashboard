@@ -6,6 +6,13 @@ dist-ssr
 .DS_Store
 .wrangler
 
+# Nothing credential-like belongs in committed config (ADR 0005). There is no
+# longer any build-time env var either — the frontend needs no publishable key
+# now that auth is same-origin (ADR 0009) — so .env files are local-only.
+.env
+.env.*
+!.env.example
+
 # Local agent tooling installed by the Clerk CLI — personal, not project source
 .agents/
 skills-lock.json

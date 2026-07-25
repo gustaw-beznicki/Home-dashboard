@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Superseded by [0009](0009-replace-clerk-with-self-hosted-better-auth-on-d1.md)
 
 ## Context
 

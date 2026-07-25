@@ -31,25 +31,63 @@ One repo, two runtimes, one deploy target. `wrangler.jsonc`'s `assets.run_worker
 is what splits them: `/api/*` hits the Worker (`worker/index.js`), everything else is served as a
 static asset from `dist/` with SPA fallback. There is no separate API server or hosting provider.
 
-**Authentication vs authorization are deliberately separate** (ADR 0003, ADR 0008). Clerk only proves
-"this is a real signed-in account"; the D1 `users` table is the actual authorization boundary
-(`role` + `status`), managed from the in-app admin portal rather than Clerk's dashboard.
-`worker/auth.js` never trusts a plain email header — it verifies the session server-side via
-`authenticateRequest()`. `authorize()` self-provisions the very first user matching
-`INITIAL_ADMIN_EMAIL` (a Cloudflare secret) **only while the table is empty**; after that, every user
-must be invited. That empty-table condition is easy to trip over — if a stale row exists, the
-bootstrap silently doesn't fire and the account lands as a plain `member`.
+**Authentication vs authorization are deliberately separate** (ADR 0003, ADR 0009). Better Auth only
+proves "this is a real signed-in account"; the D1 `users` table is the actual authorization boundary
+(`role` + `status`), managed from the in-app admin portal. `worker/auth.js` never trusts a plain email
+header — it verifies the session server-side via `auth.api.getSession()`. `authorize()`
+self-provisions the very first user matching `INITIAL_ADMIN_EMAIL` (a Cloudflare secret) **only while
+the table is empty**; after that, every user must be invited. That empty-table condition is easy to
+trip over — if a stale row exists, the bootstrap silently doesn't fire and the account lands as a
+plain `member`.
 
 `requireUser` runs once at the top of `fetch` for every `/api/*` path, before any routing. It returns
 either `{ user }` or `{ response }` — an already-built error `Response` the caller returns directly.
 `requireAdmin` chains after it for `/api/admin/*`. Follow that shape for any further gates.
 
-**The Clerk webhook route must stay carved out ahead of `requireUser`** in `worker/index.js`. Clerk
-calls it with an svix signature, not a browser session, so it would 401 forever inside the normal
-gate — it verifies its own signature instead. It's also the only point a user's Clerk ID becomes
-known, which is what flips their row from `pending` to `active`. Because it's a deliberately
-unauthenticated public endpoint, `CLERK_WEBHOOK_SIGNING_SECRET` is the only thing preventing a forged
-`user.created` from activating an arbitrary email.
+**`/api/auth/*` must stay carved out ahead of `requireUser`** in `worker/index.js` — those are the
+routes that *establish* a session (Google redirect, OAuth callback, `get-session`, sign-out), so
+inside the normal gate they'd 401 forever. Same slot the retired Clerk webhook used to occupy.
+
+**Better Auth is constructed at module scope**, in `worker/betterAuth.js`. That is not incidental:
+`betterAuth()` builds every plugin's endpoint table and Zod schemas, which at module scope is charged
+to the Worker's 1-second startup budget, whereas building it lazily inside `fetch` would charge it to
+a request — and this app runs on **Workers Free, where that budget is 10 ms**. Don't "optimise" it
+into a lazy singleton. `env` from `cloudflare:workers` is genuinely populated at module scope for vars
+and secrets (only binding *methods* are unavailable there), which is verified: the generated Google
+redirect URI reflects `BASE_URL`. Note `wrangler check startup` runs without bindings and so logs
+spurious "Base URL is not set" warnings — those do not appear under `wrangler dev` or in production.
+
+**Config lives in `worker/authOptions.js`, not `betterAuth.js`.** The split exists so
+`scripts/auth-schema.mjs` can build the *same* options against a local SQLite handle for
+`npx auth@latest generate` — the Better Auth CLI introspects the database and can't reach D1. Change
+options in one place and the generated migration stays truthful. Regenerate after any schema-affecting
+change (new plugin, rate-limit storage).
+
+**There are two `role` columns and they must agree.** Ours (`users.role`) is the real gate. Better
+Auth's (`user.role`) exists only so the `admin` plugin can authorize its own endpoints, and is
+mirrored from ours by the `user.create.before` hook, with a mismatch-guarded repair in `authorize()`.
+Editing `users.role` directly with `wrangler d1 execute` will 403 admin API calls until that repair
+runs. `worker/db.js`'s `getAuthUserIdByEmail` / `syncAuthUserRole` are the only code that touches
+Better Auth's tables directly; everything else goes through `auth.api.*`.
+
+**The invite gate is a DB hook, not a webhook.** `databaseHooks.user.create.before` refuses to create
+an identity for any email without a `users` row (or the bootstrap email while the table is empty), and
+`create.after` flips `pending` → `active`. It throws an `APIError` rather than returning `false`,
+because `false` surfaces a generic "unable to create user" while an `APIError` message reaches the
+OAuth error redirect. Treat it as hygiene, not the security boundary — `authorize()` is what actually
+denies access, so a bypassed hook means junk rows, not an authorization hole.
+
+**Two settings are deliberate and load-bearing.** `session.cookieCache` is **off**, so blocking a user
+bites on their next request instead of up to `maxAge` later (and it avoids the interaction behind
+advisory GHSA-xg6x-h9c9-2m83). `rateLimit.storage` is `'database'`, because the default store is a
+module-scope `Map` — per-isolate and lost on isolate recycle, so counters would neither aggregate nor
+persist across Cloudflare's isolates.
+
+**Better Auth's schema is camelCase** (`emailVerified`, `banExpires`), unlike `users`/`tasks`/
+`completions`. Its `date` columns hold ISO-8601 TEXT and booleans hold integer 0/1, so don't add CHECK
+constraints to them. The version is **pinned exactly** — minors ship breaking changes every 4–6 weeks,
+and because migrations apply before the new Worker deploys (ADR 0007), a schema-changing bump needs a
+two-step deploy rather than one merge.
 
 **Task status is always derived, never persisted.** `src/lib/taskLogic.js` computes
 `done | due | overdue | inactive` from `interval` + `lastDone` + the current date. Every function
@@ -106,46 +144,59 @@ exactly one public hostname (ADR 0004).
 requires the create-new-table / copy / drop / rename pattern.
 
 **Secrets and PII never go in `wrangler.jsonc`** (ADR 0005). This repo is public. Non-secret
-identifiers (the Clerk publishable key, Access AUD/team domain) are fine as `vars`; anything personal
-or credential-like goes through `wrangler secret put`. Current secrets: `CLERK_SECRET_KEY`,
-`CLERK_WEBHOOK_SIGNING_SECRET`, `INITIAL_ADMIN_EMAIL`.
+identifiers (the app's own hostname, the invite `From:` address) are fine as `vars`; anything personal
+or credential-like goes through `wrangler secret put`. Current secrets: `BETTER_AUTH_SECRET`,
+`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `INITIAL_ADMIN_EMAIL`, `RESEND_API_KEY`.
 
-**The Clerk publishable key is needed in two places**, and it's easy to set only one:
-`wrangler.jsonc` `vars` for the Worker (`authenticateRequest()` 500s with "Publishable key is
-missing" without it) *and* `.env.production` for the frontend, which reads
-`VITE_CLERK_PUBLISHABLE_KEY` at **build** time. `.env.local` overrides the latter locally, so local
-work runs against a Clerk **development** instance while CI builds get the production key.
+**There is no build-time env var any more.** The frontend needs no publishable key — auth is
+same-origin, so `src/lib/authClient.js` takes no `baseURL`. That removed `.env.production` entirely,
+along with the old trap of having to set the same key in two places.
 
-## Admin portal and its two known gaps
+**`BETTER_AUTH_SECRET` is a data-encryption key, not just a signing key.** Better Auth uses it for
+symmetric encryption as well as cookie signing, so rotating it casually can orphan encrypted values;
+rotate via `BETTER_AUTH_SECRETS` (plural, versioned) if it ever needs to change.
+
+## Admin portal
 
 `/admin` is a separate page (not a panel), gated on `role === 'admin'` client-side and enforced
-server-side by `requireAdmin` regardless. It can invite users, block/unblock, disable a user's MFA,
-and issue one-time sign-in links.
+server-side by `requireAdmin` regardless. It can invite users and block/unblock them.
 
-ADR 0008 records two limitations accepted deliberately, because Clerk's API doesn't expose them —
-don't treat them as bugs to fix:
+Inviting is purely a D1 write — Better Auth has no notion of the person until their first Google
+sign-in. The Resend email is a courtesy and is allowed to fail without failing the invite, so the UI
+reports which of the two happened. Blocking writes `status = 'revoked'` (which is what actually locks
+them out, immediately, since cookie caching is off) and additionally calls the `admin` plugin's
+`banUser` to revoke existing session rows.
 
-- **No per-user "admin enables MFA".** Only `disableUserMFA()` exists. Enabling is user-self-service,
-  or an instance-wide "Require MFA" toggle. So the portal offers disable + a read-only status badge,
-  not a symmetric toggle.
-- **No admin-triggered password-reset email.** `createSignInToken()` — a one-time sign-in link the
-  admin relays — stands in for it.
+**Deliberately absent, per ADR 0009 — don't add them back as "missing features":** no MFA control and
+no password reset. Google is the only sign-in method, so both belong to the Google account. Better Auth
+has no admin 2FA API at all, and app-owned TOTP wouldn't help anyway: its 2FA challenge only fires on
+`/sign-in/email|username|phone-number`, so social sign-in is never challenged. The corollary is that
+**adding Google-alongside-passkeys or any second provider re-opens that hole** — think before
+extending `socialProviders`.
+
+The app therefore cannot verify a household member actually has Google 2FA enabled; Google's ID token
+carries no such claim. That's the same position ADR 0003 accepted with Access + Google SSO.
 
 ## Cloudflare Access retirement
 
-Clerk replaced Cloudflare Access (Google SSO). Access intercepts at the edge before app code runs, so
-it and a Clerk login screen can never both be live on one hostname — the cutover was a coordinated
-flip, not a gradual rollout. The Access application is kept configured-but-disabled for a short bake
-period as an emergency fallback. Once that's clean, remove `CF_ACCESS_TEAM_DOMAIN` / `CF_ACCESS_AUD`
-from `wrangler.jsonc` and drop `jose` from `package.json` (nothing imports it now).
+Access (Google SSO) → Clerk → Better Auth. Access intercepts at the edge before app code runs, so it
+and an in-app login screen can't both gate one hostname; the Access application is kept
+configured-but-bypassed for a short bake period as an emergency fallback. Because Better Auth runs *in*
+the app rather than at the edge, it can be verified in production behind a still-active Access gate
+before the Bypass policy goes on — see `docs/runbooks/better-auth-cutover.md`. Once clean, delete the
+Access application and drop the now-dead `users.clerk_user_id` column in a follow-up migration.
 
 ## Local development
 
-Uses a Clerk **development** instance, separate from production and needing no DNS setup:
-`VITE_CLERK_PUBLISHABLE_KEY` in `.env.local`, `CLERK_SECRET_KEY` + `CLERK_PUBLISHABLE_KEY` +
-`CLERK_WEBHOOK_SIGNING_SECRET` in `.dev.vars` (all gitignored). Sign in through Clerk's real dev UI
-via `npm run dev:worker` — there's deliberately no mock-identity bypass, since a mock can't exercise
-the login screen or admin portal.
+Copy `.dev.vars.example` to `.dev.vars` (gitignored) and fill it in. There's no separate provider
+"development instance" to create: Google accepts `http://localhost:8787/api/auth/callback/google` as a
+redirect URI, so local work uses the same OAuth client as production. Sign in through the real Google
+flow via `npm run dev:worker` — there's deliberately no mock-identity bypass, since a mock can't
+exercise the login screen, the invite gate, or the admin portal.
+
+That also removes a trap the Clerk setup had: Clerk enabled *paid* features in development instances
+only, so MFA and user-banning worked locally and were silently unentitled in production. Nothing here
+behaves differently between local and production except the hostname.
 
 To exercise the invite → `pending`→`active` webhook flow locally without configuring a dev endpoint:
 

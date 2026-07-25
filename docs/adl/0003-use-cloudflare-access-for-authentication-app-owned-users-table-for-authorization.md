@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Superseded by [0008](0008-use-clerk-as-managed-identity-provider.md)
 
 ## Context
 
