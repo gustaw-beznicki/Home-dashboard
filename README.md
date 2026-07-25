@@ -6,7 +6,7 @@ Mobile-first dashboard for tracking recurring household chores — watering plan
 
 Vite + React + Tailwind CSS frontend, backed by a Cloudflare Worker (`worker/`) with a D1
 database for shared, multi-device task state and per-person completion attribution.
-Authentication is Cloudflare Access (Google SSO); authorization is the app's own `users` table.
+Authentication is Clerk; authorization is the app's own `users` table (role + status).
 See `docs/adl/` for the architectural decisions behind this setup.
 
 ## Development
@@ -20,6 +20,10 @@ npm run build             # production build to dist/
 npm run preview            # preview the production build
 npm run db:migrate:local   # apply D1 migrations to the local dev database
 ```
+
+Local auth needs a Clerk **development** instance (separate from production, no DNS setup
+needed): `VITE_CLERK_PUBLISHABLE_KEY` in `.env.local`, `CLERK_SECRET_KEY` +
+`CLERK_WEBHOOK_SIGNING_SECRET` in `.dev.vars` (both gitignored).
 
 ## Deploy
 

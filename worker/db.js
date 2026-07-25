@@ -131,24 +131,39 @@ export async function completeTask(env, id, user, date) {
 
 export async function listUsers(env) {
   const { results } = await env.DB.prepare(
-    'SELECT email, name, status, created_at FROM users ORDER BY created_at ASC'
+    'SELECT email, name, role, status, created_at FROM users ORDER BY created_at ASC'
   ).all()
   return results
 }
 
-export async function addUser(env, email, invitedByEmail) {
-  await env.DB.prepare(
-    `INSERT INTO users (email, status, invited_by) VALUES (?, 'active', ?)
-     ON CONFLICT(email) DO UPDATE SET status = 'active'`
+export async function getUserByEmail(env, email) {
+  return env.DB.prepare(
+    'SELECT email, name, role, status, clerk_user_id, created_at FROM users WHERE email = ?'
   )
-    .bind(email, invitedByEmail)
-    .run()
-
-  return env.DB.prepare('SELECT email, name, status, created_at FROM users WHERE email = ?')
     .bind(email)
     .first()
 }
 
-export async function revokeUser(env, email) {
-  await env.DB.prepare("UPDATE users SET status = 'revoked' WHERE email = ?").bind(email).run()
+// Admin invited someone — Clerk sends the invite email, this just records
+// the pending row. The Clerk user ID doesn't exist yet (that only happens
+// once they accept), so confirmInvitedUser fills it in via webhook later.
+export async function inviteUser(env, email, role, invitedByEmail) {
+  await env.DB.prepare(
+    `INSERT INTO users (email, role, status, invited_by) VALUES (?, ?, 'pending', ?)
+     ON CONFLICT(email) DO UPDATE SET role = excluded.role, status = 'pending'`
+  )
+    .bind(email, role, invitedByEmail)
+    .run()
+
+  return getUserByEmail(env, email)
+}
+
+export async function confirmInvitedUser(env, email, clerkUserId) {
+  await env.DB.prepare("UPDATE users SET status = 'active', clerk_user_id = ? WHERE email = ?")
+    .bind(clerkUserId, email)
+    .run()
+}
+
+export async function setUserStatus(env, email, status) {
+  await env.DB.prepare('UPDATE users SET status = ? WHERE email = ?').bind(status, email).run()
 }
