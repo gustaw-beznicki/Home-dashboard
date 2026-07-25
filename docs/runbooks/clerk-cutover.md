@@ -8,11 +8,16 @@ Working directory: `c:\code\home-dashboard`
 `CLERK_SECRET_KEY`, `CLERK_WEBHOOK_SIGNING_SECRET`, publishable key (Worker vars + CI build),
 `INITIAL_ADMIN_EMAIL` → `contact@gustawbeznicki.dev`, webhook endpoint, production domain verified.
 
-**Steps 1–3 complete** (verified 2026-07-25): PR #8 merged, deploy run succeeded, migration `0002`
-applied to remote D1 (`wrangler d1 migrations list --remote` reports nothing pending), `users` table
-cleared.
+**Steps 1–3 and 5 complete** (verified 2026-07-25): PR #8 merged, deploy run succeeded, migration
+`0002` applied to remote D1 (`wrangler d1 migrations list --remote` reports nothing pending), `users`
+table cleared, and the production Clerk account `contact@gustawbeznicki.dev`
+(`user_3H0OICnm9LldXY9HVFIiNwZMWUb`) created via `clerk users create` against instance
+`ins_3H04EoRI1vavgwpJKTBgBC1QnVi`.
 
-**Next up: step 4.**
+Its password is a discarded random value — set your own with **Forgot password?** on the login screen
+once step 4 makes it reachable.
+
+**Next up: step 4, then 6.**
 
 ## The flow
 
@@ -99,8 +104,13 @@ Two things to know:
 Note the navigation moved: it's **Access controls → Applications**, not the older
 **Access → Applications**.
 
-**5. Create your Clerk account** — Clerk dashboard → **Production** → **Users** → **Create user**.
-Email `contact@gustawbeznicki.dev`, set a password.
+**5. Create your Clerk account** — ✅ **done**, via
+`clerk users create --instance ins_3H04EoRI1vavgwpJKTBgBC1QnVi`. Kept here for the record, since the
+reasoning matters for the next person.
+
+Note the CLI can do this: `clerk users create` wraps `POST /users`, so it doesn't need the dashboard.
+It does require a password when the instance has password auth enabled — supply it via `--file` with
+a JSON body rather than `--data` inline, so the value never lands in a shell history or transcript.
 
 This step is easy to miss but mandatory. The two systems hold different things:
 
@@ -117,10 +127,18 @@ can invite the first admin, so it's done by hand here.
 
 Can be done any time in advance — it doesn't depend on steps 1–4.
 
-**6. Sign in** at <https://home-dashboard.app> as `contact@gustawbeznicki.dev`.
+**6. Set your password, then sign in** at <https://home-dashboard.app>.
+
+The account exists but its password is a random value nobody holds. On the login screen, use
+**Forgot password?** with `contact@gustawbeznicki.dev`, follow the email, and set your own. Then sign
+in.
 
 You should land on the dashboard with a **Panel administracyjny** link in the header. That link
 appearing is what proves the bootstrap fired and you hold the `admin` role.
+
+If the reset email doesn't arrive, say so — I can mint a one-time sign-in link with
+`clerk api -X POST /sign_in_tokens` instead, which is the same mechanism the admin portal's
+"reset password" button uses.
 
 **7. Invite your partner** from `/admin`.
 
