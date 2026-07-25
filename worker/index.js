@@ -1,5 +1,6 @@
 import { requireUser, requireAdmin, jsonResponse } from './auth.js'
 import { auth } from './betterAuth.js'
+import { missingAuthEnv } from './authOptions.js'
 import { sendInviteEmail } from './email.js'
 import * as db from './db.js'
 
@@ -16,12 +17,32 @@ export default {
     const { pathname } = url
     const method = request.method
 
+    // Fail loudly and legibly if the deploy got ahead of its secrets. The key
+    // names go to the log (visible via `wrangler tail`) but not to the response,
+    // since this endpoint is reachable by anyone who can reach the app.
+    const missingEnv = missingAuthEnv(env)
+    if (missingEnv.length > 0) {
+      console.error(`Auth is not configured — missing: ${missingEnv.join(', ')}`)
+      return jsonResponse(
+        { error: 'Auth is not configured on the server. Check the Worker logs.' },
+        { status: 503 }
+      )
+    }
+
     // Better Auth owns everything under its basePath — the Google redirect, the
     // OAuth callback, /get-session, sign-out. These are the routes that
     // *establish* a session, so they must be carved out ahead of requireUser or
     // they'd 401 forever. Same slot the Clerk webhook used to occupy.
+    //
+    // Wrapped: this sits outside the try/catch below, so anything thrown in here
+    // would otherwise escape as a bodyless 500 with nothing to debug.
     if (pathname.startsWith('/api/auth/')) {
-      return auth.handler(request)
+      try {
+        return await auth.handler(request)
+      } catch (err) {
+        console.error('Better Auth handler threw', err)
+        return jsonResponse({ error: 'Auth error', message: String(err) }, { status: 500 })
+      }
     }
 
     const gate = await requireUser(request, env)
