@@ -2,5 +2,11 @@ node_modules
 dist
 dist-ssr
 *.local
+.dev.vars
 .DS_Store
 .wrangler
+
+# Local agent tooling installed by the Clerk CLI — personal, not project source
+.agents/
+skills-lock.json
+.claude/skills/clerk*
