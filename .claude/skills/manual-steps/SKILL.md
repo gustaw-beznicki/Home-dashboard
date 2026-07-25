@@ -1,12 +1,32 @@
 ---
 name: manual-steps
-description: Use whenever work blocks on something the user must do themselves — dashboard/browser configuration, entering a credential, DNS changes, destructive production actions, or anything a permission gate refuses. Also triggers on "step by step", "what should I do", "instructions for me", "what do you need from me". Produces an ordered, copy-pasteable runbook instead of prose paragraphs.
+description: Use whenever work blocks on something the user must do themselves — dashboard/browser configuration, entering a credential, DNS changes, destructive production actions, or anything a permission gate refuses. Also triggers on "step by step", "what should I do", "instructions for me", "what do you need from me". Writes a runbook to a markdown file the user can preview; does not dump steps into chat.
 ---
 
 # Handing manual work back to the user
 
-When a task can't be finished without the user acting, the deliverable is a **runbook**, not an
-explanation. Prose buries the actions; a numbered list with exact commands doesn't.
+When a task can't be finished without the user acting, the deliverable is a **runbook written to a
+file**, not a chat message.
+
+## Write it to a file — this is the point of the skill
+
+**Always `Write` the runbook to `docs/runbooks/<short-slug>.md`.** Never paste the steps into the
+chat response.
+
+Why: this runs in a terminal. Mermaid diagrams don't render there, long numbered lists scroll away,
+and the user can't keep the steps open beside a dashboard while working. A `.md` file opens in the
+editor's markdown preview with diagrams rendered and steps that stay put.
+
+Your chat reply should be **two or three lines only**:
+
+- a markdown link to the file, e.g. `[docs/runbooks/clerk-cutover.md](docs/runbooks/clerk-cutover.md)`
+- a note to open the preview (VS Code: `Ctrl+Shift+V`)
+- the single blocking question, if there is one
+
+Nothing else. Don't summarise the steps — that recreates the problem.
+
+Overwrite an existing runbook rather than opening a second one when the same task changes. Delete
+stale runbooks once their work is done.
 
 ## First: verify you actually can't do it
 
@@ -37,25 +57,47 @@ Only after those come up empty is a step genuinely manual. State *which* reason 
 
 If you got a capability wrong earlier in the conversation, correct it plainly and re-draw the split.
 
-## Runbook format
+## Runbook file structure
+
+```markdown
+# <Task> runbook
+
+Working directory: `<path>`
+
+**Already done — don't redo:** <one line, so nothing gets repeated>
+
+<mermaid diagram, if the flow shape warrants one>
+
+## Steps
+
+**1. <Action>** — <exact command or precise UI path>
+<why, only if non-obvious>
+
+...
+
+## If something fails
+<recovery per likely failure, and what to send back>
+```
+
+Rules:
 
 - **Numbered, in execution order.** One action per step.
-- **Exact copy-pasteable commands**, with the working directory stated once at the top.
-- **Say what's already done** so nothing gets redone.
+- **Exact copy-pasteable commands.** Working directory stated once at the top.
 - **Mark blocking vs parallel** — which steps gate your next move, which can happen anytime.
-- **Say where to report back**, and what you need back (a value, a yes/no, an error message).
-- **Never route secrets through chat.** Public identifiers (a publishable key, a resource ID) are
-  fine. For anything credential-like, have them pipe it: `wrangler secret put NAME` prompts, they
-  paste, it never enters the transcript.
-- **Flag traps before the step, not after.** If a wrong choice at step 4 causes a lockout at step 7,
-  that warning belongs at step 4.
-- **Drop terse/compressed phrasing.** Ordered sequences where a misread has consequences get written
-  out normally.
+- **Never route secrets through chat or into the file.** Public identifiers (a publishable key, a
+  resource ID) are fine. Anything credential-like: instruct `wrangler secret put NAME`, which
+  prompts, so the value never lands in the transcript or the repo.
+- **Flag traps at the step that causes them, not after.** If a wrong choice at step 3 causes a
+  lockout at step 6, that warning belongs in step 3.
+- **Include a safety gate before irreversible steps** — e.g. "wait for CI green before disabling the
+  old auth layer", with the reason spelled out.
+- **Write normally, not in compressed/terse style.** Ordered sequences where a misread has
+  consequences get full sentences.
 
 ## Diagrams
 
-Include a mermaid diagram when the *shape* of the flow is the thing that's hard to hold in your
-head — not as decoration. Skip it for three linear steps.
+Include a mermaid diagram when the *shape* of the flow is the hard part — not as decoration. Skip it
+for three linear steps.
 
 Worth diagramming:
 
@@ -68,36 +110,23 @@ Worth diagramming:
 ```mermaid
 sequenceDiagram
     actor U as You
-    participant P as Provider dashboard
-    participant CLI as wrangler (local)
     participant CI as CI/CD
     participant Prod as Production
 
-    U->>P: Create endpoint, copy signing secret
-    U->>CLI: wrangler secret put (paste, never in chat)
-    Note over U,CLI: Blocking — deploy fails without it
     U->>CI: Merge PR
     CI->>Prod: Migrate, then deploy
-    U->>P: Disable old auth layer
-    U->>Prod: Sign in and verify
+    Note over U,CI: Wait for green before continuing
+    U->>Prod: Flip the switch, verify
 ```
 
 **Flowchart** — for branch points and traps:
 
 ```mermaid
 flowchart TD
-    A[Check users table count] --> B{count == 0?}
-    B -->|Yes| C[First sign-in self-provisions admin]
-    B -->|No| D[Bootstrap will NOT fire]
-    D --> E{Sign-in email matches existing row?}
-    E -->|Yes| F[Promote role to admin]
-    E -->|No| G[403 lockout — clear the row first]
+    A[Check precondition] --> B{Met?}
+    B -->|Yes| C[Proceed]
+    B -->|No| D[Fix first, else lockout]
 ```
 
-Keep labels short; mermaid renders poorly with long text in nodes.
-
-## Closing the loop
-
-End with what happens after they finish: what you'll do next, and what to send you if a step fails.
-If a later step can't be planned until an earlier answer arrives, say so rather than inventing the
-rest of the sequence.
+Keep node labels short; mermaid renders poorly with long text. Verify the syntax is valid — a broken
+diagram is worse than none, since it renders as an error block in preview.
