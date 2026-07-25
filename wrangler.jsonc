@@ -25,7 +25,7 @@
     // Replace with the Access application's Audience (AUD) tag from its Overview page
     "CF_ACCESS_AUD": "REPLACE_WITH_ACCESS_AUD",
     // The Google account email that self-provisions as the first authorized user
-    "INITIAL_ADMIN_EMAIL": "REPLACE_WITH_ADMIN_EMAIL",
+    "INITIAL_ADMIN_EMAIL": "g.beznicki@gmail.com",
     "ENVIRONMENT": "production"
   }
 }
