@@ -1,0 +1,32 @@
+# Copy to `.dev.vars` (gitignored) for local full-stack development via
+# `npm run dev:worker`. Real values never get committed — ADR 0005.
+#
+# Unlike the Clerk setup this replaced, there is no separate "development
+# instance" to create: Google permits http://localhost:8787/... as an authorized
+# redirect URI, so local development uses the same OAuth client as production.
+# That also removes a trap — Clerk enabled paid features in dev instances only,
+# so MFA and user-banning appeared to work locally and were not entitled in
+# production (ADR 0009).
+
+# Must match the origin you actually browse to, or the OAuth callback and the
+# CSRF origin check will reject the sign-in.
+BASE_URL=http://localhost:8787
+
+# openssl rand -base64 32
+# Better Auth throws in production rather than falling back to its built-in
+# default. Also used for symmetric encryption, so don't rotate it casually.
+BETTER_AUTH_SECRET=
+
+# Same Google OAuth client as production, with
+# http://localhost:8787/api/auth/callback/google added as a redirect URI.
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+
+# Only user matching this email can self-provision as admin, and only while the
+# `users` table is empty. A stale row silently prevents the bootstrap.
+INITIAL_ADMIN_EMAIL=
+
+# Optional. Omit both and invites still work — the D1 row is the source of
+# truth; the email is only a courtesy notification.
+RESEND_API_KEY=
+INVITE_EMAIL_FROM=

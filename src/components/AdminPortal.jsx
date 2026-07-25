@@ -11,8 +11,7 @@ export function AdminPortal() {
   const [inviteRole, setInviteRole] = useState('member')
 
   const [busyEmail, setBusyEmail] = useState(null)
-  const [mfaStatus, setMfaStatus] = useState({}) // email -> boolean
-  const [resetLinks, setResetLinks] = useState({}) // email -> url
+  const [notice, setNotice] = useState(null)
 
   const load = useCallback(() => {
     setIsLoading(true)
@@ -39,10 +38,17 @@ export function AdminPortal() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, role: inviteRole }),
     })
-      .then((res) => (res.ok ? null : Promise.reject(new Error('Failed to invite user'))))
-      .then(() => {
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error('Failed to invite user'))))
+      .then((data) => {
         setInviteEmail('')
         setInviteRole('member')
+        // The invite is the D1 row; the email is a courtesy that can fail
+        // independently, so say which happened rather than implying both.
+        setNotice(
+          data.emailed
+            ? `Zaproszenie wysłane na ${data.email}.`
+            : `${data.email} dodany. E-mail nie został wysłany — przekaż zaproszenie samodzielnie.`
+        )
         load()
       })
       .catch(setError)
@@ -58,31 +64,10 @@ export function AdminPortal() {
       .finally(() => setBusyEmail(null))
   }
 
-  const checkMfa = (email) => {
-    fetch(`/api/admin/users/${encodeURIComponent(email)}`)
-      .then((res) => (res.ok ? res.json() : Promise.reject(new Error('Failed to check MFA'))))
-      .then((data) => setMfaStatus((prev) => ({ ...prev, [email]: data.twoFactorEnabled })))
-      .catch(setError)
-  }
-
-  const disableMfa = (email) => {
-    setBusyEmail(email)
-    fetch(`/api/admin/users/${encodeURIComponent(email)}/mfa`, { method: 'DELETE' })
-      .then((res) =>
-        res.ok ? setMfaStatus((prev) => ({ ...prev, [email]: false })) : Promise.reject(new Error('Failed to disable MFA'))
-      )
-      .catch(setError)
-      .finally(() => setBusyEmail(null))
-  }
-
-  const resetPassword = (email) => {
-    setBusyEmail(email)
-    fetch(`/api/admin/users/${encodeURIComponent(email)}/reset-password`, { method: 'POST' })
-      .then((res) => (res.ok ? res.json() : Promise.reject(new Error('Failed to create sign-in link'))))
-      .then((data) => setResetLinks((prev) => ({ ...prev, [email]: data.url })))
-      .catch(setError)
-      .finally(() => setBusyEmail(null))
-  }
+  // There is deliberately no MFA control and no password-reset action here.
+  // Google is the only sign-in method, so two-factor enrolment and account
+  // recovery both belong to the Google account and aren't ours to manage — see
+  // ADR 0009.
 
   return (
     <div className="mx-auto min-h-screen max-w-2xl bg-gray-50 px-4 py-4 dark:bg-gray-900">
@@ -127,12 +112,14 @@ export function AdminPortal() {
             Coś poszło nie tak. Spróbuj ponownie.
           </p>
         )}
+        {notice && (
+          <p className="mb-2 text-sm text-gray-600 dark:text-gray-300">{notice}</p>
+        )}
 
         <ul className="flex flex-col gap-3">
           {users.map((u) => {
             const isSelf = u.email === currentUser?.email
             const isBusy = busyEmail === u.email
-            const canManage = u.status !== 'pending'
 
             return (
               <li
@@ -142,7 +129,7 @@ export function AdminPortal() {
                 <div className="flex items-center justify-between">
                   <span>
                     {u.name || u.email} — {u.role === 'admin' ? 'Administrator' : 'Domownik'}
-                    {u.status === 'pending' && ' (zaproszenie wysłane)'}
+                    {u.status === 'pending' && ' (zaproszony, jeszcze się nie logował)'}
                     {u.status === 'revoked' && ' (zablokowany)'}
                     {isSelf && ' (Ty)'}
                   </span>
@@ -157,46 +144,6 @@ export function AdminPortal() {
                     </button>
                   )}
                 </div>
-
-                {canManage && !isSelf && (
-                  <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
-                    <button type="button" onClick={() => checkMfa(u.email)} className="underline">
-                      Sprawdź 2FA
-                    </button>
-                    {mfaStatus[u.email] !== undefined && (
-                      <span>2FA: {mfaStatus[u.email] ? 'włączone' : 'wyłączone'}</span>
-                    )}
-                    {mfaStatus[u.email] && (
-                      <button
-                        type="button"
-                        disabled={isBusy}
-                        onClick={() => disableMfa(u.email)}
-                        className="underline disabled:opacity-50"
-                      >
-                        Wyłącz 2FA
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      disabled={isBusy}
-                      onClick={() => resetPassword(u.email)}
-                      className="underline disabled:opacity-50"
-                    >
-                      Wygeneruj link logowania
-                    </button>
-                  </div>
-                )}
-
-                {resetLinks[u.email] && (
-                  <div className="break-all rounded bg-gray-100 p-2 text-xs dark:bg-gray-600">
-                    <a href={resetLinks[u.email]} className="underline">
-                      {resetLinks[u.email]}
-                    </a>
-                    <p className="mt-1 text-gray-500 dark:text-gray-400">
-                      Wyślij ten link użytkownikowi — jednorazowe logowanie.
-                    </p>
-                  </div>
-                )}
               </li>
             )
           })}

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { UserButton } from '@clerk/react'
+import { signOut } from '../lib/authClient'
 import { useTasks } from '../hooks/useTasks'
 import { useDarkMode } from '../hooks/useDarkMode'
 import { useCurrentUser } from '../hooks/useCurrentUser'
@@ -104,7 +104,13 @@ export function Dashboard() {
               Panel administracyjny
             </a>
           )}
-          <UserButton />
+          <button
+            type="button"
+            onClick={() => signOut().then(() => window.location.reload())}
+            className="underline"
+          >
+            Wyloguj
+          </button>
         </div>
       </div>
 

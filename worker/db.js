@@ -138,15 +138,37 @@ export async function listUsers(env) {
 
 export async function getUserByEmail(env, email) {
   return env.DB.prepare(
-    'SELECT email, name, role, status, clerk_user_id, created_at FROM users WHERE email = ?'
+    'SELECT email, name, role, status, created_at FROM users WHERE email = ?'
   )
     .bind(email)
     .first()
 }
 
-// Admin invited someone — Clerk sends the invite email, this just records
-// the pending row. The Clerk user ID doesn't exist yet (that only happens
-// once they accept), so confirmInvitedUser fills it in via webhook later.
+// The single place that decides whether an email is allowed to exist as an
+// identity at all. `authorize()` in auth.js is still the security boundary for
+// *access* — this gate exists so a stranger signing in with Google can't create
+// rows in our database at will. Both read the same rule, so keep them in sync
+// by calling this rather than re-deriving the condition.
+export async function resolveInvite(env, email) {
+  const existing = await getUserByEmail(env, email)
+  if (existing) {
+    if (existing.status === 'revoked') return { allowed: false, role: null }
+    return { allowed: true, role: existing.role }
+  }
+
+  // Bootstrap: only while the table is empty, and only for INITIAL_ADMIN_EMAIL.
+  // Same condition authorize() uses — a stale row here silently prevents it.
+  const { count } = await env.DB.prepare('SELECT COUNT(*) AS count FROM users').first()
+  if (count === 0 && env.INITIAL_ADMIN_EMAIL && email === env.INITIAL_ADMIN_EMAIL) {
+    return { allowed: true, role: 'admin' }
+  }
+
+  return { allowed: false, role: null }
+}
+
+// Admin invited someone — this records the pending row. Better Auth has no
+// concept of them yet; that happens on their first Google sign-in, which is
+// also what flips this row to active (see activateUser).
 export async function inviteUser(env, email, role, invitedByEmail) {
   await env.DB.prepare(
     `INSERT INTO users (email, role, status, invited_by) VALUES (?, ?, 'pending', ?)
@@ -158,12 +180,31 @@ export async function inviteUser(env, email, role, invitedByEmail) {
   return getUserByEmail(env, email)
 }
 
-export async function confirmInvitedUser(env, email, clerkUserId) {
-  await env.DB.prepare("UPDATE users SET status = 'active', clerk_user_id = ? WHERE email = ?")
-    .bind(clerkUserId, email)
+// Called from Better Auth's user.create.after hook — the moment an invited
+// person first signs in with Google. Replaces the Clerk `user.created` webhook.
+// A pending row becoming active is the whole transition; there's no provider ID
+// to record, since Better Auth's own `user` table holds it.
+export async function activateUser(env, email) {
+  await env.DB.prepare("UPDATE users SET status = 'active' WHERE email = ? AND status = 'pending'")
+    .bind(email)
     .run()
 }
 
 export async function setUserStatus(env, email, status) {
   await env.DB.prepare('UPDATE users SET status = ? WHERE email = ?').bind(status, email).run()
+}
+
+// --- Better Auth's own tables ---
+// The two functions below are the only place this app reads or writes Better
+// Auth's schema directly. Everything else goes through `auth.api.*`. They exist
+// because the admin plugin authorizes its endpoints against *its* user.role, so
+// that column has to be kept in step with ours (ADR 0009).
+
+export async function getAuthUserIdByEmail(env, email) {
+  const row = await env.DB.prepare('SELECT id FROM user WHERE email = ?').bind(email).first()
+  return row?.id ?? null
+}
+
+export async function syncAuthUserRole(env, email, role) {
+  await env.DB.prepare('UPDATE user SET role = ? WHERE email = ?').bind(role, email).run()
 }
