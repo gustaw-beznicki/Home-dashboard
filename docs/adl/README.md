@@ -25,4 +25,4 @@ template.
 | [0005](0005-keep-secrets-and-pii-out-of-committed-config.md) | Keep secrets and PII out of committed config | Accepted |
 | [0006](0006-require-pull-requests-on-main-no-direct-pushes.md) | Require pull requests on main, no direct pushes | Accepted |
 | [0007](0007-automate-deploy-and-migrations-with-github-actions.md) | Automate deploy and migrations with GitHub Actions | Accepted |
-| [0008](0008-replace-cloudflare-access-with-app-owned-credentials.md) | Replace Cloudflare Access with app-owned credentials and roles | Proposed |
+| [0008](0008-use-clerk-as-managed-identity-provider.md) | Use Clerk as a managed identity provider | Accepted |
