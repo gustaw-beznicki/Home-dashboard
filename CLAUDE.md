@@ -31,22 +31,25 @@ One repo, two runtimes, one deploy target. `wrangler.jsonc`'s `assets.run_worker
 is what splits them: `/api/*` hits the Worker (`worker/index.js`), everything else is served as a
 static asset from `dist/` with SPA fallback. There is no separate API server or hosting provider.
 
-**Authentication vs authorization are deliberately separate** (ADR 0003, ADR 0008). The identity
-provider only proves "this is a real signed-in account"; the D1 `users` table is the actual
-authorization boundary, managed from inside the app rather than the provider's dashboard.
-`worker/auth.js` never trusts a plain email header — it verifies the session server-side.
-`authorize()` self-provisions the very first user matching
-`INITIAL_ADMIN_EMAIL` (a Cloudflare secret) while the table is empty; after that, every user must be
-invited.
+**Authentication vs authorization are deliberately separate** (ADR 0003, ADR 0008). Clerk only proves
+"this is a real signed-in account"; the D1 `users` table is the actual authorization boundary
+(`role` + `status`), managed from the in-app admin portal rather than Clerk's dashboard.
+`worker/auth.js` never trusts a plain email header — it verifies the session server-side via
+`authenticateRequest()`. `authorize()` self-provisions the very first user matching
+`INITIAL_ADMIN_EMAIL` (a Cloudflare secret) **only while the table is empty**; after that, every user
+must be invited. That empty-table condition is easy to trip over — if a stale row exists, the
+bootstrap silently doesn't fire and the account lands as a plain `member`.
 
 `requireUser` runs once at the top of `fetch` for every `/api/*` path, before any routing. It returns
 either `{ user }` or `{ response }` — an already-built error `Response` the caller returns directly.
-Follow that shape for any further gates (the Clerk branch adds a `requireAdmin` chained after it for
-`/api/admin/*`).
+`requireAdmin` chains after it for `/api/admin/*`. Follow that shape for any further gates.
 
-Any provider-to-Worker callback (e.g. an identity provider's webhook) must be carved out **ahead of**
-that `requireUser` call — such a request carries a signature, not a browser session, so it would 401
-forever inside the normal gate and needs its own signature verification instead.
+**The Clerk webhook route must stay carved out ahead of `requireUser`** in `worker/index.js`. Clerk
+calls it with an svix signature, not a browser session, so it would 401 forever inside the normal
+gate — it verifies its own signature instead. It's also the only point a user's Clerk ID becomes
+known, which is what flips their row from `pending` to `active`. Because it's a deliberately
+unauthenticated public endpoint, `CLERK_WEBHOOK_SIGNING_SECRET` is the only thing preventing a forged
+`user.created` from activating an arbitrary email.
 
 **Task status is always derived, never persisted.** `src/lib/taskLogic.js` computes
 `done | due | overdue | inactive` from `interval` + `lastDone` + the current date. Every function
@@ -100,26 +103,50 @@ exactly one public hostname (ADR 0004).
 requires the create-new-table / copy / drop / rename pattern.
 
 **Secrets and PII never go in `wrangler.jsonc`** (ADR 0005). This repo is public. Non-secret
-identifiers (Access AUD/team domain, a Clerk publishable key) are fine as `vars`; anything personal
-or credential-like goes through `wrangler secret put`.
+identifiers (the Clerk publishable key, Access AUD/team domain) are fine as `vars`; anything personal
+or credential-like goes through `wrangler secret put`. Current secrets: `CLERK_SECRET_KEY`,
+`CLERK_WEBHOOK_SIGNING_SECRET`, `INITIAL_ADMIN_EMAIL`.
 
-## Current migration state
+**The Clerk publishable key is needed in two places**, and it's easy to set only one:
+`wrangler.jsonc` `vars` for the Worker (`authenticateRequest()` 500s with "Publishable key is
+missing" without it) *and* `.env.production` for the frontend, which reads
+`VITE_CLERK_PUBLISHABLE_KEY` at **build** time. `.env.local` overrides the latter locally, so local
+work runs against a Clerk **development** instance while CI builds get the production key.
 
-`main` still authenticates via Cloudflare Access (Google SSO). PR #8 replaces it with Clerk plus a
-role-gated `/admin` portal (invite, block/unblock, disable a user's MFA, issue one-time sign-in
-links). ADR 0008 records that decision and its two accepted limitations: Clerk exposes no per-user
-"admin enables MFA" call (disable-only) and no admin-triggered password-reset email (a one-time
-sign-in link stands in). Cloudflare Access intercepts at the edge before app code runs, so it and a
-Clerk login screen cannot both be live on one hostname — this is a coordinated flip, not a gradual
-rollout.
+## Admin portal and its two known gaps
 
-The cutover is blocked on a Clerk production instance and its DNS. Two gotchas found while testing
-that branch locally, worth knowing before finishing it:
+`/admin` is a separate page (not a panel), gated on `role === 'admin'` client-side and enforced
+server-side by `requireAdmin` regardless. It can invite users, block/unblock, disable a user's MFA,
+and issue one-time sign-in links.
 
-- The Worker needs **both** `CLERK_SECRET_KEY` and `CLERK_PUBLISHABLE_KEY`. `authenticateRequest()`
-  500s with "Publishable key is missing" if only the secret key is set.
-- The frontend reads `VITE_CLERK_PUBLISHABLE_KEY` at **build** time, so the CI build needs it too —
-  otherwise the bundle ships `publishableKey: undefined` and the login screen breaks.
+ADR 0008 records two limitations accepted deliberately, because Clerk's API doesn't expose them —
+don't treat them as bugs to fix:
 
-Local development uses a Clerk **development** instance: `VITE_CLERK_PUBLISHABLE_KEY` in
-`.env.local`, `CLERK_SECRET_KEY` + `CLERK_PUBLISHABLE_KEY` in `.dev.vars` (both gitignored).
+- **No per-user "admin enables MFA".** Only `disableUserMFA()` exists. Enabling is user-self-service,
+  or an instance-wide "Require MFA" toggle. So the portal offers disable + a read-only status badge,
+  not a symmetric toggle.
+- **No admin-triggered password-reset email.** `createSignInToken()` — a one-time sign-in link the
+  admin relays — stands in for it.
+
+## Cloudflare Access retirement
+
+Clerk replaced Cloudflare Access (Google SSO). Access intercepts at the edge before app code runs, so
+it and a Clerk login screen can never both be live on one hostname — the cutover was a coordinated
+flip, not a gradual rollout. The Access application is kept configured-but-disabled for a short bake
+period as an emergency fallback. Once that's clean, remove `CF_ACCESS_TEAM_DOMAIN` / `CF_ACCESS_AUD`
+from `wrangler.jsonc` and drop `jose` from `package.json` (nothing imports it now).
+
+## Local development
+
+Uses a Clerk **development** instance, separate from production and needing no DNS setup:
+`VITE_CLERK_PUBLISHABLE_KEY` in `.env.local`, `CLERK_SECRET_KEY` + `CLERK_PUBLISHABLE_KEY` +
+`CLERK_WEBHOOK_SIGNING_SECRET` in `.dev.vars` (all gitignored). Sign in through Clerk's real dev UI
+via `npm run dev:worker` — there's deliberately no mock-identity bypass, since a mock can't exercise
+the login screen or admin portal.
+
+To exercise the invite → `pending`→`active` webhook flow locally without configuring a dev endpoint:
+
+```bash
+clerk webhooks listen --token "$(clerk webhooks token)" \
+  --forward-to http://localhost:8787/api/webhooks/clerk
+```

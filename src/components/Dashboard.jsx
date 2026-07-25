@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { UserButton } from '@clerk/react'
 import { useTasks } from '../hooks/useTasks'
 import { useDarkMode } from '../hooks/useDarkMode'
 import { useCurrentUser } from '../hooks/useCurrentUser'
@@ -8,7 +9,6 @@ import { CategoryFilter } from './CategoryFilter'
 import { TaskList } from './TaskList'
 import { TaskForm } from './TaskForm'
 import { DarkModeToggle } from './DarkModeToggle'
-import { AdminPage } from './AdminPage'
 import { LegacyImportBanner } from './LegacyImportBanner'
 import { computeKpi, filterByCategory, filterForTab, sortByUrgency } from '../lib/taskLogic'
 
@@ -65,7 +65,6 @@ export function Dashboard() {
   const [activeTab, setActiveTab] = useState('today')
   const [activeCategory, setActiveCategory] = useState(null)
   const [formState, setFormState] = useState(null) // null | { mode: 'add' } | { mode: 'edit', task }
-  const [showAdmin, setShowAdmin] = useState(false)
 
   const byTab = filterForTab(tasks, activeTab, now)
   const byCategory = filterByCategory(byTab, activeCategory)
@@ -100,20 +99,14 @@ export function Dashboard() {
       <div className="mb-4 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
         <span>{user ? `Zalogowano jako: ${user.name || user.email}` : ''}</span>
         <div className="flex items-center gap-3">
-          <button type="button" onClick={() => setShowAdmin((s) => !s)} className="underline">
-            {showAdmin ? 'Zamknij administrację' : 'Zarządzaj użytkownikami'}
-          </button>
-          <a href="/cdn-cgi/access/logout" className="underline">
-            Wyloguj
-          </a>
+          {user?.role === 'admin' && (
+            <a href="/admin" className="underline">
+              Panel administracyjny
+            </a>
+          )}
+          <UserButton />
         </div>
       </div>
-
-      {showAdmin && (
-        <div className="mb-4">
-          <AdminPage currentUserEmail={user?.email} />
-        </div>
-      )}
 
       <LegacyImportBanner
         tasks={tasks}
