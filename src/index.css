@@ -3,6 +3,24 @@
 @tailwind utilities;
 
 @layer base {
+  /* The `forest` scale is the one accent whose dark values differ from its light
+     ones, and it appears on the hero card, every primary button and the sheet
+     scrim. Routing it through CSS variables means `bg-forest-600` adapts by
+     itself, instead of needing a `dark:` twin at a dozen call sites that would
+     drift apart. The clay/status colours keep explicit `dark:` variants, since
+     those pairings are asserted in constants.js. */
+  :root {
+    --forest-500: 63 109 78; /* #3f6d4e */
+    --forest-600: 47 74 55; /* #2f4a37 */
+    --forest-700: 37 57 43; /* #25392b */
+  }
+
+  .dark {
+    --forest-500: 95 154 109; /* #5f9a6d */
+    --forest-600: 42 66 50; /* #2a4232 */
+    --forest-700: 32 48 31; /* #20301f */
+  }
+
   body {
     @apply bg-moss-100 font-sans text-moss-900 antialiased dark:bg-bark-900 dark:text-moss-100;
   }

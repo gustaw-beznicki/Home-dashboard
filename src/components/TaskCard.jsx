@@ -14,12 +14,15 @@ export function TaskCard({ task, today, onDone, onUndo, onOpen, rolledBack = fal
   // "Na spokojnie" is the quiet tier: smaller, flatter, no primary action.
   const quiet = status === 'later'
 
+  // The quiet tier already carries the timing on its right-hand side, so the
+  // meta line is the rhythm alone — otherwise every "Na spokojnie" row read
+  // "za 5 dni · co miesiąc, ostatniego … za 5 dni".
   const meta =
     status === 'done'
       ? formatLastDone(parseISODate(task.lastDone), today, task.completedBy?.name)
-      : [until === null ? rhythm : relativeDue(until), rhythm]
-          .filter((value, i, all) => all.indexOf(value) === i)
-          .join(' · ')
+      : quiet || until === null
+        ? rhythm
+        : [relativeDue(until), rhythm].filter((v, i, all) => all.indexOf(v) === i).join(' · ')
 
   return (
     <article

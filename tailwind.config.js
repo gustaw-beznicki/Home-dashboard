@@ -23,7 +23,13 @@ export default {
           800: '#3d4a39',
           900: '#26301f',
         },
-        forest: { 500: '#3f6d4e', 600: '#2f4a37', 700: '#25392b' },
+        // Defined as CSS variables in index.css so the scale carries its own
+        // dark values — see the note there. `<alpha-value>` keeps `/35` working.
+        forest: {
+          500: 'rgb(var(--forest-500) / <alpha-value>)',
+          600: 'rgb(var(--forest-600) / <alpha-value>)',
+          700: 'rgb(var(--forest-700) / <alpha-value>)',
+        },
         lime: { 300: '#e0f8ab', 400: '#cff08a', 500: '#b8dd6c' },
         clay: { 100: '#fbe3da', 300: '#f2d7cd', 500: '#b8492c', 700: '#8f3a22' },
         amber: { 100: '#fdf6e9', 500: '#b3703a' },

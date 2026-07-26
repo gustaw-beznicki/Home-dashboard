@@ -65,6 +65,18 @@ describe('TaskCard', () => {
     expect(screen.queryByRole('button', { name: /^Zrobione/ })).not.toBeInTheDocument()
   })
 
+  it('states the timing once in the quiet tier, not on both lines', () => {
+    // Anchored 5 days out and never done, so the first deadline is 5 days away.
+    renderCard({
+      interval: { type: 'everyNDays', n: 5, startsOn: '2026-07-29' },
+      lastDone: null,
+    })
+    // The right-hand side carries the timing, so the meta line is the rhythm
+    // alone — anything else reads "za 5 dni · co 5 dni … za 5 dni".
+    expect(screen.getByText('co 5 dni')).toBeInTheDocument()
+    expect(screen.getAllByText('za 5 dni')).toHaveLength(1)
+  })
+
   it('opens the sheet when the card is activated', () => {
     const { onOpen } = renderCard({ lastDone: '2026-07-21' })
     fireEvent.click(screen.getByRole('button', { name: 'Podlać monsterę' }))
