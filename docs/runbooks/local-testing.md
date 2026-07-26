@@ -171,31 +171,15 @@ won't send, and the UI should say so specifically rather than claiming success.
 nic. Dom się sam ogarnął." with a line naming what's coming next. `npm run db:seed:local` restores
 the fixture.
 
-## Separately: production is missing its auth secrets
+## Getting sign-in to work at all
 
-Worth knowing, since it's the same Google client. `npx wrangler secret list` currently returns only:
+Neither route above fixes authentication itself — production is currently missing
+`BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`, so every `/api/*` route there
+returns `503`, and `.dev.vars` has the two Google values empty.
 
-```
-CLERK_SECRET_KEY
-CLERK_WEBHOOK_SIGNING_SECRET
-INITIAL_ADMIN_EMAIL
-```
-
-There is no `BETTER_AUTH_SECRET`, no `GOOGLE_CLIENT_ID`, no `GOOGLE_CLIENT_SECRET`, no
-`RESEND_API_KEY` — so sign-in cannot work in production today, and the two dead Clerk secrets are
-still sitting there. That predates this redesign (it's the gap commit `88c2455` added the legible
-error for), but the design work can't ship past it. When you're ready:
-
-```bash
-npx wrangler secret put BETTER_AUTH_SECRET      # openssl rand -base64 32 — a NEW one, not the local value
-npx wrangler secret put GOOGLE_CLIENT_ID
-npx wrangler secret put GOOGLE_CLIENT_SECRET
-npx wrangler secret delete CLERK_SECRET_KEY
-npx wrangler secret delete CLERK_WEBHOOK_SIGNING_SECRET
-```
-
-Each prompts, so nothing lands in a shell history or a transcript. Do this **before** merging, per
-the standing rule about never merging config changes whose secrets don't exist yet.
+That sequence lives in **[make-auth-work.md](make-auth-work.md)** — kept separate so there is one
+authoritative copy rather than two that drift. It also covers the trap that matters most: the
+`INITIAL_ADMIN_EMAIL` bootstrap can no longer fire, because the `users` table is no longer empty.
 
 ## If something fails
 
