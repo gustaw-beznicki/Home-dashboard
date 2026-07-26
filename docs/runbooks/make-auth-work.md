@@ -53,13 +53,25 @@ flowchart TD
 
 ### 1. Decide which Google account is the admin — do this first
 
-Both existing rows are `active`: one `admin` (created by the spent bootstrap) and one `member`,
-on different domains — which is why `authOptions.js` sets no `hd` hosted-domain restriction. The
-decision has been made to keep them as they are, so this step is a check rather than a change.
+Both existing rows are `active`, on different domains — which is why `authOptions.js` sets no `hd`
+hosted-domain restriction.
 
-The one thing to confirm before signing in: the admin row must be an address you can actually
-authenticate with **through Google**. A bootstrap row proves it was a valid identity under whatever
-auth was live at the time — not that it is a Google account today.
+**Already done:** the Gmail row has been promoted to `admin`, because the address the original
+bootstrap row carries is not one that can authenticate through Google today. A `bootstrap` marker
+proves an address was a valid identity under whatever auth was live at the time — not that it is a
+usable Google account now, and that distinction is the difference between signing in and being
+locked out with no route to `/admin`.
+
+Note the shape of that change. `users.email` is the PRIMARY KEY, so renaming the old admin row to an
+address that already exists fails on a UNIQUE violation — you promote the existing row instead:
+
+```bash
+npx wrangler d1 execute home-dashboard-db --remote \
+  --command "UPDATE users SET role = 'admin' WHERE email = 'the-address@example.com';"
+```
+
+That leaves the original bootstrap row still holding `admin`. Decide what it should be — see the
+query below and the note at the end of this step.
 
 Look at the output of the query above.
 
