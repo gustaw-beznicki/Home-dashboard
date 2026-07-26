@@ -230,4 +230,74 @@ export const COPY = {
     working: 'Przenoszę…',
     dismiss: 'Zostaw',
   },
+  onboarding: {
+    steps: [
+      'Zaproszenie',
+      'Twoje imię',
+      'Jak działa lista',
+      'Pierwsze odhaczenie',
+      'Twoja pierwsza rzecz',
+      'Gotowe',
+    ],
+    railTitle: (inviter) =>
+      inviter ? `Wchodzisz na zaproszenie od ${inviter}.` : 'Wchodzisz na wspólną listę.',
+    railLead:
+      'Cztery minuty i będzie po sprawie. Nic tu nie jest ostateczne — wszystko zmienisz później w panelu domu.',
+    railFootnote: 'Konto i hasło zostają po stronie Google. My trzymamy tylko listę rzeczy do zrobienia.',
+    back: 'Wstecz',
+    skip: 'pomiń',
+    stepOf: (n, total) => `Krok ${n} z ${total}`,
+    welcomeEyebrow: (inviter, home) => [inviter && `Zaproszenie od ${inviter}`, home].filter(Boolean).join(' · '),
+    welcomeTitle: 'Wchodzisz na wspólną listę.',
+    welcomeLead:
+      'Jedna wspólna lista domowych rzeczy: co trzeba zrobić dziś, co może poczekać. Bez punktów, bez rankingów, bez wyrzutów sumienia.',
+    welcomeCount: (n) => `W środku czeka już ${n} rzeczy.`,
+    welcomeCta: 'Wchodzę',
+    nameTitle: 'Jak Cię wołać?',
+    nameLead: 'Imię widzą domownicy — pojawia się przy rzeczach, które ogarniesz.',
+    namePlaceholder: 'Kuba',
+    colorLabel: 'Twój kolor przy odhaczeniach',
+    colorPreview: (name) => `Tak zobaczą to inni: ${name} · dziś 9:40`,
+    stopsTitle: 'Lista ma trzy przystanki',
+    stopsLead: 'Nie ma zakładek do przełączania. Wszystko jest na jednym ekranie, w kolejności pilności.',
+    stops: [
+      { status: 'overdue', title: 'Zaległe', body: 'Minął termin. Nie krzyczymy — po prostu są na górze.' },
+      { status: 'due', title: 'Na dziś', body: 'Wypada dzisiaj. Zwykle jedna, dwie rzeczy.' },
+      { status: 'later', title: 'Na spokojnie', body: 'Wróci samo, kiedy przyjdzie pora. Możesz w to nie patrzeć.' },
+    ],
+    stopsNote:
+      'Nic nie znika samo. Rzecz wraca na listę dopiero wtedy, gdy minie jej rytm — a rytm zawsze liczy się od konkretnej daty, którą ustawiasz razem z nim.',
+    tryTitle: 'Spróbuj odhaczyć',
+    tryTitleDone: 'I już.',
+    tryLead: 'Jedno tapnięcie w zielone kółko — to jedyna rzecz, którą naprawdę trzeba tu umieć.',
+    tryLeadDone: 'Tyle to zajmuje. Domownicy zobaczą, że to Ty, i nikt nie zrobi tego drugi raz.',
+    tryTaskName: 'Podlać monsterę',
+    tryTaskMeta: 'na dziś · co 3 dni',
+    tryTaskMetaDone: (name) => `zrobione dziś · ${name}`,
+    tryToast: 'Zapisane na Ciebie. Monstera wróci na listę za 3 dni.',
+    tryHint: 'Pomyłki nie bolą — „cofnij” czeka kilka sekund, a rzecz wraca dokładnie tam, gdzie była.',
+    tryCta: 'Później',
+    draftTitle: 'Dorzuć coś swojego',
+    draftLead: 'Napisz zwykłym zdaniem, co jeszcze trzeba ogarniać. Rytm ustawisz od razu po wejściu — albo kiedy indziej.',
+    draftPlaceholder: 'np. wynieść śmieci co wtorek',
+    draftExamples: ['wynieść śmieci', 'przegląd auta', 'podlać balkon'],
+    draftSkip: 'Na razie pominę',
+    doneTitle: 'Wszystko gotowe.',
+    doneLead: (added) =>
+      added
+        ? 'Twoja pierwsza rzecz jest dopisana. Resztę poznasz po drodze — nic tu nie jest na stałe.'
+        : 'Lista jest gotowa. Resztę poznasz po drodze — nic tu nie jest na stałe.',
+    doneCta: 'Pokaż listę',
+    next: 'Dalej',
+  },
 }
+
+// Avatar colours picked during onboarding. Keys are what the Worker stores and
+// validates (worker/db.js AVATAR_COLORS); classes are literal so Tailwind's JIT
+// scanner sees them, same rule as the status maps above.
+export const AVATAR_COLORS = [
+  { key: 'forest', className: 'bg-hero text-moss-200', aria: 'zieleń' },
+  { key: 'leaf', className: 'bg-brand-forest text-moss-50', aria: 'szałwia' },
+  { key: 'clay', className: 'bg-clay-500 text-clay-100', aria: 'bordo' },
+  { key: 'sand', className: 'bg-moss-200 text-moss-800', aria: 'piasek' },
+]

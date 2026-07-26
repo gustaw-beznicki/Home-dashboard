@@ -194,6 +194,17 @@ along with the old trap of having to set the same key in two places.
 symmetric encryption as well as cookie signing, so rotating it casually can orphan encrypted values;
 rotate via `BETTER_AUTH_SECRETS` (plural, versioned) if it ever needs to change.
 
+## Onboarding
+
+A six-step wizard (`src/components/Onboarding.jsx`) greets an invited person once, between their
+first Google sign-in and the list. App gates on `users.onboarded_at IS NULL` (via `/api/whoami`);
+finishing PATCHes `/api/me` with `{ name, color, onboarded: true }` — `onboarded_at` is one-way
+(`COALESCE`) and `PATCH /api/me` can never touch `role` or `status`. Avatar `color` is a palette
+key validated against `AVATAR_COLORS` in `worker/db.js`, with the class strings (Tailwind-literal,
+for JIT) in `src/lib/constants.js`. The step-four check-off is a local demo on purpose — a tutorial
+must not tell the household a real task happened. Under `dev:no-auth` the synthetic user counts as
+already onboarded; add `--var DEV_ONBOARDING:true` to reach the wizard locally.
+
 ## Admin portal and Panel domu
 
 `/admin` is a separate page (not a panel), gated on `role === 'admin'` client-side and enforced

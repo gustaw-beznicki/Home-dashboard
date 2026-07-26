@@ -3,11 +3,13 @@ import { describe, expect, it } from 'vitest'
 const {
   completeTask,
   createTask,
+  getInviterName,
   listTasks,
   removeCategory,
   setUserRole,
   undoLatestCompletion,
   updateTask,
+  updateUserProfile,
   weekStats,
 } = await import('./db.js')
 
@@ -299,6 +301,28 @@ function createHouseholdFakeDb({ users = [], categories = [], tasks = [] } = {})
       if (user) user.role = args[0]
       return { success: true }
     }
+    // updateUserProfile builds its SET clause dynamically; `onboarded_at =
+    // COALESCE(...)` carries no placeholder, same trick as tasks.updated_at.
+    if (sql.startsWith('UPDATE users SET')) {
+      const assignments = sql.slice(sql.indexOf('SET') + 3, sql.lastIndexOf('WHERE')).split(',')
+      const user = users.find((u) => u.email === args[args.length - 1])
+      if (user) {
+        const bound = assignments.filter((part) => part.includes('?'))
+        bound.forEach((part, i) => {
+          user[part.split('=')[0].trim()] = args[i]
+        })
+        if (sql.includes('onboarded_at = COALESCE')) {
+          user.onboarded_at = user.onboarded_at ?? '2026-07-26T10:00:00.000Z'
+        }
+      }
+      return { success: true }
+    }
+    if (sql.includes('LEFT JOIN users AS inviter')) {
+      const user = users.find((u) => u.email === args[0])
+      if (!user) return null
+      const inviter = users.find((u) => u.email === user.invited_by)
+      return { name: inviter?.name ?? null, email: inviter?.email ?? null }
+    }
     if (sql.includes('SELECT key FROM categories WHERE key')) {
       return categories.find((c) => c.key === args[0]) ?? null
     }
@@ -389,5 +413,69 @@ describe('removeCategory', () => {
   it('reports a missing category rather than pretending', async () => {
     const env = { DB: createHouseholdFakeDb({ categories: [{ key: 'home' }] }) }
     expect(await removeCategory(env, 'nope')).toBeNull()
+  })
+})
+
+describe('updateUserProfile', () => {
+  const kuba = () => [
+    { email: 'kuba@example.com', name: null, role: 'member', status: 'active', color: null, onboarded_at: null },
+  ]
+
+  it('writes name and colour and stamps onboarded_at', async () => {
+    const users = kuba()
+    const env = { DB: createHouseholdFakeDb({ users }) }
+
+    const result = await updateUserProfile(env, 'kuba@example.com', {
+      name: 'Kuba',
+      color: 'leaf',
+      onboarded: true,
+    })
+
+    expect(users[0]).toMatchObject({ name: 'Kuba', color: 'leaf' })
+    expect(users[0].onboarded_at).toBeTruthy()
+    expect(result.email).toBe('kuba@example.com')
+  })
+
+  it('never moves an existing onboarded_at — the flag is one-way', async () => {
+    const users = kuba()
+    users[0].onboarded_at = '2026-01-01T00:00:00.000Z'
+    const env = { DB: createHouseholdFakeDb({ users }) }
+
+    await updateUserProfile(env, 'kuba@example.com', { onboarded: true })
+    expect(users[0].onboarded_at).toBe('2026-01-01T00:00:00.000Z')
+  })
+
+  it('leaves untouched fields alone', async () => {
+    const users = kuba()
+    users[0].name = 'Jakub'
+    const env = { DB: createHouseholdFakeDb({ users }) }
+
+    await updateUserProfile(env, 'kuba@example.com', { color: 'sand' })
+    expect(users[0]).toMatchObject({ name: 'Jakub', color: 'sand', onboarded_at: null })
+  })
+
+  it('returns null for an email with no row (the dev bypass)', async () => {
+    const env = { DB: createHouseholdFakeDb({ users: [] }) }
+    expect(await updateUserProfile(env, 'dev@localhost', { name: 'dev' })).toBeNull()
+  })
+})
+
+describe('getInviterName', () => {
+  it('prefers the inviter name, falls back to their email', async () => {
+    const users = [
+      { email: 'anna@example.com', name: 'Anna', invited_by: null },
+      { email: 'kuba@example.com', name: null, invited_by: 'anna@example.com' },
+      { email: 'mama@example.com', name: null, invited_by: 'kuba@example.com' },
+    ]
+    const env = { DB: createHouseholdFakeDb({ users }) }
+
+    expect(await getInviterName(env, 'kuba@example.com')).toBe('Anna')
+    expect(await getInviterName(env, 'mama@example.com')).toBe('kuba@example.com')
+  })
+
+  it('returns null for the out-of-band first admin, who has no inviter', async () => {
+    const users = [{ email: 'anna@example.com', name: 'Anna', invited_by: null }]
+    const env = { DB: createHouseholdFakeDb({ users }) }
+    expect(await getInviterName(env, 'anna@example.com')).toBeNull()
   })
 })

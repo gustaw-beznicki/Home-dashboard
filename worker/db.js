@@ -267,17 +267,70 @@ export async function weekStats(env) {
 
 export async function listUsers(env) {
   const { results } = await env.DB.prepare(
-    'SELECT email, name, role, status, created_at FROM users ORDER BY created_at ASC'
+    'SELECT email, name, role, status, color, created_at FROM users ORDER BY created_at ASC'
   ).all()
   return results
 }
 
 export async function getUserByEmail(env, email) {
   return env.DB.prepare(
-    'SELECT email, name, role, status, created_at FROM users WHERE email = ?'
+    'SELECT email, name, role, status, color, onboarded_at, created_at FROM users WHERE email = ?'
   )
     .bind(email)
     .first()
+}
+
+// Avatar colours the onboarding wizard offers. A palette key, not a hex value —
+// the frontend owns the actual colours so dark mode can pick different ones.
+export const AVATAR_COLORS = ['forest', 'leaf', 'clay', 'sand']
+
+// Self-service profile updates from onboarding: display name, avatar colour,
+// and the one-way "onboarded" flag. Deliberately cannot touch role or status —
+// those stay behind requireAdmin. Returns the fresh row, or null when there is
+// no row to update (only reachable under the dev bypass, which never writes a
+// users row on purpose).
+export async function updateUserProfile(env, email, { name, color, onboarded }) {
+  const fields = []
+  const values = []
+
+  if (name !== undefined) {
+    fields.push('name = ?')
+    values.push(name)
+  }
+  if (color !== undefined) {
+    fields.push('color = ?')
+    values.push(color)
+  }
+  if (onboarded) {
+    // COALESCE keeps the original completion time if the wizard somehow runs
+    // twice — the flag is one-way by design.
+    fields.push("onboarded_at = COALESCE(onboarded_at, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))")
+  }
+
+  if (fields.length > 0) {
+    await env.DB.prepare(`UPDATE users SET ${fields.join(', ')} WHERE email = ?`)
+      .bind(...values, email)
+      .run()
+  }
+
+  return getUserByEmail(env, email)
+}
+
+// Who invited this person — shown on the onboarding welcome step ("Wchodzisz na
+// zaproszenie od Anny"). Prefers the inviter's display name, falls back to
+// their email, and returns null when there's no inviter (the out-of-band first
+// admin from `npm run admin:grant` has none).
+export async function getInviterName(env, email) {
+  const row = await env.DB.prepare(
+    `SELECT inviter.name AS name, inviter.email AS email
+     FROM users
+     LEFT JOIN users AS inviter ON inviter.email = users.invited_by
+     WHERE users.email = ?`
+  )
+    .bind(email)
+    .first()
+
+  return row?.name ?? row?.email ?? null
 }
 
 // The single place that decides whether an email is allowed to exist as an

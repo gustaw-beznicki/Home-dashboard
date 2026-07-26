@@ -102,7 +102,54 @@ export default {
 
     try {
       if (pathname === '/api/whoami' && method === 'GET') {
+        // Someone still inside the onboarding wizard also gets told who invited
+        // them, for the welcome step. Looked up lazily — once onboarded_at is
+        // set this is a plain echo again.
+        if (!user.onboardedAt) {
+          const invitedBy = await db.getInviterName(env, user.email)
+          return jsonResponse({ ...user, invitedBy })
+        }
         return jsonResponse(user)
+      }
+
+      // Self-service profile: display name and avatar colour from onboarding,
+      // plus the one-way onboarded flag. Role and status live under /api/admin
+      // and cannot be reached from here.
+      if (pathname === '/api/me' && method === 'PATCH') {
+        const body = await request.json()
+        const patch = {}
+
+        if (typeof body.name === 'string' && body.name.trim()) {
+          patch.name = body.name.trim().slice(0, 80)
+        }
+        if (body.color !== undefined) {
+          if (!db.AVATAR_COLORS.includes(body.color)) {
+            return jsonResponse({ error: 'Unknown color' }, { status: 400 })
+          }
+          patch.color = body.color
+        }
+        if (body.onboarded === true) patch.onboarded = true
+
+        if (Object.keys(patch).length === 0) {
+          return jsonResponse({ error: 'Nothing to update' }, { status: 400 })
+        }
+
+        const updated = await db.updateUserProfile(env, user.email, patch)
+        // Null only under the dev bypass, which never has a users row — echo
+        // the synthetic user so the client-side flow still completes. The row
+        // is reshaped to match what authorize() puts on /api/whoami, because
+        // the client caches this response in the same slot.
+        if (!updated) {
+          const { onboarded, ...profile } = patch
+          return jsonResponse({ ...user, ...profile, onboardedAt: 'dev-bypass' })
+        }
+        return jsonResponse({
+          email: updated.email,
+          name: updated.name,
+          role: updated.role,
+          color: updated.color ?? null,
+          onboardedAt: updated.onboarded_at ?? null,
+        })
       }
 
       if (pathname === '/api/tasks' && method === 'GET') {
