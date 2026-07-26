@@ -1,50 +1,50 @@
-# Home Planning Dashboard
+# Ogarniamy
 
-Mobile-first dashboard for tracking recurring household chores — watering plants, replacing batteries, and the like. See what's due, what's overdue, and reset a task with one click.
+[![Tests](https://img.shields.io/github/actions/workflow/status/gustaw-beznicki/Home-dashboard/deploy.yml?event=pull_request&label=tests&logo=github)](https://github.com/gustaw-beznicki/Home-dashboard/actions/workflows/deploy.yml)
+[![Deploy](https://img.shields.io/github/actions/workflow/status/gustaw-beznicki/Home-dashboard/deploy.yml?branch=main&label=deploy&logo=cloudflare&logoColor=white)](https://github.com/gustaw-beznicki/Home-dashboard/actions/workflows/deploy.yml)
 
-## Stack
+A shared to-do list for the stuff around the house that's easy to do and even easier to forget —
+watering the plants, changing a filter, restocking batteries, paying a bill that's due once a
+month. Everyone in the household sees the same list, on their own phone, and it stays in sync.
 
-Vite + React + Tailwind CSS frontend, backed by a Cloudflare Worker (`worker/`) with a D1
-database for shared, multi-device task state and per-person completion attribution.
-Authentication is [Better Auth](https://www.better-auth.com/) running self-hosted inside the same
-Worker against D1, with Google as the only sign-in method; authorization is the app's own `users`
-table (role + status). No separate auth service, and no per-user cost.
-See `docs/adl/` for the architectural decisions behind this setup — start with
-[0009](docs/adl/0009-replace-clerk-with-self-hosted-better-auth-on-d1.md), which explains why
-Google-only, and why two-factor auth is Google's job rather than this app's.
+<p align="center">
+  <img src="docs/screenshots/pr-brand-paleta-2/dashboard-desktop-light.png" alt="Ogarniamy dashboard, desktop, light mode" width="600">
+</p>
 
-## Development
+## What it does
 
-```bash
-npm install
-npm run dev              # frontend dev server
-npm run dev:worker        # wrangler dev, for testing the Worker + D1 locally
-npm test                  # Vitest unit tests
-npm run build             # production build to dist/
-npm run preview            # preview the production build
-npm run db:migrate:local   # apply D1 migrations to the local dev database
-```
+- **Shows what actually needs attention today** — split into *Zaległe* (overdue), *Na dziś*
+  (today) and *Na spokojnie* (everything else, not urgent yet).
+- **One tap to mark something done.** It reappears on its own next time it's due — the app knows
+  the difference between "every 3 days" and "once a month, on the 1st," so paying a bill a few
+  days late doesn't quietly shift its due date forward.
+- **Remembers who did what.** Every completed task is attributed to the person who did it, with a
+  weekly tally so the household can see how chores are actually being shared.
+- **A quick "undo"** for the inevitable accidental tap — a few seconds to take it back before it's
+  final.
+- **Categories, pinning, and an archive** for tasks that are done for the season but not deleted
+  for good.
+- **A household settings page** ("Panel domu") for naming the home, choosing default categories,
+  and inviting or removing people.
+- Works equally well on a phone on the fridge or a laptop, light or dark.
 
-`npm run dev` serves the frontend only — `/api/*` isn't reachable under plain Vite, so use
-`npm run dev:worker` (port 8787) for anything touching auth, the Worker, or D1.
+## Who it's for
 
-Local auth needs no separate provider instance: copy `.dev.vars.example` to `.dev.vars`
-(gitignored) and fill it in. Google permits `http://localhost:8787/api/auth/callback/google` as a
-redirect URI, so local development uses the same OAuth client as production. Sign in through the
-real Google flow — there's deliberately no mock-identity bypass, since a mock can't exercise the
-login screen or the invite gate.
+Ogarniamy is invite-only — it's built for one household (or a small group sharing a space), not
+the general public. Someone with admin access invites you by email, you sign in with Google, and
+you're in. There's no public sign-up.
 
-## Deploy
+## Using it
 
-CI/CD is a GitHub Actions pipeline (`.github/workflows/deploy.yml`): on every push to `main`,
-it runs the test suite, builds, applies any pending D1 migrations, then deploys the Worker via
-`wrangler deploy`. Deploys require a `CLOUDFLARE_API_TOKEN` repo secret.
+If you've been invited, sign in with your Google account at the app's address and you'll land on
+the dashboard. First time in, a short walkthrough asks for your name and a colour so your
+housemates can tell whose tasks are whose.
 
-## Features
+If you administer the household (invite people, manage categories, adjust settings), look for
+**Panel domu** in the sidebar.
 
-- Task list with recurring intervals (daily / every N days / weekly / monthly / manual)
-- One-click "done today" reset, edit, delete, pin, archive
-- Tabs: Dzisiaj (today) / Przybliżający się (upcoming 7 days) / Wszystko (all) / Archiwum
-- Category filter (Rośliny / Sprzęt / Dom / Zdrowie)
-- KPI bar showing % of tasks done today
-- Dark mode
+## Want the details?
+
+This README is deliberately the friendly version. For the stack, local setup, running the test
+suite, and how deployment works, see the **[technical README](docs/README.md)** — written for
+anyone who wants to run it themselves or poke around the code.
