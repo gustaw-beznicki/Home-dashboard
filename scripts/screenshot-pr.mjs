@@ -52,6 +52,18 @@ const SHOTS = [
     },
   },
   { name: 'admin-desktop-light', route: '/admin', viewport: DESKTOP, scheme: 'light' },
+  { name: 'panel-desktop-light', route: '/panel', viewport: DESKTOP, scheme: 'light' },
+  { name: 'panel-mobile-light', route: '/panel', viewport: MOBILE, scheme: 'light', fullPage: true },
+  {
+    name: 'panel-data-desktop-light',
+    route: '/panel',
+    viewport: DESKTOP,
+    scheme: 'light',
+    action: async (page) => {
+      const nav = page.getByRole('button', { name: /Dane domu/ })
+      if (await nav.count()) await nav.first().click()
+    },
+  },
 ]
 
 async function openFirstTask(page) {
