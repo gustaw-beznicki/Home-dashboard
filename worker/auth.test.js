@@ -95,24 +95,25 @@ describe('authorize', () => {
     expect(result).toBeNull()
   })
 
-  it('bootstraps the first user as admin only if it matches INITIAL_ADMIN_EMAIL', async () => {
+  // ADR 0012 removed the INITIAL_ADMIN_EMAIL bootstrap. An empty table now
+  // means nobody gets in — fail closed — and the first admin is granted out of
+  // band with `npm run admin:grant`.
+  it('grants nothing on an empty table, whatever INITIAL_ADMIN_EMAIL says', async () => {
     const db = createFakeDb([])
     const env = { DB: db, INITIAL_ADMIN_EMAIL: 'admin@example.com' }
 
-    const rejected = await authorize({ email: 'someone-else@example.com' }, env)
-    expect(rejected).toBeNull()
-
-    const bootstrapped = await authorize({ email: 'admin@example.com', name: 'Admin' }, env)
-    expect(bootstrapped).toEqual({ email: 'admin@example.com', name: 'Admin', role: 'admin' })
+    expect(await authorize({ email: 'admin@example.com', name: 'Admin' }, env)).toBeNull()
+    expect(await authorize({ email: 'someone-else@example.com' }, env)).toBeNull()
   })
 
-  it('does not re-bootstrap once a user already exists', async () => {
-    const db = createFakeDb([
-      { email: 'admin@example.com', name: 'Admin', role: 'admin', status: 'active' },
-    ])
-    const env = { DB: db, INITIAL_ADMIN_EMAIL: 'admin@example.com' }
-    const result = await authorize({ email: 'second@example.com' }, env)
-    expect(result).toBeNull()
+  it('never writes to `users` — authorization only ever reads', async () => {
+    const db = createFakeDb([])
+    await authorize({ email: 'admin@example.com' }, { DB: db, INITIAL_ADMIN_EMAIL: 'admin@example.com' })
+
+    expect(db.users.size).toBe(0)
+    // A login attempt causing a privilege grant was the actual defect in the
+    // old design, not merely the awkward empty-table condition.
+    expect(db.statements.some((s) => s.sql.startsWith('INSERT INTO users'))).toBe(false)
   })
 })
 
@@ -175,28 +176,36 @@ describe('resolveInvite', () => {
     })
   })
 
-  it('allows the bootstrap admin only while the table is empty', async () => {
+  it('denies everyone on an empty table, INITIAL_ADMIN_EMAIL notwithstanding', async () => {
     const empty = { DB: createFakeDb([]), INITIAL_ADMIN_EMAIL: 'admin@example.com' }
     await expect(resolveInvite(empty, 'admin@example.com')).resolves.toEqual({
-      allowed: true,
-      role: 'admin',
+      allowed: false,
+      role: null,
     })
-
-    const populated = {
-      DB: createFakeDb([{ email: 'someone@example.com', role: 'member', status: 'active' }]),
-      INITIAL_ADMIN_EMAIL: 'admin@example.com',
-    }
-    await expect(resolveInvite(populated, 'admin@example.com')).resolves.toEqual({
+    await expect(resolveInvite(empty, 'anyone@example.com')).resolves.toEqual({
       allowed: false,
       role: null,
     })
   })
 
-  it('denies the bootstrap path when INITIAL_ADMIN_EMAIL is unset', async () => {
-    await expect(resolveInvite({ DB: createFakeDb([]) }, 'anyone@example.com')).resolves.toEqual({
-      allowed: false,
-      role: null,
-    })
+  // The two gates used to re-derive the same empty-table condition separately.
+  // Since ADR 0012 there is one rule — "a non-revoked row exists" — so they can
+  // no longer drift apart on that, and this pins it down.
+  //
+  // `pending` is excluded on purpose: the two genuinely differ there, and should.
+  // resolveInvite lets a pending invitee create an identity; authorize refuses
+  // them access until `create.after` has flipped the row to active. Asserting
+  // equivalence for pending would encode a bug as a requirement.
+  it('agrees with authorize() on active, revoked and unknown addresses', async () => {
+    const rows = [
+      { email: 'active@example.com', role: 'member', status: 'active' },
+      { email: 'revoked@example.com', role: 'member', status: 'revoked' },
+    ]
+    for (const email of ['active@example.com', 'revoked@example.com', 'stranger@example.com']) {
+      const invite = await resolveInvite({ DB: createFakeDb(rows) }, email)
+      const access = await authorize({ email }, { DB: createFakeDb(rows) })
+      expect(invite.allowed, email).toBe(access !== null)
+    }
   })
 })
 
@@ -333,7 +342,7 @@ describe('requireUser with the dev bypass', () => {
     expect(mockGetSession).not.toHaveBeenCalled()
   })
 
-  it('leaves no `users` row behind, so the admin bootstrap still fires later', async () => {
+  it('leaves no `users` row behind — authorization is read-only', async () => {
     const db = createFakeDb()
     await requireUser(new Request('http://localhost:8787/api/tasks'), {
       DEV_NO_AUTH: 'true',

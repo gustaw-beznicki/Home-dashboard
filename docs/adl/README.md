@@ -29,3 +29,4 @@ template.
 | [0009](0009-replace-clerk-with-self-hosted-better-auth-on-d1.md) | Replace Clerk with self-hosted Better Auth on D1 | Accepted |
 | [0010](0010-anchor-recurrence-to-a-start-date-instead-of-the-last-completion.md) | Anchor recurrence to a start date instead of the last completion | Accepted |
 | [0011](0011-allow-a-loopback-only-identity-bypass-for-local-development.md) | Allow a loopback-only identity bypass for local development | Accepted |
+| [0012](0012-grant-the-first-admin-with-a-script-not-a-login-side-effect.md) | Grant the first admin with a script, not a login side effect | Accepted |

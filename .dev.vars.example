@@ -27,9 +27,9 @@ BETTER_AUTH_SECRET=
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 
-# Only user matching this email can self-provision as admin, and only while the
-# `users` table is empty. A stale row silently prevents the bootstrap.
-INITIAL_ADMIN_EMAIL=
+# No INITIAL_ADMIN_EMAIL any more (ADR 0012). Grant the first admin explicitly:
+#   npm run admin:grant -- you@example.com
+# and inspect who has access with `npm run admin:list`. Both take --remote.
 
 # Optional. Omit both and invites still work — the D1 row is the source of
 # truth; the email is only a courtesy notification.

@@ -60,7 +60,7 @@ If you'd rather not, nothing needs doing. Close this file.
    ```
 
    `ANTHROPIC_API_KEY` should appear alongside `BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_ID`,
-   `GOOGLE_CLIENT_SECRET`, `INITIAL_ADMIN_EMAIL` and `RESEND_API_KEY`.
+   `GOOGLE_CLIENT_SECRET` and `RESEND_API_KEY`.
 
 ## Step 3 — What to build (hand back to Claude Code)
 

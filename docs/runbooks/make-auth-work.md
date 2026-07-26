@@ -13,7 +13,7 @@ sign-in to actually function, locally and in production.
 | Every `/api/*` route in production | **503** `Auth is not configured on the server` |
 | `BETTER_AUTH_SECRET` (production) | **missing** |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` (production) | **missing** |
-| `INITIAL_ADMIN_EMAIL` (production) | set |
+| `INITIAL_ADMIN_EMAIL` (production) | set, and now **unused** — ADR 0012 removed it. Delete it. |
 | `CLERK_SECRET_KEY`, `CLERK_WEBHOOK_SIGNING_SECRET` | still there, **dead** — Clerk is retired |
 | `.dev.vars` `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | empty |
 | D1 migrations (remote) | all four applied, including `0004` |
@@ -25,78 +25,69 @@ sign-in to actually function, locally and in production.
 So the deployed app is one step from working: three secrets. The 503 is the guard from PR #13 doing
 its job, not a bug.
 
-**The part that will bite you** is the second-to-last row. `authorize()` self-provisions
-`INITIAL_ADMIN_EMAIL` as admin **only while `users` is empty**, and it is not empty. That safety
-valve is already spent. So whichever Google account you sign in with must already have a row in
-`users`, or you get `403` — and you cannot reach `/admin` to fix it, because `/admin` needs admin.
-
-Check which two addresses those are before doing anything else:
+**The rule is simply: a non-revoked `users` row, or no access.** There is no self-provisioning path
+any more (ADR 0012) — the old `INITIAL_ADMIN_EMAIL` bootstrap granted admin as a side effect of a
+login attempt, only while the table was empty, so it closed silently after one use and was useless for
+recovery. Access is now granted explicitly:
 
 ```bash
-npx wrangler d1 execute home-dashboard-db --remote --command "SELECT email, role, status FROM users;"
+npm run admin:list -- --remote                        # who has access
+npm run admin:grant -- you@example.com --remote       # grant/promote, idempotent
 ```
+
+So whichever Google account you sign in with must already be listed as an active admin. Check first —
+if it isn't, you get a `403` and cannot reach `/admin` to fix it, because `/admin` needs admin.
 
 ```mermaid
 flowchart TD
-    A[Set the 3 secrets] --> B{Is your Google account<br/>the admin row in users?}
-    B -->|Yes| C[Sign in - you are admin]
-    B -->|No, but it is the member row| D[Sign in works,<br/>/admin 403s]
-    B -->|No row at all| E[403 Not authorized.<br/>No way in]
-    D --> F[Fix the row with d1 execute<br/>BEFORE signing in]
-    E --> F
-    F --> C
+    A[Set the 3 secrets] --> B[npm run admin:list -- --remote]
+    B --> C{Your Google account listed<br/>as active admin?}
+    C -->|Yes| D[Sign in - you are admin]
+    C -->|No| E[npm run admin:grant<br/>-- you@example.com --remote]
+    E --> D
+    D --> F[Delete INITIAL_ADMIN_EMAIL<br/>and the 2 Clerk secrets]
 ```
 
 ---
 
 ## Steps
 
-### 1. Decide which Google account is the admin — do this first
+### 1. Make sure an address you can actually sign in with holds `admin`
+
+```bash
+npm run admin:list -- --remote
+```
 
 Both existing rows are `active`, on different domains — which is why `authOptions.js` sets no `hd`
 hosted-domain restriction.
 
-**Already done:** the Gmail row has been promoted to `admin`, because the address the original
-bootstrap row carries is not one that can authenticate through Google today. A `bootstrap` marker
-proves an address was a valid identity under whatever auth was live at the time — not that it is a
-usable Google account now, and that distinction is the difference between signing in and being
-locked out with no route to `/admin`.
+**Already done:** the Gmail row has been promoted to `admin`. The other row was created by the old
+bootstrap, and a `bootstrap` marker proves an address was a valid identity under whatever auth was
+live at the time — not that it is a usable Google account *today*. That distinction is the difference
+between signing in and being locked out with no route to `/admin`.
 
-Note the shape of that change. `users.email` is the PRIMARY KEY, so renaming the old admin row to an
-address that already exists fails on a UNIQUE violation — you promote the existing row instead:
+To grant, promote, demote, revoke or restore anyone:
 
 ```bash
-npx wrangler d1 execute home-dashboard-db --remote \
-  --command "UPDATE users SET role = 'admin' WHERE email = 'the-address@example.com';"
+npm run admin:grant -- you@example.com --remote                     # active admin
+npm run admin:grant -- them@example.com --role member --remote      # demote
+npm run admin:grant -- old@example.com --status revoked --remote    # cut off access
 ```
 
-That leaves the original bootstrap row still holding `admin`. Decide what it should be — see the
-query below and the note at the end of this step.
+It upserts on `email`, so it is idempotent and safe to re-run. That matters: `users.email` is the
+PRIMARY KEY, so *renaming* a row to an address that already exists would fail on a UNIQUE violation —
+the upsert sidesteps that entirely.
 
-Look at the output of the query above.
+Two things the script tells you that raw SQL would not. It warns when the table has **no active
+admin**, which is the state you cannot recover from through the UI. And if the address has already
+signed in, it says so — Better Auth keeps its own mirrored copy of `role`, which `authorize()` repairs
+on that person's next request, so expect one reload before `/admin` stops 403-ing. Nobody has signed in
+yet, so that does not apply right now.
 
-- **If the `admin` row is an address you can sign in to with Google** (including Google Workspace on
-  a custom domain), nothing to change. Skip to step 2.
-- **If it isn't** — the account is gone, isn't a Google account, or you'd rather use a different one —
-  fix the row now, before your first sign-in:
-
-  ```bash
-  # Point the existing admin row at the address you will actually use:
-  npx wrangler d1 execute home-dashboard-db --remote \
-    --command "UPDATE users SET email = 'you@gmail.com' WHERE role = 'admin';"
-  ```
-
-  Or add a second admin instead of moving the first:
-
-  ```bash
-  npx wrangler d1 execute home-dashboard-db --remote \
-    --command "INSERT INTO users (email, role, status, invited_by) VALUES ('you@gmail.com', 'admin', 'active', 'manual');"
-  ```
-
-  Editing `users.role` by hand normally desynchronises Better Auth's own mirrored `user.role` and
-  403s the admin API until `authorize()` repairs it. **Not a problem here** only because the `user`
-  table is empty — the row is created at first sign-in with the correct role. If you ever do this
-  again after people have signed in, expect one repair round-trip.
+The remaining question is what the old bootstrap row should be. Once you can reach `/admin`, do it
+there rather than from the CLI — that portal is the intended tool. Leaving it as a second admin is
+also defensible if the address is one you control: it is a fallback if the Gmail account ever has
+trouble.
 
 ### 2. Make the consent screen let people through — this is a gate, not a formality
 
@@ -128,7 +119,7 @@ inviting somebody a *two-step* operation forever — a `users` row via `/admin`,
 entry here. Forget the second and the invitee hits `access_denied` with nothing in the app's logs to
 explain it.
 
-Get the addresses that need to work from the query in step 1.
+Get the addresses that need to work from `npm run admin:list -- --remote` in step 1.
 
 ### 3. Add both redirect URIs to that client
 
@@ -191,11 +182,17 @@ Confirm the result — you want exactly four names:
 npx wrangler secret list
 ```
 
-`BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `INITIAL_ADMIN_EMAIL`.
+`BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` — and nothing else.
+`INITIAL_ADMIN_EMAIL` is no longer read by any code path (ADR 0012), so delete it too rather than
+leaving a secret around that looks meaningful and isn't:
+
+```bash
+npx wrangler secret delete INITIAL_ADMIN_EMAIL
+```
 
 ### 5. Fill in `.dev.vars` for local work
 
-`BASE_URL`, `BETTER_AUTH_SECRET` and `INITIAL_ADMIN_EMAIL` are already filled. Add the two empty
+`BASE_URL` and `BETTER_AUTH_SECRET` are already filled. Add the two empty
 lines using the **same** client as production:
 
 ```
@@ -255,11 +252,12 @@ Worker, so `wrangler tail` shows nothing at all; that silence is the tell.
 **`redirect_uri_mismatch`** — step 3. Check the path, `localhost` vs `127.0.0.1`, `http` vs `https`,
 and give Google a few minutes.
 
-**"Tego konta nie ma na liście domowników."** — the invite gate refused: no `users` row for that
-address, and the bootstrap cannot fire because the table is not empty. Go back to step 1.
+**"Tego konta nie ma na liście domowników."** — the invite gate refused: there is no `users` row for
+that address. `npm run admin:grant -- that@address --remote`. Nothing self-provisions any more, which
+is deliberate: an empty table means nobody gets in rather than the next stranger becoming admin.
 
 **`403 Not authorized — ask an admin to invite you`** — there is a row, but `status` is not `active`.
-Check with the query in step 1.
+Check with `npm run admin:list -- --remote`.
 
 **Sign-in button does nothing** — shouldn't happen any more; PR #13 surfaces the failure in the UI
 and logs the cause. `npx wrangler tail` while you click.
