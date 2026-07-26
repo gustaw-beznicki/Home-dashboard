@@ -31,13 +31,13 @@ export function QuickAdd({ onDraft }) {
         onKeyDown={(e) => e.key === 'Enter' && submit()}
         placeholder={COPY.quickAddPlaceholder}
         aria-label={COPY.add}
-        className="h-[54px] min-w-0 flex-1 rounded-full bg-white px-4.5 text-[14.5px] text-moss-900 shadow-card outline-none placeholder:text-moss-500 focus:ring-2 focus:ring-forest-500 dark:bg-bark-800 dark:text-moss-100"
+        className="h-[54px] min-w-0 flex-1 rounded-full bg-moss-50 px-4.5 text-[14.5px] text-moss-900 shadow-card outline-none placeholder:text-moss-500 focus:ring-2 focus:ring-forest-500 dark:bg-bark-800 dark:text-moss-100"
       />
       <button
         type="button"
         aria-label={COPY.add}
         onClick={value.trim() ? submit : () => onDraft({})}
-        className="grid h-[54px] w-[54px] shrink-0 place-items-center rounded-full bg-forest-600 text-lime-400"
+        className="grid h-[54px] w-[54px] shrink-0 place-items-center rounded-full bg-cta text-onaccent"
       >
         <Plus size={20} strokeWidth={2.4} />
       </button>

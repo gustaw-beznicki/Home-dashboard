@@ -34,13 +34,13 @@ export function EmptyState({ tasks, today, variant = 'today' }) {
   const until = next ? daysUntilDue(next, today) : null
 
   return (
-    <div className="rounded-hero bg-forest-600 px-6 py-12 text-center text-moss-100">
-      <div className="mx-auto mb-5 grid h-14 w-14 place-items-center rounded-full bg-[#456b50]">
+    <div className="rounded-hero bg-hero px-6 py-12 text-center text-moss-200">
+      <div className="mx-auto mb-5 grid h-14 w-14 place-items-center rounded-full bg-[#3d5230]">
         <Check size={26} strokeWidth={2.4} className="text-lime-400" />
       </div>
       <p className="mx-auto max-w-[20ch] text-[24px] leading-snug">{COPY.emptyToday}</p>
       {next && until !== null && (
-        <p className="mt-3 text-[13.5px] text-[#a9c9a5]">
+        <p className="mt-3 text-[13.5px] text-[#aec399]">
           {COPY.emptyTodayHint} {relativeDue(until)}: {next.name}
         </p>
       )}

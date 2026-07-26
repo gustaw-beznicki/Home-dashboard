@@ -203,7 +203,7 @@ export function Dashboard() {
                 <a
                   href="/admin"
                   aria-label={COPY.admin.title}
-                  className="grid h-[38px] w-[38px] place-items-center rounded-[14px] bg-forest-600 text-[13px] font-medium text-lime-400 lg:hidden"
+                  className="grid h-[38px] w-[38px] place-items-center rounded-[14px] bg-cta text-[13px] font-medium text-onaccent lg:hidden"
                 >
                   {(user.name || user.email).charAt(0).toUpperCase()}
                 </a>
@@ -223,8 +223,8 @@ export function Dashboard() {
                     className={[
                       'rounded-full px-3 py-1.5 text-[12.5px] transition',
                       activeView === view.key
-                        ? 'bg-forest-600 font-medium text-moss-100'
-                        : 'bg-white text-moss-700 dark:bg-bark-700 dark:text-moss-400',
+                        ? 'bg-forest-600 font-medium text-onaccent'
+                        : 'bg-moss-50 text-moss-700 dark:bg-bark-700 dark:text-moss-400',
                     ].join(' ')}
                   >
                     {view.label}
@@ -255,7 +255,7 @@ export function Dashboard() {
           />
 
           {error && tasks.length > 0 && (
-            <p className="mb-4 rounded-2xl bg-amber-100 px-4 py-3 text-[13px] text-amber-500 dark:bg-[#332a19]">
+            <p className="mb-4 rounded-2xl bg-amber-100 px-4 py-3 text-[13px] text-amber-500 dark:bg-[#3e3a29]">
               {COPY.rollback}
             </p>
           )}
@@ -267,12 +267,12 @@ export function Dashboard() {
           )}
 
           {error && tasks.length === 0 && (
-            <div className="rounded-hero bg-white px-6 py-8 text-center shadow-card dark:bg-bark-800">
+            <div className="rounded-hero bg-moss-50 px-6 py-8 text-center shadow-card dark:bg-bark-800">
               <p className="mb-3 text-[15px] text-clay-500">{COPY.loadError}</p>
               <button
                 type="button"
                 onClick={retry}
-                className="h-[46px] rounded-full bg-forest-600 px-5 text-[14px] font-medium text-moss-100"
+                className="h-[46px] rounded-full bg-cta px-5 text-[14px] font-medium text-onaccent"
               >
                 {COPY.retry}
               </button>

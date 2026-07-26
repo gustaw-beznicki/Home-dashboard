@@ -103,8 +103,8 @@ export function TaskCard({ task, today, onDone, onUndo, onOpen, rolledBack = fal
           className={[
             'relative grid h-[46px] w-[46px] shrink-0 place-items-center rounded-full transition',
             status === 'overdue'
-              ? 'bg-lime-400 text-forest-700 hover:bg-lime-300 active:bg-lime-500'
-              : 'border-2 border-moss-300 text-moss-400 hover:border-lime-400 hover:bg-lime-400 hover:text-forest-700 dark:border-bark-600',
+              ? 'bg-forest-600 text-onaccent hover:bg-forest-700 active:bg-forest-700'
+              : 'border-2 border-moss-300 text-moss-400 hover:border-forest-600 hover:bg-forest-600 hover:text-onaccent dark:border-bark-600',
           ].join(' ')}
         >
           <Check size={21} strokeWidth={2.6} />

@@ -6,16 +6,16 @@ import { COPY } from '../lib/constants'
 // Status as a word in a chip, never colour alone — and the literal class
 // strings live here so Tailwind's JIT scanner can see them.
 const STATUS_CHIP_CLASS = {
-  pending: 'bg-amber-100 text-amber-500 dark:bg-[#332a19] dark:text-[#e0b073]',
-  revoked: 'bg-clay-100 text-clay-700 dark:bg-[#3a2018] dark:text-[#f0a58a]',
+  pending: 'bg-amber-100 text-amber-500 dark:bg-[#3e3a29] dark:text-[#d9c28a]',
+  revoked: 'bg-clay-100 text-clay-700 dark:bg-[#301717] dark:text-[#e4a9a8]',
   active: 'bg-moss-200 text-moss-700 dark:bg-bark-700 dark:text-moss-400',
   self: 'bg-moss-200 text-moss-700 dark:bg-bark-700 dark:text-moss-400',
 }
 
 const RESULT_CLASS = {
   emailed: 'bg-moss-100 text-moss-800 dark:bg-bark-700 dark:text-moss-300',
-  'no-email': 'bg-amber-100 text-amber-500 dark:bg-[#332a19] dark:text-[#e0b073]',
-  error: 'bg-clay-100 text-clay-700 dark:bg-[#3a2018] dark:text-[#f0a58a]',
+  'no-email': 'bg-amber-100 text-amber-500 dark:bg-[#3e3a29] dark:text-[#d9c28a]',
+  error: 'bg-clay-100 text-clay-700 dark:bg-[#301717] dark:text-[#e4a9a8]',
 }
 
 function statusChip(user, isSelf) {
@@ -138,7 +138,7 @@ export function AdminPortal({ embedded = false }) {
         {COPY.admin.subtitle}
       </p>
 
-      <form onSubmit={handleInvite} className="mt-4.5 rounded-hero bg-white p-4 sm:p-5 dark:bg-bark-800">
+      <form onSubmit={handleInvite} className="mt-4.5 rounded-hero bg-moss-50 p-4 sm:p-5 dark:bg-bark-800">
         <div className="flex flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:items-center">
           <label className="flex min-w-0 flex-1 items-center gap-2.5 rounded-2xl border border-moss-300 px-3.5 py-3 focus-within:border-forest-500 sm:min-w-[260px] dark:border-bark-600">
             <Mail size={16} strokeWidth={1.8} className="shrink-0 text-moss-600" />
@@ -165,7 +165,7 @@ export function AdminPortal({ embedded = false }) {
                 className={[
                   'flex-1 rounded-2xl px-4 py-3 text-[13.5px] transition sm:flex-none',
                   inviteRole === r.key
-                    ? 'bg-forest-600 font-medium text-moss-100 dark:bg-[#3a5842]'
+                    ? 'bg-forest-600 font-medium text-onaccent'
                     : 'bg-moss-100 text-moss-700 hover:bg-moss-200 dark:bg-bark-700 dark:text-moss-400',
                 ].join(' ')}
               >
@@ -175,7 +175,7 @@ export function AdminPortal({ embedded = false }) {
           </div>
           <button
             type="submit"
-            className="w-full rounded-full bg-lime-400 px-6.5 py-3 text-[14.5px] font-medium text-[#20321f] transition hover:bg-lime-300 sm:w-auto sm:rounded-2xl sm:text-[14px]"
+            className="w-full rounded-full bg-cta px-6.5 py-3 text-[14.5px] font-medium text-onaccent transition hover:bg-cta-hover sm:w-auto sm:rounded-2xl sm:text-[14px]"
           >
             {COPY.admin.invite}
           </button>
@@ -203,12 +203,12 @@ export function AdminPortal({ embedded = false }) {
         </p>
       )}
       {error && (
-        <div className="mt-4 rounded-hero bg-white px-4 py-5 text-center dark:bg-bark-800">
+        <div className="mt-4 rounded-hero bg-moss-50 px-4 py-5 text-center dark:bg-bark-800">
           <p className="text-[14px] text-moss-900 dark:text-moss-100">{COPY.admin.error}</p>
           <button
             type="button"
             onClick={load}
-            className="mt-3 rounded-full bg-forest-600 px-5 py-2.5 text-[13.5px] font-medium text-moss-100 dark:bg-[#3a5842]"
+            className="mt-3 rounded-full bg-cta px-5 py-2.5 text-[13.5px] font-medium text-onaccent"
           >
             {COPY.retry}
           </button>
@@ -228,7 +228,7 @@ export function AdminPortal({ embedded = false }) {
           return (
             <li
               key={user.email}
-              className="flex items-center gap-3.5 rounded-card bg-white px-4 py-3.5 dark:bg-bark-800"
+              className="flex items-center gap-3.5 rounded-card bg-moss-50 px-4 py-3.5 dark:bg-bark-800"
             >
               <span
                 className={[
@@ -275,9 +275,9 @@ export function AdminPortal({ embedded = false }) {
                     {blocked ? (
                       <ShieldCheck size={16} strokeWidth={1.8} className="text-moss-700 dark:text-moss-400" />
                     ) : (
-                      <ShieldOff size={16} strokeWidth={1.8} className="text-clay-500 dark:text-[#f0a58a]" />
+                      <ShieldOff size={16} strokeWidth={1.8} className="text-clay-500 dark:text-[#e4a9a8]" />
                     )}
-                    <span className={['hidden text-[12.5px] sm:inline', blocked ? 'text-moss-700 dark:text-moss-400' : 'text-clay-500 dark:text-[#f0a58a]'].join(' ')}>
+                    <span className={['hidden text-[12.5px] sm:inline', blocked ? 'text-moss-700 dark:text-moss-400' : 'text-clay-500 dark:text-[#e4a9a8]'].join(' ')}>
                       {blocked ? COPY.admin.unblock : COPY.admin.block}
                     </span>
                   </button>

@@ -55,7 +55,7 @@ export function RhythmEditor({ value, onChange, today, lastDone, rebaseChoice, o
               className={[
                 'rounded-full px-3.5 py-2.5 text-[14px] transition',
                 interval.type === rhythm.type
-                  ? 'bg-forest-600 font-medium text-moss-100'
+                  ? 'bg-forest-600 font-medium text-onaccent'
                   : 'bg-moss-100 text-moss-700 hover:bg-moss-200 dark:bg-bark-700 dark:text-moss-400',
               ].join(' ')}
             >
@@ -66,13 +66,13 @@ export function RhythmEditor({ value, onChange, today, lastDone, rebaseChoice, o
       </div>
 
       {interval.type === 'everyNDays' && (
-        <div className="rounded-hero bg-forest-600 p-4.5 text-moss-100">
+        <div className="rounded-hero bg-hero p-4.5 text-moss-200">
           <div className="mb-4 flex items-baseline justify-between gap-3">
             <span className="text-[22px]">
               co <b className="font-medium text-lime-400">{interval.n}</b>{' '}
               {interval.n === 1 ? 'dzień' : 'dni'}
             </span>
-            <span className="text-[12px] text-[#a9c9a5]">
+            <span className="text-[12px] text-[#aec399]">
               {countWith(Math.max(1, Math.round(30 / interval.n)), FORMS.raz)} w miesiącu
             </span>
           </div>
@@ -83,10 +83,10 @@ export function RhythmEditor({ value, onChange, today, lastDone, rebaseChoice, o
             step={1}
             value={Math.max(0, SLIDER_STOPS.indexOf(interval.n))}
             onChange={(e) => set({ n: SLIDER_STOPS[Number(e.target.value)] })}
-            className="h-2 w-full cursor-pointer appearance-none rounded-full bg-[#456b50] accent-lime-400"
+            className="h-2 w-full cursor-pointer appearance-none rounded-full bg-[#3d5230] accent-lime-400"
             aria-label="Co ile dni"
           />
-          <div className="mt-2.5 flex justify-between text-[11px] text-[#7d9c79]">
+          <div className="mt-2.5 flex justify-between text-[11px] text-[#99ad7a]">
             {[1, 3, 7, 14, 30, 90].map((stop) => (
               <span key={stop}>{stop}</span>
             ))}
@@ -118,7 +118,7 @@ export function RhythmEditor({ value, onChange, today, lastDone, rebaseChoice, o
                   className={[
                     'grid aspect-square flex-1 place-items-center rounded-full text-[13px]',
                     on
-                      ? 'bg-forest-600 font-medium text-moss-100'
+                      ? 'bg-forest-600 font-medium text-onaccent'
                       : 'bg-moss-100 text-moss-600 dark:bg-bark-700 dark:text-moss-400',
                   ].join(' ')}
                 >
@@ -148,7 +148,7 @@ export function RhythmEditor({ value, onChange, today, lastDone, rebaseChoice, o
                 className={[
                   'flex items-center gap-3 rounded-2xl pr-4',
                   active
-                    ? 'bg-forest-600 text-moss-100'
+                    ? 'bg-forest-600 text-onaccent'
                     : 'bg-moss-50 text-moss-800 dark:bg-bark-700 dark:text-moss-300',
                 ].join(' ')}
               >
@@ -192,7 +192,7 @@ export function RhythmEditor({ value, onChange, today, lastDone, rebaseChoice, o
               </div>
             )
           })}
-          <p className="col-span-full flex items-start gap-2.5 rounded-2xl bg-amber-100 px-3.5 py-3 text-[12.5px] leading-relaxed text-amber-500 dark:bg-[#332a19]">
+          <p className="col-span-full flex items-start gap-2.5 rounded-2xl bg-amber-100 px-3.5 py-3 text-[12.5px] leading-relaxed text-amber-500 dark:bg-[#3e3a29]">
             <AlertTriangle size={16} strokeWidth={1.8} className="mt-0.5 shrink-0" />
             W lutym „ostatni dzień” to 28., a w roku przestępnym 29. Sami to ogarniemy.
           </p>
@@ -226,7 +226,7 @@ export function RhythmEditor({ value, onChange, today, lastDone, rebaseChoice, o
                   className={[
                     'flex-1 rounded-2xl py-2.5 text-[13.5px]',
                     active
-                      ? 'bg-forest-600 font-medium text-moss-100'
+                      ? 'bg-forest-600 font-medium text-onaccent'
                       : 'bg-moss-100 text-moss-700 dark:bg-bark-700 dark:text-moss-400',
                   ].join(' ')}
                 >
@@ -256,7 +256,7 @@ export function RhythmEditor({ value, onChange, today, lastDone, rebaseChoice, o
           so ask what to count from rather than silently picking one. */}
       {lastDone && rebaseChoice && interval.type !== 'manual' && (
         <div className="space-y-2">
-          <p className="flex items-start gap-2.5 rounded-2xl bg-amber-100 px-3.5 py-3 text-[12.5px] leading-relaxed text-amber-500 dark:bg-[#332a19]">
+          <p className="flex items-start gap-2.5 rounded-2xl bg-amber-100 px-3.5 py-3 text-[12.5px] leading-relaxed text-amber-500 dark:bg-[#3e3a29]">
             <AlertTriangle size={16} strokeWidth={1.8} className="mt-0.5 shrink-0" />
             Zmiana rytmu przesunie następny termin. Od czego liczyć?
           </p>
@@ -269,7 +269,7 @@ export function RhythmEditor({ value, onChange, today, lastDone, rebaseChoice, o
               className={[
                 'flex w-full items-center gap-3 rounded-2xl px-3.5 py-3.5 text-left text-[14px]',
                 rebaseChoice === option.key
-                  ? 'bg-forest-600 font-medium text-moss-100'
+                  ? 'bg-forest-600 font-medium text-onaccent'
                   : 'bg-moss-50 text-moss-800 dark:bg-bark-700 dark:text-moss-300',
               ].join(' ')}
             >
@@ -294,7 +294,7 @@ export function RhythmEditor({ value, onChange, today, lastDone, rebaseChoice, o
             {preview.map((date) => (
               <div
                 key={date.toISOString()}
-                className="flex-1 rounded-2xl bg-white px-3 py-2.5 dark:bg-bark-800"
+                className="flex-1 rounded-2xl bg-moss-50 px-3 py-2.5 dark:bg-bark-800"
               >
                 <p className="text-[15px] font-medium text-moss-900 dark:text-moss-100">
                   {formatDate(date)}

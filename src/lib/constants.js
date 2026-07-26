@@ -16,10 +16,10 @@ export const CATEGORY_LABELS = Object.fromEntries(CATEGORIES.map((c) => [c.key, 
 // Category tile behind the icon. Recognition, not status — statuses never use
 // category colour and vice versa.
 export const CATEGORY_TILE_CLASS = {
-  plants: 'bg-plant-100 text-plant-500 dark:bg-[#22301c] dark:text-[#9ccf8a]',
-  equipment: 'bg-clay-100 text-clay-500 dark:bg-[#3a2018] dark:text-[#f0a58a]',
-  home: 'bg-moss-200 text-moss-700 dark:bg-bark-700 dark:text-moss-400',
-  health: 'bg-health-100 text-health-500 dark:bg-[#332a19] dark:text-[#e0b073]',
+  plants: 'bg-plant-100 text-plant-500 dark:bg-[#202a14] dark:text-[#aec399]',
+  equipment: 'bg-clay-100 text-clay-700 dark:bg-[#301717] dark:text-[#e4a9a8]',
+  home: 'bg-moss-300 text-moss-800 dark:bg-bark-600 dark:text-moss-300',
+  health: 'bg-health-100 text-health-500 dark:bg-bark-700 dark:text-moss-400',
 }
 
 // Still four derived statuses; only the wording changed. `later` is the status
@@ -34,14 +34,14 @@ export const STATUS_LABELS = {
 // Colour never carries status on its own: the marker's *shape* differs too
 // (square / filled circle / hollow circle), and the card always says the word.
 export const STATUS_MARK_CLASS = {
-  overdue: 'h-[9px] w-[9px] rounded-[3px] bg-clay-500 dark:bg-[#f0a58a]',
-  due: 'h-[9px] w-[9px] rounded-full bg-forest-500 dark:bg-[#5f9a6d]',
-  later: 'h-[9px] w-[9px] rounded-full bg-moss-400 dark:bg-bark-600',
-  done: 'h-[9px] w-[9px] rounded-full border-2 border-moss-400 dark:border-bark-600',
+  overdue: 'h-[9px] w-[9px] rounded-[3px] bg-clay-500 dark:bg-[#c98281]',
+  due: 'h-[9px] w-[9px] rounded-full bg-forest-600',
+  later: 'h-[9px] w-[9px] rounded-full bg-moss-400 dark:bg-moss-500',
+  done: 'h-[9px] w-[9px] rounded-full border-2 border-moss-400 dark:border-moss-500',
 }
 
 export const STATUS_TEXT_CLASS = {
-  overdue: 'text-clay-500 dark:text-[#f0a58a]',
+  overdue: 'text-clay-700 dark:text-[#e4a9a8]',
   due: 'text-moss-600 dark:text-moss-500',
   later: 'text-moss-500 dark:text-moss-600',
   done: 'text-moss-500 dark:text-moss-600',
@@ -49,10 +49,10 @@ export const STATUS_TEXT_CLASS = {
 
 // The card's own border encodes status as well.
 export const CARD_CLASS = {
-  overdue: 'bg-white ring-[1.5px] ring-clay-300 dark:bg-bark-800 dark:ring-[#5a2f22]',
-  due: 'bg-white shadow-card dark:bg-bark-800',
+  overdue: 'bg-moss-50 ring-[1.5px] ring-clay-300 dark:bg-bark-800 dark:ring-[#492828]',
+  due: 'bg-moss-50 shadow-card dark:bg-bark-800',
   later: 'bg-moss-200 dark:bg-bark-700',
-  done: 'bg-white opacity-60 shadow-card dark:bg-bark-800',
+  done: 'bg-moss-50 opacity-60 shadow-card dark:bg-bark-800',
 }
 
 // The dashboard's three stops. These replace the old four tabs on mobile:

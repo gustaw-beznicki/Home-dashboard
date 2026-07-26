@@ -22,7 +22,7 @@ export function CategoryFilter({ activeCategory, onChange }) {
             className={[
               'rounded-full px-3 py-1.5 text-[12.5px] transition',
               active
-                ? 'bg-forest-600 font-medium text-moss-100'
+                ? 'bg-forest-600 font-medium text-onaccent'
                 : 'bg-moss-200 text-moss-700 hover:bg-moss-300 dark:bg-bark-700 dark:text-moss-400',
             ].join(' ')}
           >

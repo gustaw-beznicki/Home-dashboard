@@ -49,14 +49,14 @@ export function LegacyImportBanner({ tasks, isLoading, addTask, onImported }) {
           type="button"
           onClick={doImport}
           disabled={importing}
-          className="h-[46px] rounded-full bg-forest-600 px-5 text-[14px] font-medium text-moss-100 disabled:opacity-50"
+          className="h-[46px] rounded-full bg-cta px-5 text-[14px] font-medium text-onaccent disabled:opacity-50"
         >
           {importing ? COPY.importBanner.working : COPY.importBanner.confirm}
         </button>
         <button
           type="button"
           onClick={dismiss}
-          className="h-[46px] rounded-full bg-white px-5 text-[14px] text-moss-700 dark:bg-bark-700 dark:text-moss-400"
+          className="h-[46px] rounded-full bg-moss-50 px-5 text-[14px] text-moss-700 dark:bg-bark-700 dark:text-moss-400"
         >
           {COPY.importBanner.dismiss}
         </button>
