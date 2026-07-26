@@ -14,6 +14,22 @@ import * as db from './db.js'
 // app-owned TOTP alongside social sign-in would be a bypass, not a second
 // factor; and password hashing (scrypt, ~47ms) doesn't fit the Workers Free
 // 10ms CPU budget.
+// Without these, Better Auth still *constructs* — it only logs a warning — and
+// then throws when something actually tries to use the Google provider or sign a
+// cookie. That surfaced once as a bodyless 500 on /api/auth/sign-in/social after
+// a deploy landed ahead of `wrangler secret put`, which is a miserable thing to
+// debug. Check up front instead.
+export const REQUIRED_AUTH_ENV = [
+  'BASE_URL',
+  'BETTER_AUTH_SECRET',
+  'GOOGLE_CLIENT_ID',
+  'GOOGLE_CLIENT_SECRET',
+]
+
+export function missingAuthEnv(env) {
+  return REQUIRED_AUTH_ENV.filter((key) => !env[key])
+}
+
 export function buildAuthOptions(env) {
   return {
     // D1 is detected natively by better-auth's Kysely adapter (it duck-types

@@ -7,13 +7,27 @@ import { signInWithGoogle } from '../lib/authClient'
 // one (ADR 0009).
 export function LoginScreen() {
   const [isBusy, setIsBusy] = useState(false)
+  const [failed, setFailed] = useState(false)
 
   // Set by authClient's errorCallbackURL when the invite gate rejects someone.
   const wasRejected = new URLSearchParams(window.location.search).get('error') === 'not-invited'
 
-  const handleSignIn = () => {
+  // Surface failures rather than just un-pressing the button. Swallowing this
+  // made a server-side 500 look like a dead button, with the real cause visible
+  // only in devtools.
+  const handleSignIn = async () => {
     setIsBusy(true)
-    signInWithGoogle().catch(() => setIsBusy(false))
+    setFailed(false)
+    try {
+      const result = await signInWithGoogle()
+      // better-auth's client resolves with { error } rather than throwing on a
+      // non-2xx, so awaiting alone isn't enough to notice a failure.
+      if (result?.error) throw new Error(result.error.message || 'Sign-in failed')
+    } catch (err) {
+      console.error('Google sign-in failed', err)
+      setFailed(true)
+      setIsBusy(false)
+    }
   }
 
   return (
@@ -27,6 +41,12 @@ export function LoginScreen() {
         {wasRejected && (
           <p className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-300">
             To konto nie ma dostępu. Poproś administratora o zaproszenie.
+          </p>
+        )}
+
+        {failed && (
+          <p className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-300">
+            Nie udało się rozpocząć logowania. Spróbuj ponownie za chwilę.
           </p>
         )}
 
