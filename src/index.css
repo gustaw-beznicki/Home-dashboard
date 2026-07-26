@@ -1,3 +1,30 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-moss-100 font-sans text-moss-900 antialiased dark:bg-bark-900 dark:text-moss-100;
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: pretty;
+  }
+}
+
+@layer utilities {
+  /* The design's motion budget is small on purpose; this drops all of it except
+     opacity changes when the OS asks for reduced motion. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-property: opacity !important;
+      transition-duration: 120ms !important;
+    }
+  }
+}

@@ -1,5 +1,15 @@
 import { useCallback, useEffect, useState } from 'react'
+import { ArrowLeft } from 'lucide-react'
 import { useCurrentUser } from '../hooks/useCurrentUser'
+import { COPY } from '../lib/constants'
+
+function statusNote(user, isSelf) {
+  const notes = []
+  if (user.status === 'pending') notes.push(COPY.admin.pending)
+  if (user.status === 'revoked') notes.push(COPY.admin.revoked)
+  if (isSelf) notes.push(COPY.admin.you)
+  return notes.join(' · ')
+}
 
 export function AdminPortal() {
   const { user: currentUser } = useCurrentUser()
@@ -46,8 +56,8 @@ export function AdminPortal() {
         // independently, so say which happened rather than implying both.
         setNotice(
           data.emailed
-            ? `Zaproszenie wysłane na ${data.email}.`
-            : `${data.email} dodany. E-mail nie został wysłany — przekaż zaproszenie samodzielnie.`
+            ? COPY.admin.invitedEmailed(data.email)
+            : COPY.admin.invitedNoEmail(data.email)
         )
         load()
       })
@@ -70,80 +80,98 @@ export function AdminPortal() {
   // ADR 0009.
 
   return (
-    <div className="mx-auto min-h-screen max-w-2xl bg-gray-50 px-4 py-4 dark:bg-gray-900">
-      <header className="mb-4 flex items-center justify-between">
-        <h1 className="text-xl font-bold text-gray-900 dark:text-white">Panel administracyjny</h1>
-        <a href="/" className="text-sm underline text-gray-500 dark:text-gray-400">
-          Wróć do pulpitu
-        </a>
-      </header>
+    <div className="min-h-screen bg-moss-100 dark:bg-bark-900">
+      <div className="mx-auto max-w-2xl px-4.5 py-5.5">
+        <header className="mb-5.5 flex items-center justify-between gap-3">
+          <h1 className="text-[26px] leading-[1.2] text-moss-900 dark:text-moss-100">
+            {COPY.admin.title}
+          </h1>
+          <a
+            href="/"
+            className="flex items-center gap-1.5 text-[13px] text-moss-600 hover:underline dark:text-moss-500"
+          >
+            <ArrowLeft size={15} strokeWidth={1.8} />
+            {COPY.admin.back}
+          </a>
+        </header>
 
-      <div className="rounded-lg bg-white p-4 shadow dark:bg-gray-800">
-        <h2 className="mb-3 font-semibold text-gray-900 dark:text-white">Użytkownicy</h2>
-
-        <form onSubmit={handleInvite} className="mb-4 flex gap-2">
+        <form onSubmit={handleInvite} className="mb-5.5 flex flex-wrap gap-2">
           <input
             type="email"
             required
             value={inviteEmail}
             onChange={(e) => setInviteEmail(e.target.value)}
-            placeholder="np. partner@gmail.com"
-            className="flex-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+            placeholder={COPY.admin.emailPlaceholder}
+            aria-label={COPY.admin.emailPlaceholder}
+            className="h-[52px] min-w-0 flex-1 rounded-full bg-white px-4.5 text-[14px] text-moss-900 shadow-card outline-none placeholder:text-moss-500 focus:ring-2 focus:ring-forest-500 dark:bg-bark-800 dark:text-moss-100"
           />
           <select
             value={inviteRole}
             onChange={(e) => setInviteRole(e.target.value)}
-            className="rounded-md border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+            aria-label="Rola"
+            className="h-[52px] rounded-full bg-white px-4 text-[14px] text-moss-800 shadow-card outline-none dark:bg-bark-800 dark:text-moss-300"
           >
-            <option value="member">Domownik</option>
-            <option value="admin">Administrator</option>
+            <option value="member">{COPY.admin.roleMember}</option>
+            <option value="admin">{COPY.admin.roleAdmin}</option>
           </select>
           <button
             type="submit"
-            className="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
+            className="h-[52px] rounded-full bg-forest-600 px-6 text-[14.5px] font-medium text-moss-100"
           >
-            Zaproś
+            {COPY.admin.invite}
           </button>
         </form>
 
-        {isLoading && <p className="text-sm text-gray-500 dark:text-gray-400">Ładowanie…</p>}
-        {error && (
-          <p className="mb-2 text-sm text-red-600 dark:text-red-400">
-            Coś poszło nie tak. Spróbuj ponownie.
+        {isLoading && (
+          <p className="text-[13.5px] text-moss-600 dark:text-moss-500">{COPY.admin.loading}</p>
+        )}
+        {error && <p className="mb-3 text-[13.5px] text-clay-500">{COPY.admin.error}</p>}
+        {notice && (
+          <p className="mb-3 rounded-2xl bg-moss-200 px-4 py-3 text-[13px] text-moss-800 dark:bg-bark-800 dark:text-moss-300">
+            {notice}
           </p>
         )}
-        {notice && (
-          <p className="mb-2 text-sm text-gray-600 dark:text-gray-300">{notice}</p>
-        )}
 
-        <ul className="flex flex-col gap-3">
-          {users.map((u) => {
-            const isSelf = u.email === currentUser?.email
-            const isBusy = busyEmail === u.email
+        <ul className="flex flex-col gap-2">
+          {users.map((user) => {
+            const isSelf = user.email === currentUser?.email
+            const isBusy = busyEmail === user.email
+            const note = statusNote(user, isSelf)
 
             return (
               <li
-                key={u.email}
-                className="flex flex-col gap-2 rounded-md bg-gray-50 px-3 py-2 text-sm dark:bg-gray-700 dark:text-gray-100"
+                key={user.email}
+                className="flex items-center gap-3.5 rounded-card bg-white px-4 py-3.5 shadow-card dark:bg-bark-800"
               >
-                <div className="flex items-center justify-between">
-                  <span>
-                    {u.name || u.email} — {u.role === 'admin' ? 'Administrator' : 'Domownik'}
-                    {u.status === 'pending' && ' (zaproszony, jeszcze się nie logował)'}
-                    {u.status === 'revoked' && ' (zablokowany)'}
-                    {isSelf && ' (Ty)'}
-                  </span>
-                  {!isSelf && u.status !== 'pending' && (
-                    <button
-                      type="button"
-                      disabled={isBusy}
-                      onClick={() => setStatus(u.email, u.status === 'active')}
-                      className="text-red-600 hover:underline disabled:opacity-50 dark:text-red-400"
-                    >
-                      {u.status === 'active' ? 'Zablokuj' : 'Odblokuj'}
-                    </button>
-                  )}
+                <span className="grid h-[46px] w-[46px] shrink-0 place-items-center rounded-2xl bg-moss-200 text-[15px] text-moss-700 dark:bg-bark-700 dark:text-moss-400">
+                  {(user.name || user.email).charAt(0).toUpperCase()}
+                </span>
+
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-base font-medium text-moss-900 dark:text-moss-100">
+                    {user.name || user.email}
+                  </p>
+                  <p className="truncate text-[12.5px] text-moss-600 dark:text-moss-500">
+                    {user.role === 'admin' ? COPY.admin.roleAdmin : COPY.admin.roleMember}
+                    {note && ` · ${note}`}
+                  </p>
                 </div>
+
+                {!isSelf && user.status !== 'pending' && (
+                  <button
+                    type="button"
+                    disabled={isBusy}
+                    onClick={() => setStatus(user.email, user.status === 'active')}
+                    className={[
+                      'shrink-0 rounded-full px-4 py-2.5 text-[13px] font-medium disabled:opacity-50',
+                      user.status === 'active'
+                        ? 'bg-clay-100 text-clay-500 dark:bg-[#3a2018] dark:text-[#f0a58a]'
+                        : 'bg-moss-100 text-moss-700 dark:bg-bark-700 dark:text-moss-400',
+                    ].join(' ')}
+                  >
+                    {user.status === 'active' ? COPY.admin.block : COPY.admin.unblock}
+                  </button>
+                )}
               </li>
             )
           })}

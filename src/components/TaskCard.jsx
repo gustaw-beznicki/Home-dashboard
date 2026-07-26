@@ -1,81 +1,111 @@
-import { computeStatus, daysUntilDue } from '../lib/taskLogic'
-import { CATEGORY_LABELS, STATUS_CLASS_MAP, STATUS_LABELS } from '../lib/constants'
+import { Check, Pin } from 'lucide-react'
+import { CategoryIcon } from './CategoryIcon'
+import { CARD_CLASS, CATEGORY_TILE_CLASS, COPY, STATUS_TEXT_CLASS } from '../lib/constants'
+import { computeStatus, daysUntilDue, describeInterval, parseISODate } from '../lib/recurrence'
+import { formatLastDone, relativeDue } from '../lib/plural'
 
-function formatDueHint(task, today) {
-  if (task.interval.type === 'manual') return null
-  const until = daysUntilDue(task, today)
-  if (until === null) return null
-  if (until === 0) return 'Termin: dzisiaj'
-  if (until > 0) return `Termin za ${until} dni`
-  return `Przeterminowane o ${Math.abs(until)} dni`
-}
-
-export function TaskCard({ task, today, onMarkDone, onEdit, onDelete, onTogglePin, onArchive }) {
+// Everything is subordinate to one action — ticking the thing off. Editing,
+// pinning, archiving and deleting all live one level down, in the sheet.
+export function TaskCard({ task, today, onDone, onUndo, onOpen, rolledBack = false }) {
   const status = computeStatus(task, today)
-  const dueHint = formatDueHint(task, today)
+  const until = daysUntilDue(task, today)
+  const rhythm = describeInterval(task.interval)
+
+  // "Na spokojnie" is the quiet tier: smaller, flatter, no primary action.
+  const quiet = status === 'later'
+
+  const meta =
+    status === 'done'
+      ? formatLastDone(parseISODate(task.lastDone), today, task.completedBy?.name)
+      : [until === null ? rhythm : relativeDue(until), rhythm]
+          .filter((value, i, all) => all.indexOf(value) === i)
+          .join(' · ')
 
   return (
-    <div className="flex flex-col gap-2 rounded-lg bg-white p-4 shadow dark:bg-gray-800">
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-2">
-          {task.pinned && <span title="Przypięte">📌</span>}
-          <h3 className="font-semibold text-gray-900 dark:text-white">{task.name}</h3>
+    <article
+      onClick={() => onOpen(task)}
+      className={[
+        'relative flex items-center gap-3.5 rounded-card px-4 py-3.5 text-left transition duration-[120ms] ease-out active:scale-[.985]',
+        quiet ? 'rounded-[20px] px-3.5 py-3' : '',
+        CARD_CLASS[status],
+        rolledBack ? 'animate-rollback' : '',
+      ].join(' ')}
+    >
+      <span
+        className={[
+          'grid shrink-0 place-items-center rounded-2xl',
+          quiet ? 'h-8 w-8 rounded-xl' : 'h-[46px] w-[46px]',
+          CATEGORY_TILE_CLASS[task.category],
+        ].join(' ')}
+      >
+        <CategoryIcon category={task.category} size={quiet ? 16 : 21} />
+      </span>
+
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1.5">
+          {/* Stretched link: one focusable element covers the whole card, so the
+              card is keyboard-operable without nesting buttons inside a button. */}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              onOpen(task)
+            }}
+            className={[
+              'truncate text-left after:absolute after:inset-0 after:rounded-[inherit] focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-forest-500',
+              quiet
+                ? 'text-[14.5px] text-moss-800 dark:text-moss-300'
+                : 'text-base font-medium text-moss-900 dark:text-moss-100',
+              status === 'done' ? 'line-through decoration-moss-400' : '',
+            ].join(' ')}
+          >
+            {task.name}
+          </button>
+          {task.pinned && (
+            <Pin size={13} strokeWidth={2} className="shrink-0 text-moss-500" aria-label="Przypięte" />
+          )}
         </div>
-        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_CLASS_MAP[status]}`}>
-          {STATUS_LABELS[status]}
-        </span>
-      </div>
 
-      <div className="flex flex-wrap gap-2 text-xs text-gray-500 dark:text-gray-400">
-        <span>{CATEGORY_LABELS[task.category]}</span>
-        {task.lastDone && (
-          <span>
-            Ostatnio: {task.lastDone}
-            {task.completedBy && ` (${task.completedBy.name || task.completedBy.email})`}
-          </span>
+        <p className={['truncate text-[12.5px]', STATUS_TEXT_CLASS[status]].join(' ')}>{meta}</p>
+
+        {task.note && !quiet && status !== 'done' && (
+          <p className="mt-1 truncate text-[12.5px] text-moss-500 dark:text-moss-600">{task.note}</p>
         )}
-        {dueHint && <span>{dueHint}</span>}
       </div>
 
-      {task.note && <p className="text-sm text-gray-600 dark:text-gray-300">{task.note}</p>}
-
-      <div className="mt-1 flex flex-wrap gap-2">
+      {quiet ? (
+        <span className="relative shrink-0 text-[12.5px] text-moss-600 dark:text-moss-500">
+          {until === null ? '' : relativeDue(until)}
+        </span>
+      ) : status === 'done' ? (
         <button
           type="button"
-          onClick={() => onMarkDone(task.id)}
-          className="rounded-md bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-700"
+          onClick={(e) => {
+            e.stopPropagation()
+            onUndo(task)
+          }}
+          className="relative shrink-0 rounded-full px-3 py-2 text-[12.5px] text-moss-600 underline underline-offset-2 dark:text-moss-500"
         >
-          ✅ Zrobione dziś
+          {COPY.undo}
         </button>
+      ) : (
         <button
           type="button"
-          onClick={() => onEdit(task)}
-          className="rounded-md bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+          aria-label={`${COPY.done}: ${task.name}`}
+          onClick={(e) => {
+            e.stopPropagation()
+            onDone(task)
+          }}
+          className={[
+            'relative grid h-[46px] w-[46px] shrink-0 place-items-center rounded-full transition',
+            status === 'overdue'
+              ? 'bg-lime-400 text-forest-700 hover:bg-lime-300 active:bg-lime-500'
+              : 'border-2 border-moss-300 text-moss-400 hover:border-lime-400 hover:bg-lime-400 hover:text-forest-700 dark:border-bark-600',
+          ].join(' ')}
         >
-          ✏️ Edytuj
+          <Check size={21} strokeWidth={2.6} />
         </button>
-        <button
-          type="button"
-          onClick={() => onTogglePin(task.id)}
-          className="rounded-md bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
-        >
-          📌 {task.pinned ? 'Odepnij' : 'Przypnij'}
-        </button>
-        <button
-          type="button"
-          onClick={() => onArchive(task.id, !task.archived)}
-          className="rounded-md bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
-        >
-          {task.archived ? '↩️ Przywróć' : '🗄️ Archiwizuj'}
-        </button>
-        <button
-          type="button"
-          onClick={() => onDelete(task.id)}
-          className="rounded-md bg-red-50 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50"
-        >
-          🗑️ Usuń
-        </button>
-      </div>
-    </div>
+      )}
+    </article>
   )
 }

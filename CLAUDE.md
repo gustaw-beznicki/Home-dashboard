@@ -22,6 +22,10 @@ npx vitest run worker/auth.test.js
 npx vitest run -t "bootstraps the first user"
 ```
 
+The UI is `Ogarniamy` — the design system it implements is described in the
+`Home Dashboard.dc.html` claude.ai/design project (directions 2a, 2b/3a), with the decisions that
+touched data and dependencies recorded in ADR 0010.
+
 `npm run dev` has no `/api` proxy configured, so anything touching the API 404s under plain Vite.
 Use `npm run dev:worker` (port 8787) for any work involving the Worker, auth, or D1.
 
@@ -89,11 +93,29 @@ constraints to them. The version is **pinned exactly** — minors ship breaking 
 and because migrations apply before the new Worker deploys (ADR 0007), a schema-changing bump needs a
 two-step deploy rather than one merge.
 
-**Task status is always derived, never persisted.** `src/lib/taskLogic.js` computes
-`done | due | overdue | inactive` from `interval` + `lastDone` + the current date. Every function
-there takes `today` as an explicit argument and never reads the system clock, which is what makes it
+**Task status is always derived, never persisted.** `src/lib/recurrence.js` computes
+`done | due | overdue | later` from `interval` + `lastDone` + the current date. Every function there
+takes `today` as an explicit argument and never reads the system clock, which is what makes it
 testable — keep that property. `Dashboard` re-ticks on an interval plus visibility/focus events so a
 phone reopened the next morning doesn't show stale status.
+
+**Recurrence hangs off an anchor, not off the last completion** (ADR 0010). Every non-manual
+interval carries `startsOn`, an ISO date defining a *grid* of deadlines; the next deadline is the
+first grid point strictly after `lastDone`. So paying a bill three days late does not move the bill
+to the 4th of every month, and "co miesiąc" means a calendar month rather than 30 days. The corollary
+is that `interval.startsOn` is never optional in the UI — `RhythmEditor` always shows rhythm and
+"od kiedy" together, because the grid is meaningless without it. A recurring interval that somehow
+reaches `computeStatus` with no anchor is reported `overdue` on purpose: visible and correctable
+beats silently invisible.
+
+Changing an interval on an already-completed task visibly moves its next deadline, so the editor asks
+which base to count from (`rebaseInterval`). Don't add a code path that changes an interval without
+that choice.
+
+`groupTasks` and `filterForView` split responsibilities: the view filter decides *which* tasks
+(including archived), the grouper decides *which stop* — pass `groupTasks` an already-filtered list.
+A task ticked off today keeps its place via the sticky-group map in `Dashboard`'s `useUndoWindow`,
+then drops off the list when the undo window closes.
 
 `src/hooks/useTasks.js` applies changes to local state immediately, fires the API call, then merges
 the server response or rolls back on failure. Its exported shape is intentionally stable so the
@@ -101,11 +123,20 @@ presentational components don't care that a backend exists.
 
 The `completions` table is append-only history (who completed what, when) — `tasks.last_done_by_*`
 is only a denormalized cache of the latest row, kept in sync by the `/complete` endpoint. Don't
-treat the cache as the source of truth for attribution.
+treat the cache as the source of truth for attribution; `GET /api/stats/week` reads the history
+directly because the cache would undercount anything done twice in a week. The one thing that *does*
+delete history is `DELETE /api/tasks/:id/complete`, backing the few-second undo — it drops the newest
+row and recomputes the cache from what remains.
 
-UI copy is Polish. `src/lib/constants.js` holds the category/interval/priority/tab vocabulary and
-status→Tailwind class maps as **literal** class strings (not template-interpolated) so Tailwind's
-JIT scanner can see them.
+UI copy is Polish and lives in `COPY` in `src/lib/constants.js`, which also holds the category /
+rhythm / view vocabulary and the status→Tailwind class maps as **literal** class strings (not
+template-interpolated) so Tailwind's JIT scanner can see them. Note the design tokens in
+`tailwind.config.js` extend `spacing` with the 4.5 / 5.5 / 6.5 rungs (18/22/26 px) that Tailwind
+doesn't ship — several layouts depend on them.
+
+**Colour never carries status on its own.** Every status also has a marker *shape* (square / filled
+circle / hollow circle), a card treatment, and a word. Icons are `lucide-react` at stroke 1.8, and
+there are deliberately no emoji anywhere in the UI.
 
 ## Repo conventions
 
@@ -159,7 +190,9 @@ rotate via `BETTER_AUTH_SECRETS` (plural, versioned) if it ever needs to change.
 ## Admin portal
 
 `/admin` is a separate page (not a panel), gated on `role === 'admin'` client-side and enforced
-server-side by `requireAdmin` regardless. It can invite users and block/unblock them.
+server-side by `requireAdmin` regardless. It can invite users and block/unblock them. Its copy uses
+the household vocabulary: **Domownicy**, roles **Domownik** / **Gospodarz**, actions **Odetnij
+dostęp** / **Przywróć dostęp**.
 
 Inviting is purely a D1 write — Better Auth has no notion of the person until their first Google
 sign-in. The Resend email is a courtesy and is allowed to fail without failing the invite, so the UI
@@ -190,17 +223,33 @@ Access application and drop the now-dead `users.clerk_user_id` column in a follo
 
 Copy `.dev.vars.example` to `.dev.vars` (gitignored) and fill it in. There's no separate provider
 "development instance" to create: Google accepts `http://localhost:8787/api/auth/callback/google` as a
-redirect URI, so local work uses the same OAuth client as production. Sign in through the real Google
-flow via `npm run dev:worker` — there's deliberately no mock-identity bypass, since a mock can't
-exercise the login screen, the invite gate, or the admin portal.
+redirect URI, so local work uses the same OAuth client as production. `npm run dev:worker` then signs
+in through the real Google flow.
+
+`npm run db:seed:local` loads `scripts/seed-local.sql` — twelve tasks covering all five rhythms, all
+three stops, plus completion history for the week card. It deliberately writes no `users` row, since
+that would disable the `INITIAL_ADMIN_EMAIL` bootstrap.
+
+**`npm run dev:no-auth` skips sign-in entirely** (ADR 0011), for working on the UI without Google
+credentials. It passes `--var DEV_NO_AUTH:true`, and `devBypassUser` in `worker/auth.js` synthesises a
+local admin. Two things about it are load-bearing:
+
+- **It also requires a loopback hostname.** That, not the flag, is what makes it safe: `DEV_NO_AUTH`
+  leaking into deployed config still couldn't activate it, because production has exactly one public
+  hostname (ADR 0004). There are guard tests in `worker/auth.test.js` — treat a failure there as a
+  security regression, not a broken feature.
+- **The whole bypass is server-side.** The fake session is served from the Worker's `/api/auth/*`
+  carve-out, so no bypass code exists in the browser bundle and a production build has no way to skip
+  the login screen. Don't "simplify" this into a `VITE_*` flag.
+
+What it therefore *cannot* exercise, and what still needs a real Google sign-in: the login screen, the
+invite gate, the `authorize()` bootstrap, and role mirroring into Better Auth's tables. It also leaves
+`users` empty on purpose, so you won't see yourself in the admin portal's list.
 
 That also removes a trap the Clerk setup had: Clerk enabled *paid* features in development instances
 only, so MFA and user-banning worked locally and were silently unentitled in production. Nothing here
 behaves differently between local and production except the hostname.
 
-To exercise the invite → `pending`→`active` webhook flow locally without configuring a dev endpoint:
-
-```bash
-clerk webhooks listen --token "$(clerk webhooks token)" \
-  --forward-to http://localhost:8787/api/webhooks/clerk
-```
+The invite → `pending` → `active` transition needs no local tunnel or forwarding: it's Better Auth's
+`user.create.after` database hook, running in-process. Invite an address from `/admin`, sign in as it
+through the real Google flow, and watch the `users` row flip.

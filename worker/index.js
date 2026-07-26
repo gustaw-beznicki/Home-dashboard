@@ -1,8 +1,37 @@
-import { requireUser, requireAdmin, jsonResponse } from './auth.js'
+import { requireUser, requireAdmin, devBypassUser, jsonResponse } from './auth.js'
 import { auth } from './betterAuth.js'
 import { missingAuthEnv } from './authOptions.js'
 import { sendInviteEmail } from './email.js'
 import * as db from './db.js'
+
+// Shaped like Better Auth's own /get-session payload so the React client's
+// useSession() accepts it unchanged. Dev-only — see devBypassUser.
+function fakeSession(user) {
+  const now = new Date().toISOString()
+  const expiresAt = new Date(Date.now() + 86_400_000).toISOString()
+
+  return {
+    session: {
+      id: 'dev-session',
+      token: 'dev-session',
+      userId: 'dev-user',
+      createdAt: now,
+      updatedAt: now,
+      expiresAt,
+    },
+    user: {
+      id: 'dev-user',
+      email: user.email,
+      name: user.name,
+      emailVerified: true,
+      image: null,
+      role: user.role,
+      banned: false,
+      createdAt: now,
+      updatedAt: now,
+    },
+  }
+}
 
 export default {
   async fetch(request, env) {
@@ -17,16 +46,23 @@ export default {
     const { pathname } = url
     const method = request.method
 
+    // `npm run dev:no-auth` runs with no Google credentials at all, so this has
+    // to be resolved before the configuration check below — otherwise that check
+    // would 503 the very mode whose whole purpose is running without them.
+    const bypass = devBypassUser(request, env)
+
     // Fail loudly and legibly if the deploy got ahead of its secrets. The key
     // names go to the log (visible via `wrangler tail`) but not to the response,
     // since this endpoint is reachable by anyone who can reach the app.
-    const missingEnv = missingAuthEnv(env)
-    if (missingEnv.length > 0) {
-      console.error(`Auth is not configured — missing: ${missingEnv.join(', ')}`)
-      return jsonResponse(
-        { error: 'Auth is not configured on the server. Check the Worker logs.' },
-        { status: 503 }
-      )
+    if (!bypass) {
+      const missingEnv = missingAuthEnv(env)
+      if (missingEnv.length > 0) {
+        console.error(`Auth is not configured — missing: ${missingEnv.join(', ')}`)
+        return jsonResponse(
+          { error: 'Auth is not configured on the server. Check the Worker logs.' },
+          { status: 503 }
+        )
+      }
     }
 
     // Better Auth owns everything under its basePath — the Google redirect, the
@@ -37,6 +73,21 @@ export default {
     // Wrapped: this sits outside the try/catch below, so anything thrown in here
     // would otherwise escape as a bodyless 500 with nothing to debug.
     if (pathname.startsWith('/api/auth/')) {
+      // Under the dev bypass there is no session for Better Auth to hand back,
+      // so the app would sit on the login screen forever. Answering get-session
+      // here keeps the whole bypass server-side: nothing about it is compiled
+      // into the browser bundle, so a production build cannot contain a way to
+      // skip sign-in.
+      if (bypass) {
+        if (pathname === '/api/auth/get-session') {
+          return jsonResponse(fakeSession(bypass))
+        }
+        if (pathname === '/api/auth/sign-out') {
+          // Nothing to revoke; say so rather than letting Better Auth 400.
+          return jsonResponse({ success: true })
+        }
+      }
+
       try {
         return await auth.handler(request)
       } catch (err) {
@@ -82,6 +133,18 @@ export default {
         const task = await db.completeTask(env, completeMatch[1], user, body.date)
         if (!task) return jsonResponse({ error: 'Not found' }, { status: 404 })
         return jsonResponse(task)
+      }
+
+      // Undo, inside the dashboard's few-second window. Drops the completion
+      // row as well as the cache on `tasks` — see undoLatestCompletion.
+      if (completeMatch && method === 'DELETE') {
+        const task = await db.undoLatestCompletion(env, completeMatch[1])
+        if (!task) return jsonResponse({ error: 'Not found' }, { status: 404 })
+        return jsonResponse(task)
+      }
+
+      if (pathname === '/api/stats/week' && method === 'GET') {
+        return jsonResponse(await db.weekStats(env))
       }
 
       // Everything below is admin-only — invite/block/reset/MFA all manage

@@ -9,7 +9,9 @@ vi.mock('./betterAuth.js', () => ({
   auth: { api: { getSession: mockGetSession } },
 }))
 
-const { authorize, requireAdmin, verifySession } = await import('./auth.js')
+const { authorize, devBypassUser, requireAdmin, requireUser, verifySession } = await import(
+  './auth.js'
+)
 const { resolveInvite } = await import('./db.js')
 
 function makeStatement(sql, db, boundArgs = []) {
@@ -240,5 +242,112 @@ describe('verifySession', () => {
     const request = new Request('http://localhost/api/tasks', { headers: { cookie: 'a=b' } })
     await verifySession(request)
     expect(mockGetSession).toHaveBeenCalledWith({ headers: request.headers })
+  })
+})
+
+// The bypass behind `npm run dev:no-auth`. These tests exist to keep it
+// unreachable in production, so treat a failure here as a security regression
+// rather than a broken feature.
+describe('devBypassUser', () => {
+  const local = (url = 'http://localhost:8787/api/tasks') => new Request(url)
+
+  // `wrangler dev --var DEV_NO_AUTH:true` delivers the string 'true'. Verified
+  // against a live dev server, so this is the shape the documented command
+  // actually produces — not an assumption.
+  it('activates on exactly the string "true", which is what --var delivers', () => {
+    expect(devBypassUser(local(), { DEV_NO_AUTH: 'true' })).not.toBeNull()
+  })
+
+  it('stays off for anything else, including near-misses', () => {
+    expect(devBypassUser(local(), {})).toBeNull()
+    expect(devBypassUser(local(), { DEV_NO_AUTH: undefined })).toBeNull()
+    expect(devBypassUser(local(), { DEV_NO_AUTH: 'false' })).toBeNull()
+    expect(devBypassUser(local(), { DEV_NO_AUTH: '1' })).toBeNull()
+    expect(devBypassUser(local(), { DEV_NO_AUTH: 'yes' })).toBeNull()
+    expect(devBypassUser(local(), { DEV_NO_AUTH: 'TRUE' })).toBeNull()
+    expect(devBypassUser(local(), { DEV_NO_AUTH: true })).toBeNull()
+  })
+
+  it('refuses on any non-loopback hostname even when the flag IS set', () => {
+    // The load-bearing guarantee: if DEV_NO_AUTH ever leaked into deployed
+    // config, the bypass would still be unreachable over the real hostname.
+    const env = { DEV_NO_AUTH: 'true' }
+    for (const url of [
+      'https://home-dashboard.app/api/tasks',
+      'https://home-dashboard.workers.dev/api/tasks',
+      'https://localhost.attacker.example/api/tasks',
+      'https://sub.localhost.example/api/tasks',
+      'http://192.168.1.10:8787/api/tasks',
+    ]) {
+      expect(devBypassUser(new Request(url), env), url).toBeNull()
+    }
+  })
+
+  it('activates on the loopback hostnames a dev server actually binds', () => {
+    const env = { DEV_NO_AUTH: 'true' }
+    for (const url of [
+      'http://localhost:8787/api/tasks',
+      'http://127.0.0.1:8787/api/tasks',
+      'http://[::1]:8787/api/tasks',
+    ]) {
+      expect(devBypassUser(new Request(url), env), url).not.toBeNull()
+    }
+  })
+
+  it('defaults to an admin so every screen is reachable', () => {
+    expect(devBypassUser(local(), { DEV_NO_AUTH: 'true' })).toEqual({
+      email: 'dev@localhost',
+      name: 'dev',
+      role: 'admin',
+    })
+  })
+
+  it('can be downgraded to a member to check what the admin gate hides', () => {
+    const env = { DEV_NO_AUTH: 'true', DEV_USER_ROLE: 'member' }
+    expect(devBypassUser(local(), env).role).toBe('member')
+    expect(requireAdmin({ user: devBypassUser(local(), env) }).response.status).toBe(403)
+  })
+
+  it('only recognises "member" as a downgrade, never an escalation typo', () => {
+    const env = { DEV_NO_AUTH: 'true', DEV_USER_ROLE: 'superuser' }
+    expect(devBypassUser(local(), env).role).toBe('admin')
+  })
+
+  it('takes an email and name so completion attribution looks real', () => {
+    const env = { DEV_NO_AUTH: 'true', DEV_USER_EMAIL: 'ala@example.com', DEV_USER_NAME: 'Ala' }
+    expect(devBypassUser(local(), env)).toMatchObject({ email: 'ala@example.com', name: 'Ala' })
+  })
+})
+
+describe('requireUser with the dev bypass', () => {
+  beforeEach(() => {
+    mockGetSession.mockReset()
+  })
+
+  it('short-circuits before Better Auth, since there is no session to verify', async () => {
+    const env = { DEV_NO_AUTH: 'true', DB: createFakeDb() }
+    const result = await requireUser(new Request('http://localhost:8787/api/tasks'), env)
+
+    expect(result.user).toEqual({ email: 'dev@localhost', name: 'dev', role: 'admin' })
+    expect(result.response).toBeUndefined()
+    expect(mockGetSession).not.toHaveBeenCalled()
+  })
+
+  it('leaves no `users` row behind, so the admin bootstrap still fires later', async () => {
+    const db = createFakeDb()
+    await requireUser(new Request('http://localhost:8787/api/tasks'), {
+      DEV_NO_AUTH: 'true',
+      DB: db,
+    })
+    expect(db.users.size).toBe(0)
+  })
+
+  it('still 401s on a deployed hostname with the flag set', async () => {
+    mockGetSession.mockResolvedValue(null)
+    const result = await requireUser(new Request('https://home-dashboard.app/api/tasks'), {
+      DEV_NO_AUTH: 'true',
+      DB: createFakeDb(),
+    })
+    expect(result.response.status).toBe(401)
   })
 })

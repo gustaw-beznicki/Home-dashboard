@@ -1,3 +1,6 @@
+// Every Tailwind class here is a LITERAL string — the JIT scanner can't see
+// template interpolation, so a `bg-${color}-100` would silently produce no CSS.
+
 export const STORAGE_KEY = 'home-dashboard:tasks:v1'
 export const THEME_STORAGE_KEY = 'home-dashboard:theme'
 
@@ -8,42 +11,169 @@ export const CATEGORIES = [
   { key: 'health', label: 'Zdrowie' },
 ]
 
-export const CATEGORY_LABELS = Object.fromEntries(
-  CATEGORIES.map((c) => [c.key, c.label])
-)
+export const CATEGORY_LABELS = Object.fromEntries(CATEGORIES.map((c) => [c.key, c.label]))
 
-export const INTERVAL_TYPES = [
-  { type: 'daily', label: 'Codziennie' },
-  { type: 'everyNDays', label: 'Co N dni' },
-  { type: 'weekly', label: 'Tygodniowo' },
-  { type: 'monthly', label: 'Co miesiąc' },
-  { type: 'manual', label: 'Ręcznie' },
-]
-
-export const PRIORITIES = [
-  { key: 'low', label: 'Niski' },
-  { key: 'medium', label: 'Średni' },
-  { key: 'high', label: 'Wysoki' },
-]
-
-export const TABS = [
-  { key: 'today', label: 'Dzisiaj' },
-  { key: 'upcoming', label: 'Przybliżający się' },
-  { key: 'all', label: 'Wszystko' },
-  { key: 'archive', label: 'Archiwum' },
-]
-
-// Literal Tailwind class strings (not template-interpolated) so the JIT scanner picks them up.
-export const STATUS_CLASS_MAP = {
-  done: 'bg-green-500 text-white dark:bg-green-600',
-  due: 'bg-yellow-400 text-gray-900 dark:bg-yellow-500',
-  overdue: 'bg-red-500 text-white dark:bg-red-600',
-  inactive: 'bg-gray-300 text-gray-700 dark:bg-gray-600 dark:text-gray-200',
+// Category tile behind the icon. Recognition, not status — statuses never use
+// category colour and vice versa.
+export const CATEGORY_TILE_CLASS = {
+  plants: 'bg-plant-100 text-plant-500 dark:bg-[#22301c] dark:text-[#9ccf8a]',
+  equipment: 'bg-clay-100 text-clay-500 dark:bg-[#3a2018] dark:text-[#f0a58a]',
+  home: 'bg-moss-200 text-moss-700 dark:bg-bark-700 dark:text-moss-400',
+  health: 'bg-health-100 text-health-500 dark:bg-[#332a19] dark:text-[#e0b073]',
 }
 
+// Still four derived statuses; only the wording changed. `later` is the status
+// formerly called `inactive`.
 export const STATUS_LABELS = {
+  overdue: 'Zaległe',
+  due: 'Na dziś',
+  later: 'Na spokojnie',
   done: 'Zrobione',
-  due: 'Dzisiaj',
-  overdue: 'Przeterminowane',
-  inactive: 'Nieaktywne',
+}
+
+// Colour never carries status on its own: the marker's *shape* differs too
+// (square / filled circle / hollow circle), and the card always says the word.
+export const STATUS_MARK_CLASS = {
+  overdue: 'h-[9px] w-[9px] rounded-[3px] bg-clay-500 dark:bg-[#f0a58a]',
+  due: 'h-[9px] w-[9px] rounded-full bg-forest-500 dark:bg-[#5f9a6d]',
+  later: 'h-[9px] w-[9px] rounded-full bg-moss-400 dark:bg-bark-600',
+  done: 'h-[9px] w-[9px] rounded-full border-2 border-moss-400 dark:border-bark-600',
+}
+
+export const STATUS_TEXT_CLASS = {
+  overdue: 'text-clay-500 dark:text-[#f0a58a]',
+  due: 'text-moss-600 dark:text-moss-500',
+  later: 'text-moss-500 dark:text-moss-600',
+  done: 'text-moss-500 dark:text-moss-600',
+}
+
+// The card's own border encodes status as well.
+export const CARD_CLASS = {
+  overdue: 'bg-white ring-[1.5px] ring-clay-300 dark:bg-bark-800 dark:ring-[#5a2f22]',
+  due: 'bg-white shadow-card dark:bg-bark-800',
+  later: 'bg-moss-200 dark:bg-bark-700',
+  done: 'bg-white opacity-60 shadow-card dark:bg-bark-800',
+}
+
+// The dashboard's three stops. These replace the old four tabs on mobile:
+// urgency is the page structure now, and category is a side filter.
+export const GROUPS = [
+  { key: 'overdue', label: 'Zaległe' },
+  { key: 'due', label: 'Na dziś' },
+  { key: 'later', label: 'Na spokojnie' },
+]
+
+// Desktop-only left rail. Same four rules the old tabs applied, presented
+// differently — see filterForView in recurrence.js.
+export const VIEWS = [
+  { key: 'today', label: 'Dziś' },
+  { key: 'upcoming', label: 'Najbliższy tydzień' },
+  { key: 'all', label: 'Wszystko' },
+  { key: 'archive', label: 'Schowek' },
+]
+
+export const RHYTHMS = [
+  { type: 'daily', label: 'codziennie' },
+  { type: 'everyNDays', label: 'co kilka dni' },
+  { type: 'weekly', label: 'co tydzień' },
+  { type: 'monthly', label: 'co miesiąc' },
+  { type: 'manual', label: 'bez rytmu' },
+]
+
+export const MONTHLY_MODES = [
+  { key: 'first', label: 'pierwszego dnia', hint: '1.' },
+  { key: 'last', label: 'ostatniego dnia', hint: '28./30./31.' },
+  { key: 'day', label: 'konkretnego dnia', hint: null },
+  { key: 'nth', label: 'w pierwszą sobotę', hint: 'sob' },
+]
+
+export const WEEKDAYS = [
+  { key: 1, short: 'pn', label: 'poniedziałek' },
+  { key: 2, short: 'wt', label: 'wtorek' },
+  { key: 3, short: 'śr', label: 'środa' },
+  { key: 4, short: 'cz', label: 'czwartek' },
+  { key: 5, short: 'pt', label: 'piątek' },
+  { key: 6, short: 'sb', label: 'sobota' },
+  { key: 7, short: 'nd', label: 'niedziela' },
+]
+
+// Non-linear stops so the slider spends its travel where the useful values are.
+export const SLIDER_STOPS = [1, 2, 3, 4, 5, 6, 7, 10, 14, 21, 30, 45, 60, 90]
+
+// How long a completed task keeps its "cofnij" affordance before the next list
+// render sweeps it out of the group it was ticked off in.
+export const UNDO_WINDOW_MS = 8000
+
+export const COPY = {
+  appName: 'Ogarniamy',
+  add: 'Nowa rzecz',
+  quickAddPlaceholder: 'Co jeszcze trzeba ogarnąć?',
+  loading: 'Zbieram listę…',
+  loadError: 'Nie udało się pobrać listy.',
+  retry: 'Spróbuj jeszcze raz',
+  rollback: 'Nie zapisało się — zadanie wróciło na miejsce.',
+  undo: 'cofnij',
+  done: 'Zrobione',
+  pin: 'Trzymaj na wierzchu',
+  unpin: 'Zdejmij z wierzchu',
+  archive: 'Schowaj',
+  unarchive: 'Wyjmij ze schowka',
+  remove: 'Usuń na zawsze',
+  emptyToday: 'Na dziś nic. Dom się sam ogarnął.',
+  emptyTodayHint: 'Najbliższa rzecz wypada',
+  emptyAll: 'Pusto. Dodaj pierwszą rzecz — resztę policzymy.',
+  emptyView: 'Tu nic nie ma.',
+  formNew: 'Nowa rzecz do ogarnięcia',
+  formEdit: 'Poprawka',
+  namePlaceholder: 'Co trzeba ogarnąć?',
+  fieldCategory: 'Kategoria',
+  fieldRhythm: 'Jak często?',
+  fieldWeekdays: 'W które dni?',
+  fieldAnchor: 'Od kiedy liczymy?',
+  fieldAnchorHint: 'To ta data wyznacza, kiedy zadanie wypadnie następnym razem.',
+  fieldLastDone: 'Ostatnio zrobione',
+  fieldNote: 'Notatka',
+  notePlaceholder: 'np. filtr leży w szafce pod zlewem',
+  cancel: 'Anuluj',
+  save: 'Zapisz',
+  create: 'Dodaj do domu',
+  preview: 'Wypadnie',
+  never: 'nigdy',
+  signOut: 'wyjdź',
+  categoriesLabel: 'Kategorie',
+  allCategories: 'Wszystkie',
+  weekTitle: 'Ten tydzień',
+  weekDone: 'rzeczy ogarniętych',
+  login: {
+    tagline: 'Wasz dom, jedna lista.',
+    lead: 'Rośliny, filtry, rachunki — wszystko w jednym miejscu, dla obojga.',
+    button: 'Wejdź przez Google',
+    redirecting: 'Przekierowuję…',
+    denied:
+      'Tego konta nie ma na liście domowników. Poproś o zaproszenie kogoś, kto już tu jest.',
+    failed: 'Nie udało się wejść. Spróbuj jeszcze raz.',
+  },
+  admin: {
+    title: 'Domownicy',
+    back: 'Wróć do listy',
+    emailPlaceholder: 'adres@gmail.com',
+    invite: 'Zaproś',
+    roleMember: 'Domownik',
+    roleAdmin: 'Gospodarz',
+    loading: 'Zbieram listę domowników…',
+    error: 'Coś się posypało. Spróbuj jeszcze raz.',
+    pending: 'zaproszony, jeszcze nie wszedł',
+    revoked: 'bez dostępu',
+    you: 'to Ty',
+    block: 'Odetnij dostęp',
+    unblock: 'Przywróć dostęp',
+    invitedEmailed: (email) => `Zaproszenie poszło na ${email}.`,
+    invitedNoEmail: (email) => `${email} dodany, ale mail nie wyszedł. Przekaż zaproszenie sam.`,
+  },
+  importBanner: {
+    text: (n) => `W tej przeglądarce leży jeszcze stara lista (${n}). Przenieść ją do wspólnej?`,
+    confirm: 'Przenieś',
+    working: 'Przenoszę…',
+    dismiss: 'Zostaw',
+  },
 }

@@ -10,11 +10,15 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "dev:worker": "wrangler dev",
+    "dev:no-auth": "vite build && wrangler dev --var DEV_NO_AUTH:true --var ENVIRONMENT:development",
+    "dev-no-auth": "npm run dev:no-auth",
     "db:migrate": "wrangler d1 migrations apply home-dashboard-db",
-    "db:migrate:local": "wrangler d1 migrations apply home-dashboard-db --local"
+    "db:migrate:local": "wrangler d1 migrations apply home-dashboard-db --local",
+    "db:seed:local": "wrangler d1 execute home-dashboard-db --local --file scripts/seed-local.sql"
   },
   "dependencies": {
     "better-auth": "1.6.25",
+    "lucide-react": "^1.27.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
