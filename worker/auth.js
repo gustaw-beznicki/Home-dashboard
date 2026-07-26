@@ -19,13 +19,14 @@ const LOCAL_HOSTNAMES = new Set(['localhost', '127.0.0.1', '[::1]', '0.0.0.0'])
  *      in production config, a request to the real hostname cannot satisfy this,
  *      so the bypass is unreachable rather than merely unset.
  *
- * It deliberately does NOT write a `users` row: doing so would silently disable
- * the INITIAL_ADMIN_EMAIL bootstrap for a later real sign-in. The cost is that
- * this identity doesn't appear in the admin portal's list.
+ * It deliberately does NOT write a `users` row — a bypass is not a grant, and
+ * mixing the two would mean running the app locally quietly handed out access.
+ * The cost is that this identity doesn't appear in the admin portal's list; use
+ * `npm run admin:grant` if you want a real row (ADR 0012).
  *
  * What this cannot exercise, and what still needs a real sign-in: the login
- * screen, the invite gate (`databaseHooks.user.create.before`), the bootstrap in
- * authorize(), and role mirroring into Better Auth's own tables.
+ * screen, the invite gate (`databaseHooks.user.create.before`), and role
+ * mirroring into Better Auth's own tables.
  */
 export function devBypassUser(request, env) {
   if (env.DEV_NO_AUTH !== 'true') return null
@@ -60,9 +61,12 @@ export async function verifySession(request) {
   }
 }
 
-// Self-provisions the very first user (INITIAL_ADMIN_EMAIL only, and only
-// while the table is still empty) so there's a way into the admin portal on
-// day one — every subsequent user has to be invited from there.
+// A row in `users` is the whole rule: no row, no access. There is deliberately
+// no self-provisioning path — the first admin is granted out of band with
+// `npm run admin:grant` (ADR 0012). The mechanism this replaced granted admin as
+// a side effect of a login attempt, gated on the table being empty, which meant
+// the escape hatch closed silently after one use and was no help at all to a
+// household that later locked itself out.
 export async function authorize(identity, env) {
   const existing = await env.DB.prepare(
     'SELECT email, name, role, status FROM users WHERE email = ?'
@@ -87,17 +91,6 @@ export async function authorize(identity, env) {
       name: existing.name ?? identity.name ?? null,
       role: existing.role,
     }
-  }
-
-  const { count } = await env.DB.prepare('SELECT COUNT(*) AS count FROM users').first()
-  if (count === 0 && env.INITIAL_ADMIN_EMAIL && identity.email === env.INITIAL_ADMIN_EMAIL) {
-    await env.DB.prepare(
-      `INSERT INTO users (email, name, role, status, invited_by)
-       VALUES (?, ?, 'admin', 'active', 'bootstrap')`
-    )
-      .bind(identity.email, identity.name ?? null)
-      .run()
-    return { email: identity.email, name: identity.name ?? null, role: 'admin' }
   }
 
   return null

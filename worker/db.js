@@ -283,20 +283,17 @@ export async function getUserByEmail(env, email) {
 // The single place that decides whether an email is allowed to exist as an
 // identity at all. `authorize()` in auth.js is still the security boundary for
 // *access* — this gate exists so a stranger signing in with Google can't create
-// rows in our database at will. Both read the same rule, so keep them in sync
-// by calling this rather than re-deriving the condition.
+// rows in our database at will.
+//
+// Since ADR 0012 removed the bootstrap, the rule here is simply "a non-revoked
+// row exists". That is also the whole of authorize()'s rule, so the two can no
+// longer disagree — previously both re-derived the same empty-table condition
+// and had to be kept in step by hand.
 export async function resolveInvite(env, email) {
   const existing = await getUserByEmail(env, email)
   if (existing) {
     if (existing.status === 'revoked') return { allowed: false, role: null }
     return { allowed: true, role: existing.role }
-  }
-
-  // Bootstrap: only while the table is empty, and only for INITIAL_ADMIN_EMAIL.
-  // Same condition authorize() uses — a stale row here silently prevents it.
-  const { count } = await env.DB.prepare('SELECT COUNT(*) AS count FROM users').first()
-  if (count === 0 && env.INITIAL_ADMIN_EMAIL && email === env.INITIAL_ADMIN_EMAIL) {
-    return { allowed: true, role: 'admin' }
   }
 
   return { allowed: false, role: null }

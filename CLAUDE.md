@@ -13,13 +13,16 @@ npm run test:watch
 npm run build               # production build to dist/
 npm run db:migrate:local    # apply D1 migrations to the local dev database
 npm run db:migrate          # apply D1 migrations to the REMOTE production database
+npm run db:seed:local       # sample tasks + completion history for local work
+npm run admin:list          # who has access; add -- --remote for production
+npm run admin:grant -- you@example.com [--role member|--status revoked] [--remote]
 ```
 
 Single test file / single test:
 
 ```bash
 npx vitest run worker/auth.test.js
-npx vitest run -t "bootstraps the first user"
+npx vitest run -t "never writes to \`users\`"
 ```
 
 The UI is `Ogarniamy` — the design system it implements is described in the
@@ -38,11 +41,15 @@ static asset from `dist/` with SPA fallback. There is no separate API server or 
 **Authentication vs authorization are deliberately separate** (ADR 0003, ADR 0009). Better Auth only
 proves "this is a real signed-in account"; the D1 `users` table is the actual authorization boundary
 (`role` + `status`), managed from the in-app admin portal. `worker/auth.js` never trusts a plain email
-header — it verifies the session server-side via `auth.api.getSession()`. `authorize()`
-self-provisions the very first user matching `INITIAL_ADMIN_EMAIL` (a Cloudflare secret) **only while
-the table is empty**; after that, every user must be invited. That empty-table condition is easy to
-trip over — if a stale row exists, the bootstrap silently doesn't fire and the account lands as a
-plain `member`.
+header — it verifies the session server-side via `auth.api.getSession()`.
+
+**`authorize()` only ever reads.** A non-revoked `users` row is the entire rule: no row, no access,
+and an empty table means nobody gets in. There is no self-provisioning path — the first admin is
+granted out of band with `npm run admin:grant -- you@example.com --remote` (ADR 0012). The
+`INITIAL_ADMIN_EMAIL` bootstrap this replaced granted admin as a *side effect of a login attempt*,
+gated on the table being empty, so the escape hatch closed silently after one use and was no help to a
+household that later locked itself out. Don't reintroduce it; `npm run admin:list` and
+`admin:grant` cover setup, promotion, demotion, revocation and recovery, against local or production.
 
 `requireUser` runs once at the top of `fetch` for every `/api/*` path, before any routing. It returns
 either `{ user }` or `{ response }` — an already-built error `Response` the caller returns directly.
@@ -75,7 +82,7 @@ runs. `worker/db.js`'s `getAuthUserIdByEmail` / `syncAuthUserRole` are the only 
 Better Auth's tables directly; everything else goes through `auth.api.*`.
 
 **The invite gate is a DB hook, not a webhook.** `databaseHooks.user.create.before` refuses to create
-an identity for any email without a `users` row (or the bootstrap email while the table is empty), and
+an identity for any email without a `users` row, and
 `create.after` flips `pending` → `active`. It throws an `APIError` rather than returning `false`,
 because `false` surfaces a generic "unable to create user" while an `APIError` message reaches the
 OAuth error redirect. Treat it as hygiene, not the security boundary — `authorize()` is what actually
@@ -177,7 +184,7 @@ requires the create-new-table / copy / drop / rename pattern.
 **Secrets and PII never go in `wrangler.jsonc`** (ADR 0005). This repo is public. Non-secret
 identifiers (the app's own hostname, the invite `From:` address) are fine as `vars`; anything personal
 or credential-like goes through `wrangler secret put`. Current secrets: `BETTER_AUTH_SECRET`,
-`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `INITIAL_ADMIN_EMAIL`, `RESEND_API_KEY`.
+`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `RESEND_API_KEY`. (`INITIAL_ADMIN_EMAIL` is gone — ADR 0012.)
 
 **There is no build-time env var any more.** The frontend needs no publishable key — auth is
 same-origin, so `src/lib/authClient.js` takes no `baseURL`. That removed `.env.production` entirely,
@@ -228,7 +235,7 @@ in through the real Google flow.
 
 `npm run db:seed:local` loads `scripts/seed-local.sql` — twelve tasks covering all five rhythms, all
 three stops, plus completion history for the week card. It deliberately writes no `users` row, since
-that would disable the `INITIAL_ADMIN_EMAIL` bootstrap.
+that is what `npm run admin:grant` is for.
 
 **`npm run dev:no-auth` skips sign-in entirely** (ADR 0011), for working on the UI without Google
 credentials. It passes `--var DEV_NO_AUTH:true`, and `devBypassUser` in `worker/auth.js` synthesises a
@@ -243,7 +250,7 @@ local admin. Two things about it are load-bearing:
   the login screen. Don't "simplify" this into a `VITE_*` flag.
 
 What it therefore *cannot* exercise, and what still needs a real Google sign-in: the login screen, the
-invite gate, the `authorize()` bootstrap, and role mirroring into Better Auth's tables. It also leaves
+invite gate, and role mirroring into Better Auth's tables. It also leaves
 `users` empty on purpose, so you won't see yourself in the admin portal's list.
 
 That also removes a trap the Clerk setup had: Clerk enabled *paid* features in development instances

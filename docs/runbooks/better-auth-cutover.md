@@ -1,5 +1,11 @@
 # Better Auth cutover runbook
 
+> **Partly superseded.** The `INITIAL_ADMIN_EMAIL` bootstrap this runbook relies on was removed in
+> [ADR 0012](../adl/0012-grant-the-first-admin-with-a-script-not-a-login-side-effect.md). Wherever it
+> says the first sign-in makes you an admin, that no longer happens — grant access first with
+> `npm run admin:grant -- you@example.com --remote`. The rest of the cutover sequence still stands.
+> For current setup, use [make-auth-work.md](make-auth-work.md).
+
 Replacing Clerk with self-hosted Better Auth (Google-only) on `home-dashboard.app`. ADR 0009.
 Written 2026-07-25, supersedes the Clerk cutover runbook.
 

@@ -1,8 +1,8 @@
 -- Sample data for the LOCAL D1 only. Run with `npm run db:seed:local`.
 --
--- Deliberately does NOT touch `users`: `authorize()` self-provisions the first
--- INITIAL_ADMIN_EMAIL account only while that table is empty, so seeding a row
--- here would silently demote your first local sign-in to a plain member.
+-- Deliberately does NOT touch `users`: access is granted explicitly with
+-- `npm run admin:grant -- you@example.com` (ADR 0012), and mixing task fixtures
+-- with the authorization table would blur what is test data and what is access.
 --
 -- Every date is relative to `date('now')`, so the fixture keeps making sense
 -- whenever it is run. Between them the tasks cover all five rhythms, all three
