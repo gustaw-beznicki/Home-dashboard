@@ -2,6 +2,7 @@ import { Dashboard } from './components/Dashboard'
 import { AdminPortal } from './components/AdminPortal'
 import { LoginScreen } from './components/LoginScreen'
 import { useSession } from './lib/authClient'
+import { COPY } from './lib/constants'
 
 export default function App() {
   const isAdminPath = window.location.pathname === '/admin'
@@ -11,8 +12,8 @@ export default function App() {
   // request is in flight.
   if (isPending) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 text-sm text-gray-500 dark:bg-gray-900 dark:text-gray-400">
-        Ładowanie…
+      <div className="flex min-h-screen items-center justify-center bg-moss-100 text-[15px] text-moss-600 dark:bg-bark-900 dark:text-moss-500">
+        {COPY.loading}
       </div>
     )
   }

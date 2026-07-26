@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { STORAGE_KEY } from '../lib/constants'
+import { COPY, STORAGE_KEY } from '../lib/constants'
 
 const DISMISSED_KEY = 'home-dashboard:legacy-import-dismissed:v1'
 
@@ -40,26 +40,25 @@ export function LegacyImportBanner({ tasks, isLoading, addTask, onImported }) {
   }
 
   return (
-    <div className="mb-4 rounded-lg bg-blue-50 p-4 text-sm text-blue-800 shadow dark:bg-blue-900/30 dark:text-blue-200">
-      <p className="mb-2">
-        Znaleziono {candidate.length} zadań zapisanych lokalnie w tej przeglądarce. Zaimportować
-        je do wspólnej listy?
+    <div className="mb-4.5 rounded-hero bg-moss-200 p-4.5 dark:bg-bark-800">
+      <p className="mb-3 text-[13.5px] leading-relaxed text-moss-800 dark:text-moss-300">
+        {COPY.importBanner.text(candidate.length)}
       </p>
       <div className="flex gap-2">
         <button
           type="button"
           onClick={doImport}
           disabled={importing}
-          className="rounded-md bg-blue-600 px-3 py-1.5 font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+          className="h-[46px] rounded-full bg-forest-600 px-5 text-[14px] font-medium text-moss-100 disabled:opacity-50"
         >
-          {importing ? 'Importowanie…' : 'Importuj'}
+          {importing ? COPY.importBanner.working : COPY.importBanner.confirm}
         </button>
         <button
           type="button"
           onClick={dismiss}
-          className="rounded-md bg-gray-100 px-3 py-1.5 font-medium text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200"
+          className="h-[46px] rounded-full bg-white px-5 text-[14px] text-moss-700 dark:bg-bark-700 dark:text-moss-400"
         >
-          Ignoruj
+          {COPY.importBanner.dismiss}
         </button>
       </div>
     </div>

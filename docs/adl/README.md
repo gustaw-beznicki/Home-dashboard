@@ -27,3 +27,5 @@ template.
 | [0007](0007-automate-deploy-and-migrations-with-github-actions.md) | Automate deploy and migrations with GitHub Actions | Accepted |
 | [0008](0008-use-clerk-as-managed-identity-provider.md) | Use Clerk as a managed identity provider | Superseded by [0009](0009-replace-clerk-with-self-hosted-better-auth-on-d1.md) |
 | [0009](0009-replace-clerk-with-self-hosted-better-auth-on-d1.md) | Replace Clerk with self-hosted Better Auth on D1 | Accepted |
+| [0010](0010-anchor-recurrence-to-a-start-date-instead-of-the-last-completion.md) | Anchor recurrence to a start date instead of the last completion | Accepted |
+| [0011](0011-allow-a-loopback-only-identity-bypass-for-local-development.md) | Allow a loopback-only identity bypass for local development | Accepted |

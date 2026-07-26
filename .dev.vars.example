@@ -7,6 +7,11 @@
 # That also removes a trap — Clerk enabled paid features in dev instances only,
 # so MFA and user-banning appeared to work locally and were not entitled in
 # production (ADR 0009).
+#
+# To work on the UI without any of this, use `npm run dev:no-auth`, which skips
+# sign-in altogether (ADR 0011). Only BASE_URL below is needed for that. Note
+# DEV_NO_AUTH belongs on the command line, not in this file — the npm script
+# passes it, and keeping it out of here keeps `npm run dev:worker` authenticated.
 
 # Must match the origin you actually browse to, or the OAuth callback and the
 # CSRF origin check will reject the sign-in.

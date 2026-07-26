@@ -1,5 +1,7 @@
 import { useState } from 'react'
+import { Home } from 'lucide-react'
 import { signInWithGoogle } from '../lib/authClient'
+import { COPY } from '../lib/constants'
 
 // Google is the only sign-in method, so this is a single button rather than a
 // form. There's deliberately no sign-up path: the admin portal invites people by
@@ -10,7 +12,7 @@ export function LoginScreen() {
   const [failed, setFailed] = useState(false)
 
   // Set by authClient's errorCallbackURL when the invite gate rejects someone.
-  const wasRejected = new URLSearchParams(window.location.search).get('error') === 'not-invited'
+  const rejected = new URLSearchParams(window.location.search).get('error') === 'not-invited'
 
   // Surface failures rather than just un-pressing the button. Swallowing this
   // made a server-side 500 look like a dead button, with the real cause visible
@@ -31,22 +33,22 @@ export function LoginScreen() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 dark:bg-gray-900">
-      <div className="w-full max-w-sm rounded-lg bg-white p-6 shadow dark:bg-gray-800">
-        <h1 className="mb-1 text-xl font-bold text-gray-900 dark:text-white">Home Dashboard</h1>
-        <p className="mb-5 text-sm text-gray-500 dark:text-gray-400">
-          Zaloguj się, aby zobaczyć zadania domowe.
+    <div className="flex min-h-screen items-center justify-center bg-moss-100 px-4.5 dark:bg-bark-900">
+      <div className="w-full max-w-sm rounded-hero bg-white p-6.5 shadow-card dark:bg-bark-800">
+        <span className="mb-5 grid h-11 w-11 place-items-center rounded-2xl bg-forest-600 text-lime-400">
+          <Home size={21} strokeWidth={1.8} />
+        </span>
+
+        <h1 className="text-[26px] leading-[1.2] text-moss-900 sm:text-[30px] dark:text-moss-100">
+          {COPY.login.tagline}
+        </h1>
+        <p className="mb-5.5 mt-2 text-[13.5px] leading-relaxed text-moss-600 dark:text-moss-500">
+          {COPY.login.lead}
         </p>
 
-        {wasRejected && (
-          <p className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-300">
-            To konto nie ma dostępu. Poproś administratora o zaproszenie.
-          </p>
-        )}
-
-        {failed && (
-          <p className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-300">
-            Nie udało się rozpocząć logowania. Spróbuj ponownie za chwilę.
+        {(rejected || failed) && (
+          <p className="mb-4.5 rounded-2xl bg-clay-100 px-4 py-3.5 text-[13px] leading-relaxed text-clay-500 dark:bg-[#3a2018] dark:text-[#f0a58a]">
+            {rejected ? COPY.login.denied : COPY.login.failed}
           </p>
         )}
 
@@ -54,9 +56,9 @@ export function LoginScreen() {
           type="button"
           onClick={handleSignIn}
           disabled={isBusy}
-          className="w-full rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+          className="h-[54px] w-full rounded-full bg-forest-600 text-[14.5px] font-medium text-moss-100 disabled:opacity-50"
         >
-          {isBusy ? 'Przekierowanie…' : 'Zaloguj się przez Google'}
+          {isBusy ? COPY.login.redirecting : COPY.login.button}
         </button>
       </div>
     </div>
