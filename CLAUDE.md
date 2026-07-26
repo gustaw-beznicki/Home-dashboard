@@ -161,6 +161,13 @@ open beside the dashboard being configured. The `manual-steps` skill in
 `.claude/skills/manual-steps/` has the format, including verifying something is genuinely not
 automatable before declaring it manual.
 
+**PR descriptions come from the `pr-description` skill — always.** Never hand-write a body for
+`gh pr create` / `gh pr edit`: the skill (`/pr-description`, in `~/.claude/commands/`) inspects the
+actual diff, captures light/dark screenshots for UI changes via `scripts/screenshot-pr.mjs` and
+commits them on the branch, and produces the required template (What changed / Why / How to test /
+Screenshots / Checklist). A PreToolUse hook in `.claude/settings.json` reminds about this whenever a
+`gh pr create|edit` command runs; treat the reminder as a stop sign, not a suggestion.
+
 **`main` is protected — no direct pushes.** Work on a branch, open a PR, merge. This is enforced for
 the repo owner too. Note that toggling repo visibility on GitHub can silently strip branch
 protection; re-check with `gh api repos/{owner}/{repo}/branches/main/protection` after any such

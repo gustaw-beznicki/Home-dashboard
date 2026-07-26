@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "grep -qE 'gh pr (create|edit)' && printf '%s' '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"additionalContext\":\"Repo rule: PR descriptions and edits to PR bodies must come from the /pr-description skill (it inspects the diff, captures screenshots for UI changes via scripts/screenshot-pr.mjs, and uses the required template). If you have not run it for this PR yet, do that FIRST, then re-run this command with the generated body.\"}}' || true",
+            "timeout": 10,
+            "statusMessage": "Checking PR-description convention"
+          }
+        ]
+      }
+    ]
+  }
+}

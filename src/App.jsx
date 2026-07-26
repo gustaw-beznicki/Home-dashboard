@@ -5,12 +5,17 @@ import { LoginScreen } from './components/LoginScreen'
 import { Onboarding } from './components/Onboarding'
 import { useSession } from './lib/authClient'
 import { updateCachedUser, useCurrentUser } from './hooks/useCurrentUser'
+import { useDarkMode } from './hooks/useDarkMode'
 import { COPY } from './lib/constants'
 
 export default function App() {
   const isAdminPath = window.location.pathname === '/admin'
   const isPanelPath = window.location.pathname === '/panel'
   const { data: session, isPending } = useSession()
+  // Applies the saved/system theme on every screen, not just the dashboard —
+  // without this, onboarding, /panel and /admin loaded direct never get the
+  // `dark` class. Dashboard's own instance keeps owning the toggle.
+  useDarkMode()
   // Fires alongside the session check (a 401 while logged out is harmless) and
   // is a shared cache, so the sidebar's own useCurrentUser costs nothing extra.
   const { user, isLoading: userLoading } = useCurrentUser()
