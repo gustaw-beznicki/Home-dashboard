@@ -2,15 +2,26 @@ import { useEffect, useRef, useState } from 'react'
 import { Archive, ArchiveRestore, Check, Pin, Trash2, X } from 'lucide-react'
 import { RhythmEditor } from './RhythmEditor'
 import { CategoryIcon } from './CategoryIcon'
-import { CATEGORIES, COPY } from '../lib/constants'
-import { intervalKey, rebaseInterval, toISODate } from '../lib/recurrence'
+import { COPY } from '../lib/constants'
+import { useCategories } from '../hooks/useCategories'
+import { useHomeSettings } from '../hooks/useHomeSettings'
+import { intervalKey, isoWeekday, rebaseInterval, toISODate } from '../lib/recurrence'
 
-function initialForm(task, draft, today) {
+// The interval a fresh task starts from follows the household's "domyślny rytm
+// nowych rzeczy" setting (Panel domu), anchored on today.
+function defaultInterval(defaultRhythm, today) {
+  const startsOn = toISODate(today)
+  if (defaultRhythm === 'manual') return { type: 'manual' }
+  if (defaultRhythm === 'monthly') return { type: 'monthly', day: Math.min(today.getDate(), 28), startsOn }
+  return { type: 'weekly', weekdays: [isoWeekday(today)], startsOn }
+}
+
+function initialForm(task, draft, today, defaultRhythm) {
   if (task) return task
   return {
     name: '',
     category: 'home',
-    interval: { type: 'everyNDays', n: 3, startsOn: toISODate(today) },
+    interval: defaultInterval(defaultRhythm, today),
     note: '',
     lastDone: null,
     pinned: false,
@@ -35,9 +46,11 @@ export function TaskSheet({
   onTogglePin,
   onDone,
 }) {
-  const [form, setForm] = useState(() => initialForm(task, draft, today))
+  const categories = useCategories()
+  const { defaultRhythm } = useHomeSettings()
+  const [form, setForm] = useState(() => initialForm(task, draft, today, defaultRhythm))
   const [rebase, setRebase] = useState('lastDone')
-  const originalInterval = useRef(intervalKey(initialForm(task, draft, today).interval))
+  const originalInterval = useRef(intervalKey(initialForm(task, draft, today, defaultRhythm).interval))
   const nameRef = useRef(null)
 
   const isNew = !task
@@ -100,7 +113,7 @@ export function TaskSheet({
           {COPY.fieldCategory}
         </p>
         <div className="mb-4.5 flex flex-wrap gap-1.5">
-          {CATEGORIES.map((category) => {
+          {categories.map((category) => {
             const active = form.category === category.key
             return (
               <button

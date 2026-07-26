@@ -147,6 +147,73 @@ export default {
         return jsonResponse(await db.weekStats(env))
       }
 
+      // Household settings. Reading is for everyone — the dashboard needs the
+      // default rhythm and week start — but only a gospodarz can change them.
+      if (pathname === '/api/home' && method === 'GET') {
+        return jsonResponse(await db.getHomeSettings(env))
+      }
+
+      if (pathname === '/api/home' && method === 'PATCH') {
+        const adminCheck = requireAdmin({ user })
+        if (adminCheck.response) return adminCheck.response
+        const patch = await request.json()
+        return jsonResponse(await db.updateHomeSettings(env, patch))
+      }
+
+      // "Usuń dom na zawsze". The explicit confirm flag means a stray fetch or
+      // replayed request can't wipe the household; the UI double-confirms on
+      // top of it.
+      if (pathname === '/api/home' && method === 'DELETE') {
+        const adminCheck = requireAdmin({ user })
+        if (adminCheck.response) return adminCheck.response
+        const body = await request.json().catch(() => ({}))
+        if (body.confirm !== true) {
+          return jsonResponse({ error: 'confirm is required' }, { status: 400 })
+        }
+        return jsonResponse(await db.deleteHomeData(env))
+      }
+
+      if (pathname === '/api/categories' && method === 'GET') {
+        return jsonResponse(await db.listCategories(env))
+      }
+
+      if (pathname === '/api/categories' && method === 'POST') {
+        const adminCheck = requireAdmin({ user })
+        if (adminCheck.response) return adminCheck.response
+        const body = await request.json()
+        const created = await db.createCategory(env, body.label ?? '')
+        if (!created) return jsonResponse({ error: 'label is required' }, { status: 400 })
+        return jsonResponse(created, { status: 201 })
+      }
+
+      const categoryMatch = pathname.match(/^\/api\/categories\/([^/]+)$/)
+      if (categoryMatch && method === 'DELETE') {
+        const adminCheck = requireAdmin({ user })
+        if (adminCheck.response) return adminCheck.response
+        const result = await db.removeCategory(env, decodeURIComponent(categoryMatch[1]))
+        if (!result) return jsonResponse({ error: 'Not found' }, { status: 404 })
+        if (result.error) return jsonResponse(result, { status: 409 })
+        return jsonResponse(result)
+      }
+
+      if (pathname === '/api/export' && method === 'GET') {
+        const adminCheck = requireAdmin({ user })
+        if (adminCheck.response) return adminCheck.response
+        return jsonResponse(await db.exportAll(env))
+      }
+
+      if (pathname === '/api/archive/empty' && method === 'POST') {
+        const adminCheck = requireAdmin({ user })
+        if (adminCheck.response) return adminCheck.response
+        return jsonResponse(await db.emptyArchive(env))
+      }
+
+      if (pathname === '/api/history/trim' && method === 'POST') {
+        const adminCheck = requireAdmin({ user })
+        if (adminCheck.response) return adminCheck.response
+        return jsonResponse(await db.trimHistory(env))
+      }
+
       // Everything below is admin-only — invite/block/reset/MFA all manage
       // other people's access, so the D1 role column is the real gate here,
       // same principle as the users table already being the real auth gate.
@@ -172,9 +239,11 @@ export default {
 
           let emailed = false
           try {
+            const { name: homeName } = await db.getHomeSettings(env)
             const result = await sendInviteEmail(env, {
               to: body.email,
               invitedByEmail: user.email,
+              homeName,
             })
             emailed = result.sent
           } catch {
@@ -182,6 +251,27 @@ export default {
           }
 
           return jsonResponse({ ...invited, emailed }, { status: 201 })
+        }
+
+        // Domownik ↔ Gospodarz. Our column is the real gate; Better Auth's
+        // user.role is mirrored so its admin plugin keeps agreeing with us
+        // (ADR 0009). setUserRole refuses to demote the last active admin.
+        const roleMatch = pathname.match(/^\/api\/admin\/users\/([^/]+)\/role$/)
+        if (roleMatch && method === 'POST') {
+          const email = decodeURIComponent(roleMatch[1])
+          const body = await request.json()
+          const role = body.role === 'admin' ? 'admin' : 'member'
+
+          if (email === user.email) {
+            return jsonResponse({ error: 'Cannot change your own role' }, { status: 400 })
+          }
+
+          const result = await db.setUserRole(env, email, role)
+          if (!result) return jsonResponse({ error: 'Not found' }, { status: 404 })
+          if (result.error) return jsonResponse(result, { status: 409 })
+
+          await db.syncAuthUserRole(env, email, role)
+          return jsonResponse(result.user)
         }
 
         const blockMatch = pathname.match(/^\/api\/admin\/users\/([^/]+)\/(block|unblock)$/)

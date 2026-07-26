@@ -327,6 +327,180 @@ export async function setUserStatus(env, email, status) {
   await env.DB.prepare('UPDATE users SET status = ? WHERE email = ?').bind(status, email).run()
 }
 
+// Role changes guard the invariant that a household always has someone able to
+// manage it: the last active gospodarz cannot be demoted. Returns null when the
+// user doesn't exist and { error } when the guard bites, so the route can map
+// each to the right status code.
+export async function setUserRole(env, email, role) {
+  const target = await getUserByEmail(env, email)
+  if (!target) return null
+
+  if (target.role === 'admin' && role !== 'admin') {
+    const { count } = await env.DB.prepare(
+      "SELECT COUNT(*) AS count FROM users WHERE role = 'admin' AND status != 'revoked'"
+    ).first()
+    if (count <= 1) return { error: 'last-admin' }
+  }
+
+  await env.DB.prepare('UPDATE users SET role = ? WHERE email = ?').bind(role, email).run()
+  return { user: await getUserByEmail(env, email) }
+}
+
+// --- Home settings and categories (Panel domu) ---
+
+function serializeHomeSettings(row) {
+  return {
+    name: row.name,
+    weekStart: row.week_start,
+    defaultRhythm: row.default_rhythm,
+    remindMorning: !!row.remind_morning,
+    remindOverdue: !!row.remind_overdue,
+  }
+}
+
+export async function getHomeSettings(env) {
+  const row = await env.DB.prepare('SELECT * FROM home_settings WHERE id = 1').first()
+  return serializeHomeSettings(row)
+}
+
+export async function updateHomeSettings(env, patch) {
+  const fields = []
+  const values = []
+
+  if ('name' in patch) {
+    fields.push('name = ?')
+    values.push(String(patch.name).trim() || 'Nasz dom')
+  }
+  if ('weekStart' in patch) {
+    fields.push('week_start = ?')
+    values.push(patch.weekStart === 7 ? 7 : 1)
+  }
+  if ('defaultRhythm' in patch) {
+    fields.push('default_rhythm = ?')
+    values.push(['manual', 'weekly', 'monthly'].includes(patch.defaultRhythm) ? patch.defaultRhythm : 'weekly')
+  }
+  if ('remindMorning' in patch) {
+    fields.push('remind_morning = ?')
+    values.push(patch.remindMorning ? 1 : 0)
+  }
+  if ('remindOverdue' in patch) {
+    fields.push('remind_overdue = ?')
+    values.push(patch.remindOverdue ? 1 : 0)
+  }
+
+  if (fields.length > 0) {
+    fields.push("updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')")
+    await env.DB.prepare(`UPDATE home_settings SET ${fields.join(', ')} WHERE id = 1`)
+      .bind(...values)
+      .run()
+  }
+
+  return getHomeSettings(env)
+}
+
+export async function listCategories(env) {
+  const { results } = await env.DB.prepare(
+    'SELECT key, label FROM categories ORDER BY position ASC, created_at ASC'
+  ).all()
+  return results
+}
+
+// Keys are slugs of the label so they read sensibly in exports and stay stable
+// under a later rename. Collisions get a numeric suffix rather than an error —
+// two categories may legitimately share a label prefix.
+function slugify(label) {
+  const base = label
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/ł/g, 'l') // ł survives NFD
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+  return base || 'kategoria'
+}
+
+export async function createCategory(env, label) {
+  const trimmed = String(label).trim()
+  if (!trimmed) return null
+
+  const existing = (await listCategories(env)).map((c) => c.key)
+  let key = slugify(trimmed)
+  for (let i = 2; existing.includes(key); i++) key = `${slugify(trimmed)}-${i}`
+
+  const { max } = await env.DB.prepare('SELECT MAX(position) AS max FROM categories').first()
+  await env.DB.prepare('INSERT INTO categories (key, label, position) VALUES (?, ?, ?)')
+    .bind(key, trimmed, (max ?? 0) + 1)
+    .run()
+
+  return { key, label: trimmed }
+}
+
+// Deleting a category never deletes tasks — they fall back into 'home', which
+// is why 'home' itself is not deletable (the fallback has to exist).
+export async function removeCategory(env, key) {
+  if (key === 'home') return { error: 'home-is-fallback' }
+
+  const existing = await env.DB.prepare('SELECT key FROM categories WHERE key = ?').bind(key).first()
+  if (!existing) return null
+
+  await env.DB.batch([
+    env.DB.prepare("UPDATE tasks SET category = 'home' WHERE category = ?").bind(key),
+    env.DB.prepare('DELETE FROM categories WHERE key = ?').bind(key),
+  ])
+  return { removed: key }
+}
+
+// --- Dane domu ---
+
+export async function exportAll(env) {
+  const [tasks, categories, settings, users, completions] = await Promise.all([
+    listTasks(env),
+    listCategories(env),
+    getHomeSettings(env),
+    listUsers(env),
+    env.DB.prepare(
+      'SELECT task_id, completed_by_email, completed_by_name, completed_at, completed_date FROM completions ORDER BY completed_at ASC'
+    )
+      .all()
+      .then(({ results }) => results),
+  ])
+  return { exportedAt: new Date().toISOString(), home: settings, categories, users, tasks, completions }
+}
+
+export async function emptyArchive(env) {
+  const { count } = await env.DB.prepare('SELECT COUNT(*) AS count FROM tasks WHERE archived = 1').first()
+  await env.DB.prepare('DELETE FROM tasks WHERE archived = 1').run()
+  return { removed: count }
+}
+
+export async function trimHistory(env) {
+  const { count } = await env.DB.prepare(
+    "SELECT COUNT(*) AS count FROM completions WHERE completed_date < date('now', '-1 year')"
+  ).first()
+  await env.DB.prepare("DELETE FROM completions WHERE completed_date < date('now', '-1 year')").run()
+  return { removed: count }
+}
+
+// "Usuń dom na zawsze". Clears the household's data and everyone's access —
+// including Better Auth's identities, so no session survives it — but leaves
+// the schema in place. The route requires an explicit confirm token so a
+// stray client call can't do this by accident.
+export async function deleteHomeData(env) {
+  await env.DB.batch([
+    env.DB.prepare('DELETE FROM completions'),
+    env.DB.prepare('DELETE FROM tasks'),
+    env.DB.prepare('DELETE FROM users'),
+    env.DB.prepare('DELETE FROM session'),
+    env.DB.prepare('DELETE FROM account'),
+    env.DB.prepare('DELETE FROM user'),
+    env.DB.prepare("DELETE FROM categories WHERE key NOT IN ('plants', 'equipment', 'home', 'health')"),
+    env.DB.prepare(
+      "UPDATE home_settings SET name = 'Nasz dom', week_start = 1, default_rhythm = 'weekly', remind_morning = 1, remind_overdue = 0 WHERE id = 1"
+    ),
+  ])
+  return { deleted: true }
+}
+
 // --- Better Auth's own tables ---
 // The two functions below are the only place this app reads or writes Better
 // Auth's schema directly. Everything else goes through `auth.api.*`. They exist

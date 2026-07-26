@@ -233,11 +233,13 @@ describe('TaskSheet', () => {
     expect(screen.getByDisplayValue('Wymienić filtr')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Dodaj do domu' }))
+    // A fresh task starts from the household's default rhythm — 'weekly'
+    // unless Panel domu says otherwise — anchored on today (a Friday, ISO 5).
     expect(onSave).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'Wymienić filtr',
         category: 'home',
-        interval: { type: 'everyNDays', n: 3, startsOn: '2026-07-24' },
+        interval: { type: 'weekly', weekdays: [5], startsOn: '2026-07-24' },
       })
     )
   })

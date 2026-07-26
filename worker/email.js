@@ -7,8 +7,12 @@
 // Resend's REST API directly rather than their SDK — one fetch, no dependency.
 const RESEND_ENDPOINT = 'https://api.resend.com/emails'
 
-export async function sendInviteEmail(env, { to, invitedByEmail }) {
+export async function sendInviteEmail(env, { to, invitedByEmail, homeName }) {
   if (!env.RESEND_API_KEY || !env.INVITE_EMAIL_FROM) return { sent: false, reason: 'not configured' }
+
+  // The home name stays in the nominative on its own segment — Polish
+  // declension can't be glued together from a template.
+  const home = homeName || 'Ogarniamy'
 
   const response = await fetch(RESEND_ENDPOINT, {
     method: 'POST',
@@ -19,11 +23,12 @@ export async function sendInviteEmail(env, { to, invitedByEmail }) {
     body: JSON.stringify({
       from: env.INVITE_EMAIL_FROM,
       to,
-      subject: 'Zaproszenie do Home Dashboard',
+      subject: `Zaproszenie na wspólną listę · ${home}`,
       text: [
-        `${invitedByEmail} zaprosił Cię do Home Dashboard.`,
+        `Zaproszenie od: ${invitedByEmail}`,
+        `Dom: ${home}`,
         '',
-        `Zaloguj się przez Google: ${env.BASE_URL}`,
+        `Wejdź przez Google: ${env.BASE_URL}`,
         '',
         'Użyj tego adresu e-mail — zaproszenie jest do niego przypisane.',
       ].join('\n'),

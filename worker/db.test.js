@@ -1,7 +1,15 @@
 import { describe, expect, it } from 'vitest'
 
-const { completeTask, createTask, listTasks, undoLatestCompletion, updateTask, weekStats } =
-  await import('./db.js')
+const {
+  completeTask,
+  createTask,
+  listTasks,
+  removeCategory,
+  setUserRole,
+  undoLatestCompletion,
+  updateTask,
+  weekStats,
+} = await import('./db.js')
 
 const USER = { email: 'anna@example.com', name: 'Anna' }
 
@@ -271,5 +279,115 @@ describe('weekStats', () => {
         { name: 'Kuba', count: 1 },
       ],
     })
+  })
+})
+
+// The role and category helpers touch different tables than the task fake
+// above, so they get their own minimal fake rather than widening that one.
+function createHouseholdFakeDb({ users = [], categories = [], tasks = [] } = {}) {
+  const exec = (raw, args) => {
+    const sql = raw.replace(/\s+/g, ' ').trim()
+
+    if (sql.includes('FROM users WHERE email')) {
+      return users.find((u) => u.email === args[0]) ?? null
+    }
+    if (sql.includes("COUNT(*) AS count FROM users WHERE role = 'admin'")) {
+      return { count: users.filter((u) => u.role === 'admin' && u.status !== 'revoked').length }
+    }
+    if (sql.startsWith('UPDATE users SET role')) {
+      const user = users.find((u) => u.email === args[1])
+      if (user) user.role = args[0]
+      return { success: true }
+    }
+    if (sql.includes('SELECT key FROM categories WHERE key')) {
+      return categories.find((c) => c.key === args[0]) ?? null
+    }
+    if (sql.startsWith("UPDATE tasks SET category = 'home'")) {
+      for (const task of tasks) if (task.category === args[0]) task.category = 'home'
+      return { success: true }
+    }
+    if (sql.startsWith('DELETE FROM categories')) {
+      const index = categories.findIndex((c) => c.key === args[0])
+      if (index >= 0) categories.splice(index, 1)
+      return { success: true }
+    }
+    return null
+  }
+
+  const statement = (raw, args = []) => ({
+    bind: (...bound) => statement(raw, bound),
+    first: async () => exec(raw, args),
+    run: async () => exec(raw, args),
+  })
+
+  return {
+    prepare: (sql) => statement(sql),
+    batch: async (statements) => Promise.all(statements.map((s) => s.run())),
+  }
+}
+
+describe('setUserRole', () => {
+  const household = () => [
+    { email: 'anna@example.com', role: 'admin', status: 'active' },
+    { email: 'kuba@example.com', role: 'member', status: 'active' },
+  ]
+
+  it('refuses to demote the last active gospodarz', async () => {
+    const users = household()
+    const env = { DB: createHouseholdFakeDb({ users }) }
+
+    expect(await setUserRole(env, 'anna@example.com', 'member')).toEqual({ error: 'last-admin' })
+    expect(users[0].role).toBe('admin')
+  })
+
+  it('demotes an admin once another active one exists', async () => {
+    const users = [...household(), { email: 'mama@example.com', role: 'admin', status: 'active' }]
+    const env = { DB: createHouseholdFakeDb({ users }) }
+
+    const result = await setUserRole(env, 'anna@example.com', 'member')
+    expect(result.user.role).toBe('member')
+  })
+
+  it('does not count a revoked admin as cover for the last one', async () => {
+    const users = [...household(), { email: 'mama@example.com', role: 'admin', status: 'revoked' }]
+    const env = { DB: createHouseholdFakeDb({ users }) }
+
+    expect(await setUserRole(env, 'anna@example.com', 'member')).toEqual({ error: 'last-admin' })
+  })
+
+  it('promotes a member without ceremony', async () => {
+    const users = household()
+    const env = { DB: createHouseholdFakeDb({ users }) }
+
+    const result = await setUserRole(env, 'kuba@example.com', 'admin')
+    expect(result.user.role).toBe('admin')
+  })
+
+  it('reports a missing user rather than inventing one', async () => {
+    const env = { DB: createHouseholdFakeDb({ users: household() }) }
+    expect(await setUserRole(env, 'nope@example.com', 'admin')).toBeNull()
+  })
+})
+
+describe('removeCategory', () => {
+  it("refuses to delete 'home' — it is the fallback bucket", async () => {
+    const env = { DB: createHouseholdFakeDb({ categories: [{ key: 'home' }] }) }
+    expect(await removeCategory(env, 'home')).toEqual({ error: 'home-is-fallback' })
+  })
+
+  it('moves orphaned tasks into home before dropping the category', async () => {
+    const categories = [{ key: 'home' }, { key: 'auto' }]
+    const tasks = [{ id: 't1', category: 'auto' }, { id: 't2', category: 'plants' }]
+    const env = { DB: createHouseholdFakeDb({ categories, tasks }) }
+
+    expect(await removeCategory(env, 'auto')).toEqual({ removed: 'auto' })
+    expect(tasks[0].category).toBe('home')
+    expect(tasks[1].category).toBe('plants')
+    expect(categories.map((c) => c.key)).toEqual(['home'])
+  })
+
+  it('reports a missing category rather than pretending', async () => {
+    const env = { DB: createHouseholdFakeDb({ categories: [{ key: 'home' }] }) }
+    expect(await removeCategory(env, 'nope')).toBeNull()
   })
 })

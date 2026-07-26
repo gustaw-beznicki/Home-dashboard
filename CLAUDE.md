@@ -194,12 +194,22 @@ along with the old trap of having to set the same key in two places.
 symmetric encryption as well as cookie signing, so rotating it casually can orphan encrypted values;
 rotate via `BETTER_AUTH_SECRETS` (plural, versioned) if it ever needs to change.
 
-## Admin portal
+## Admin portal and Panel domu
 
 `/admin` is a separate page (not a panel), gated on `role === 'admin'` client-side and enforced
 server-side by `requireAdmin` regardless. It can invite users and block/unblock them. Its copy uses
 the household vocabulary: **Domownicy**, roles **Domownik** / **Gospodarz**, actions **Odetnij
 dostęp** / **Przywróć dostęp**.
+
+`/panel` (**Panel domu**, `HomePanel.jsx`) is the wider household-management page: Dom (name, week
+start, default rhythm, reminder toggles — settings in the single-row `home_settings` table), Domownicy
+(the *same* `AdminPortal` component rendered with `embedded`, which also unlocks the role-change
+action), Kategorie (the editable `categories` table; deleting one re-files its tasks into `home`),
+and Dane domu (export, empty archive, trim history, delete home). See ADR 0013. Household settings
+and the category list reach components through `useHomeSettings()` / `useCategories()` — shared
+module caches with built-in fallbacks, invalidated by the panel after a write. Role changes must go
+through `db.setUserRole` (last-gospodarz guard) followed by `syncAuthUserRole`, per the two-column
+rule above.
 
 Inviting is purely a D1 write — Better Auth has no notion of the person until their first Google
 sign-in. The Resend email is a courtesy and is allowed to fail without failing the invite, so the UI
