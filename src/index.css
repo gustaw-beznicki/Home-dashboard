@@ -2,23 +2,52 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Self-hosted variable fonts (public/fonts, OFL) — replaced the Google Fonts
+   <link>, so the app makes no third-party requests. Only the upright faces
+   ship, same as before: the Google CSS never served italics either, so any
+   <em> was and remains synthesized. */
+@font-face {
+  font-family: 'DM Sans';
+  src: url('/fonts/DMSans-Variable.woff2') format('woff2');
+  font-weight: 100 1000;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('/fonts/JetBrainsMono-Variable.woff2') format('woff2');
+  font-weight: 100 800;
+  font-style: normal;
+  font-display: swap;
+}
+
 @layer base {
-  /* The `forest` scale is the one accent whose dark values differ from its light
-     ones, and it appears on the hero card, every primary button and the sheet
-     scrim. Routing it through CSS variables means `bg-forest-600` adapts by
-     itself, instead of needing a `dark:` twin at a dozen call sites that would
-     drift apart. The clay/status colours keep explicit `dark:` variants, since
-     those pairings are asserted in constants.js. */
+  /* Role Palety 2, których kierunek odwraca się w trybie ciemnym. Napis na
+     akcencie i CTA jest w jasnym motywie kremowy, więc hover CIEMNIEJE
+     (sage-600 → 700); w ciemnym napis jest prawie czarny (sage-950), więc tło
+     JAŚNIEJE (sage-400 → 300). Zmienna --on-accent niesie ten napis — pary są
+     zmierzone w projekcie design (tokens/palette-2.css), nie zmieniaj połowy
+     pary. Hero jest ciemnozielone w OBU motywach, stąd statyczny tekst
+     moss-200 przy zmiennym tle. */
   :root {
-    --forest-500: 63 109 78; /* #3f6d4e */
-    --forest-600: 47 74 55; /* #2f4a37 */
-    --forest-700: 37 57 43; /* #25392b */
+    --forest-500: 120 143 94; /* sage-500 #788f5e */
+    --forest-600: 84 107 65; /* sage-600 #546b41 — akcent, status "na dziś" */
+    --forest-700: 66 84 46; /* sage-700 #42542e — hover akcentu */
+    --hero: 32 42 20; /* sage-900 #202a14 */
+    --cta: 47 61 31; /* sage-800 #2f3d1f (11,00:1 pod kremowym napisem) */
+    --cta-hover: 32 42 20; /* sage-900 */
+    --on-accent: 255 248 236; /* len-50 #fff8ec */
   }
 
   .dark {
-    --forest-500: 95 154 109; /* #5f9a6d */
-    --forest-600: 42 66 50; /* #2a4232 */
-    --forest-700: 32 48 31; /* #20301f */
+    --forest-500: 153 173 122; /* sage-400 #99ad7a */
+    --forest-600: 153 173 122; /* sage-400 — akcent z ciemnym napisem */
+    --forest-700: 174 195 153; /* sage-300 #aec399 — hover jaśnieje */
+    --hero: 40 50 28; /* #28321c */
+    --cta: 153 173 122; /* sage-400 (7,63:1 pod sage-950) */
+    --cta-hover: 174 195 153; /* sage-300 */
+    --on-accent: 14 21 7; /* sage-950 #0e1507 */
   }
 
   body {

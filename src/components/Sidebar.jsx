@@ -1,6 +1,6 @@
 import { LogOut, Settings2, Shield } from 'lucide-react'
 import { CategoryFilter } from './CategoryFilter'
-import { Logo } from './Logo'
+import { LogoBadge } from './Logo'
 import { COPY, VIEWS } from '../lib/constants'
 
 function initialOf(user) {
@@ -16,7 +16,7 @@ export function Sidebar({ activeView, onViewChange, activeCategory, onCategoryCh
   return (
     <aside className="hidden w-[210px] flex-none flex-col gap-5 border-r border-moss-300 bg-moss-200 px-4 py-5.5 lg:flex dark:border-bark-600 dark:bg-bark-800">
       <div className="flex items-center gap-2.5">
-        <Logo size={30} />
+        <LogoBadge size={30} />
         <span className="text-[15px] font-medium text-moss-900 dark:text-moss-100">
           {COPY.appName}
         </span>
@@ -34,12 +34,12 @@ export function Sidebar({ activeView, onViewChange, activeCategory, onCategoryCh
               className={[
                 'flex items-center gap-2.5 rounded-[14px] px-3 py-2.5 text-[13.5px] transition',
                 active
-                  ? 'bg-forest-600 font-medium text-moss-100'
+                  ? 'bg-forest-600 font-medium text-onaccent'
                   : 'text-moss-700 hover:bg-moss-300 dark:text-moss-400 dark:hover:bg-bark-700',
               ].join(' ')}
             >
               {view.label}
-              <span className={['ml-auto', active ? 'text-lime-400' : 'text-moss-500'].join(' ')}>
+              <span className={['ml-auto', active ? 'text-onaccent/70' : 'text-moss-500'].join(' ')}>
                 {counts[view.key]}
               </span>
             </button>
@@ -68,7 +68,7 @@ export function Sidebar({ activeView, onViewChange, activeCategory, onCategoryCh
           </>
         )}
         <div className="flex items-center gap-2.5">
-          <span className="grid h-[26px] w-[26px] shrink-0 place-items-center rounded-full bg-forest-600 text-[11px] text-lime-400">
+          <span className="grid h-[26px] w-[26px] shrink-0 place-items-center rounded-full bg-cta text-[11px] text-onaccent">
             {initialOf(user)}
           </span>
           <span className="truncate">{user?.name || user?.email}</span>

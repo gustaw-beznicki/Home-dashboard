@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Ogarniamy — Brandguide</title>
+<style>
+  /* Te same self-hostowane fonty co aplikacja (public/fonts, OFL) — ścieżka
+     względna, więc plik działa otwarty prosto z dysku (file://) i z repo. */
+  @font-face {
+    font-family: 'DM Sans';
+    src: url('../public/fonts/DMSans-Variable.woff2') format('woff2');
+    font-weight: 100 1000;
+    font-style: normal;
+    font-display: swap;
+  }
+  @font-face {
+    font-family: 'JetBrains Mono';
+    src: url('../public/fonts/JetBrainsMono-Variable.woff2') format('woff2');
+    font-weight: 100 800;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  /* Tokeny zgodne z tailwind.config.js i src/index.css aplikacji. */
+  :root {
+    /* Paleta 2 — kotwice */
+    --brand-forest: #546b41; /* sage-600, zieleń */
+    --brand-leaf: #99ad7a;   /* sage-400, szałwia */
+    --brand-sand: #dcccac;   /* len-300, piasek */
+    --brand-cream: #fff8ec;  /* len-50, krem */
+    --brand-bordo: #492828;  /* bordo-800, zaległości */
+    --hero-green: #202a14;   /* sage-900, karta-bohater */
+    --forest-500: #3f6d4e;
+    --forest-600: #2f4a37;
+    --forest-700: #25392b;
+    --lime-300: #e0f8ab;
+    --lime-400: #cff08a;
+    --lime-500: #b8dd6c;
+    --moss-100: #f9f1e3;
+    --moss-200: #ebdec7;
+    --moss-300: #dcccac;
+    --moss-500: #92846b;
+    --moss-700: #4f4637;
+    --moss-900: #201b12;
+    --clay-500: #b8492c;
+    --amber-500: #b3703a;
+    --bark-800: #1e2519;
+    --bark-900: #161b13;
+    --page: #f9f1e3;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--page);
+    color: var(--moss-900);
+    font-family: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+    line-height: 1.55;
+  }
+  main { max-width: 1040px; margin: 0 auto; padding: 56px 28px 96px; }
+  header { text-align: center; margin-bottom: 24px; }
+  header h1 { font-size: 34px; margin: 0; color: var(--brand-forest); letter-spacing: -0.01em; }
+  header p { margin: 6px 0 0; color: var(--moss-700); font-size: 14.5px; }
+  h2 {
+    font-size: 17px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--moss-700); border-bottom: 1px solid var(--moss-300);
+    padding-bottom: 10px; margin: 64px 0 24px;
+  }
+  .caption { font-size: 13.5px; color: var(--moss-700); text-align: center; margin-top: 12px; }
+  .card {
+    background: #fff8ec; border-radius: 22px; padding: 32px;
+    box-shadow: 0 1px 2px rgb(38 48 31 / 0.06);
+  }
+  .center { display: grid; place-items: center; }
+  .lockup { display: inline-flex; align-items: center; gap: 4px; color: var(--brand-forest); }
+  .lockup .wordmark {
+    font-size: 36px; font-weight: 700; letter-spacing: -0.01em; line-height: 1;
+    transform: translateY(0.04em);
+  }
+  .variants { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 24px; }
+  .variant { text-align: center; }
+  .tile {
+    display: grid; place-items: center; height: 150px;
+    background: #fff8ec; border-radius: 22px; box-shadow: 0 1px 2px rgb(38 48 31 / 0.06);
+    color: var(--brand-forest);
+  }
+  .tile.dark { background: var(--hero-green); color: var(--brand-sand); }
+  .tile.darkest { background: var(--bark-900); color: var(--lime-400); }
+  .swatches { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; }
+  .swatch { border-radius: 18px; overflow: hidden; background: #fff8ec; box-shadow: 0 1px 2px rgb(38 48 31 / 0.06); }
+  .swatch .chip { height: 84px; }
+  .swatch .meta { padding: 10px 14px 12px; }
+  .swatch .meta b { display: block; font-size: 13.5px; font-weight: 500; }
+  .swatch .meta code { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 12px; color: var(--moss-700); }
+  .rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+  .rule { background: #fff8ec; border-radius: 18px; padding: 18px 20px; box-shadow: 0 1px 2px rgb(38 48 31 / 0.06); }
+  .rule h3 { margin: 0 0 6px; font-size: 14.5px; font-weight: 700; }
+  .rule p { margin: 0; font-size: 13.5px; color: var(--moss-700); }
+  .rule.dont h3 { color: var(--brand-bordo); }
+  .rule.do h3 { color: var(--brand-leaf); }
+  .type-sample { display: grid; gap: 14px; }
+  .type-sample .row { display: flex; align-items: baseline; gap: 18px; }
+  .type-sample .spec { width: 220px; flex: none; font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 12px; color: var(--moss-700); }
+  footer { margin-top: 72px; text-align: center; font-size: 12.5px; color: var(--moss-500); }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Ogarniamy</h1>
+    <p>Brandguide — zasady użycia znaku · wersja 4</p>
+  </header>
+
+  <!-- Definicje znaku (viewBox 32×32). Geometria 1:1 z projektu claude.ai/design i src/components/Logo.jsx. -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <g id="znak">
+        <g fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M16 4.1L2.6 14.6H6.1V27.4H14.4" />
+          <path d="M16 4.1L29.4 14.6H25.9V27.4H16.5" />
+        </g>
+        <g fill="none" stroke="currentColor" stroke-width="1.05" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M16 27.4V12.17" />
+          <path d="M16 25.1Q12.7 19.8 12.3 16" />
+          <path d="M16 25.1Q19.5 22.9 20.6 19.9" />
+          <path d="M16 25.1Q18.9 20.2 19.4 15.7" />
+          <path d="M16 25.1Q13.4 23.5 12.4 21.4" />
+        </g>
+        <g fill="none" stroke="currentColor" stroke-width="0.95" stroke-linejoin="round">
+          <path d="M19.4 15.7Q22.93 15.52 23.2 12Q19.67 12.18 19.4 15.7Z" />
+          <path d="M12.4 21.4Q12.13 17.88 8.6 17.7Q8.87 21.22 12.4 21.4Z" />
+        </g>
+        <g fill="none" stroke="currentColor" stroke-width="0.72" stroke-linecap="round">
+          <path d="M19.86 15.26Q20.81 12.96 21.72 13.9" />
+          <path d="M11.94 20.96Q9.63 20.07 10.54 19.13" />
+        </g>
+        <g fill="currentColor">
+          <circle cx="16" cy="10.9" r="1.62" />
+          <circle cx="12.3" cy="14.7" r="1.62" />
+          <circle cx="21.8" cy="19.2" r="1.62" />
+        </g>
+      </g>
+      <g id="sygnet">
+        <circle cx="16" cy="16" r="14.27" fill="none" stroke="currentColor" stroke-width="0.85" />
+        <path fill="currentColor" fill-rule="evenodd" d="M3.76 16A12.24 12.24 0 1 0 28.24 16A12.24 12.24 0 1 0 3.76 16ZM6.81 16A9.19 10.65 0 1 0 25.19 16A9.19 10.65 0 1 0 6.81 16Z" />
+        <g transform="translate(16 14.72) scale(0.61) translate(-16 -15.75)"><use href="#znak" /></g>
+      </g>
+    </defs>
+  </svg>
+
+  <h2>Znak podstawowy &amp; lockup</h2>
+  <div class="card center">
+    <svg height="58" viewBox="0 0 246 60" role="img" aria-label="Ogarniamy" style="color:var(--brand-forest)">
+      <g transform="translate(1 1) scale(1.81)"><use href="#sygnet" /></g>
+      <text x="60" y="43" font-family="'DM Sans', ui-sans-serif, system-ui, sans-serif" font-size="36" font-weight="500" letter-spacing="-0.8" fill="currentColor">garniamy</text>
+    </svg>
+  </div>
+  <p class="caption">Sygnet zastępuje literę „O" logotypu. Minimalna szerokość lockupu: 180&nbsp;px.</p>
+
+  <h2>Warianty znaku</h2>
+  <div class="variants">
+    <div class="variant">
+      <div class="tile">
+        <svg width="92" height="92" viewBox="0 0 32 32" role="img" aria-label="Znak"><use href="#znak" /></svg>
+      </div>
+      <p class="caption">Znak — dom z rośliną-fontanną: cztery gałęzie z jednej podstawy, trzy pełne kule, dwa konturowe liście z żyłką. Kreski: dom 1,2 · gałęzie 1,05 · liść 0,95 · żyłka 0,72.</p>
+    </div>
+    <div class="variant">
+      <div class="tile">
+        <svg width="92" height="92" viewBox="0 0 32 32" role="img" aria-label="Sygnet"><use href="#sygnet" /></svg>
+      </div>
+      <p class="caption">Sygnet — znak w pierścieniu o eliptycznym świetle: boki grube, góra i dół cienkie. To konstrukcja litery O, nie dwa kółka.</p>
+    </div>
+    <div class="variant">
+      <div class="tile dark">
+        <svg width="92" height="92" viewBox="0 0 32 32" role="img" aria-label="Sygnet na ciemnym tle"><use href="#sygnet" /></svg>
+      </div>
+      <p class="caption">Na ciemnym tle znak przechodzi w piasek (len-300) — nigdy w biel.</p>
+    </div>
+    <div class="variant">
+      <div class="tile">
+        <span style="display:flex;align-items:flex-end;gap:18px">
+          <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><use href="#sygnet" /></svg>
+          <svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><use href="#znak" /></svg>
+          <svg width="48" height="48" viewBox="0 0 52 52" aria-hidden="true">
+            <rect width="52" height="52" rx="16" fill="var(--brand-forest)" />
+            <g transform="translate(7 7) scale(1.1875)" style="color:var(--brand-sand)"><use href="#znak" /></g>
+          </svg>
+        </span>
+      </div>
+      <p class="caption">Podłoga rozmiaru: sygnet 26&nbsp;px · znak 30&nbsp;px · kafelek 48&nbsp;px. Poniżej — nie używać.</p>
+    </div>
+  </div>
+
+  <h2>Paleta kolorów</h2>
+  <div class="swatches">
+    <div class="swatch"><div class="chip" style="background:var(--brand-cream); border-bottom:1px solid var(--moss-300)"></div><div class="meta"><b>Krem (len-50) — karty, napis na CTA</b><code>#FFF8EC</code></div></div>
+    <div class="swatch"><div class="chip" style="background:var(--brand-sand); border-bottom:1px solid var(--moss-300)"></div><div class="meta"><b>Piasek (len-300) — obwódki, znak na ciemnym</b><code>#DCCCAC</code></div></div>
+    <div class="swatch"><div class="chip" style="background:var(--brand-leaf)"></div><div class="meta"><b>Szałwia (sage-400) — akcent w trybie ciemnym</b><code>#99AD7A</code></div></div>
+    <div class="swatch"><div class="chip" style="background:var(--brand-forest)"></div><div class="meta"><b>Zieleń (sage-600) — kolor znaku, akcent</b><code>#546B41</code></div></div>
+    <div class="swatch"><div class="chip" style="background:var(--brand-bordo)"></div><div class="meta"><b>Bordo (bordo-800) — zaległości</b><code>#492828</code></div></div>
+  </div>
+  <p class="caption">Paleta 2: pięć kotwic, z których policzone są pełne skale (len / sage / bordo — <code>tokens/palette-2.css</code> w projekcie design, w kodzie <code>tailwind.config.js</code>). Nie ma koloru energii — CTA bierze najciemniejszą zieleń, zaległości mówią bordo zamiast krzyczeć pomarańczem. Para znaku: Zieleń <code>#546B41</code> na jasnych tłach, Piasek <code>#DCCCAC</code> na ciemnych — w kodzie <code>text-brand-forest</code> / <code>dark:text-brand-sand</code>.</p>
+
+  <h2>Typografia</h2>
+  <div class="card type-sample">
+    <div class="row"><span class="spec">DM Sans 500 · logotyp</span><span style="font-size:28px;font-weight:500;letter-spacing:-0.022em;color:var(--brand-forest)">garniamy</span></div>
+    <div class="row"><span class="spec">DM Sans 400 · nagłówki</span><span style="font-size:24px">Zostały dwie rzeczy i jedna zaległość.</span></div>
+    <div class="row"><span class="spec">DM Sans 400/500 · tekst</span><span style="font-size:15px">Wspólna lista rzeczy do ogarnięcia w domu — bez kont, bez haseł, bez zapisów.</span></div>
+    <div class="row"><span class="spec">JetBrains Mono · liczby, kod</span><span style="font-family:'JetBrains Mono',monospace;font-size:14px">co 3 dni · od 2026-07-01</span></div>
+  </div>
+
+  <h2>Zasady użycia</h2>
+  <div class="rules">
+    <div class="rule do"><h3>Tak: jeden kolor, lekka kreska</h3><p>Znak jest jednobarwny — zieleń #546B41 albo piasek #DCCCAC — i celowo lżejszy od ikon interfejsu (dom 1,2 wobec 1,8 u lucide), bo nie konkuruje z treścią.</p></div>
+    <div class="rule do"><h3>Tak: pole ochronne</h3><p>Wokół znaku zostaw pustą przestrzeń równą co najmniej grubości boku pierścienia (ok. 25% jego średnicy).</p></div>
+    <div class="rule do"><h3>Tak: podłogi rozmiaru</h3><p>Kafelek od 48 px, sam znak od 30 px, sygnet od 26 px. Lockup od 180 px szerokości — poniżej litery przestają być czytelne.</p></div>
+    <div class="rule dont"><h3>Nie: biel na ciemnym</h3><p>Na ciemnych tłach znak przechodzi w piasek (#DCCCAC), nie w biel — biel należy do treści, nie do marki.</p></div>
+    <div class="rule dont"><h3>Nie: wypełnianie i pogrubianie</h3><p>Nie wypełniaj liści i nie pogrubiaj domu do wagi ikon lucide — to dwa najczęstsze sposoby, żeby znak przestał być tym znakiem. Wypełnione są wyłącznie trzy kule.</p></div>
+    <div class="rule dont"><h3>Nie: pierścień jako kółko</h3><p>Pierścień sygnetu ma eliptyczne światło przy kołowym obrysie — jest literą O i dlatego zastępuje ją w lockupie. Zamieniony na koło o stałej kresce przestaje być literą i robi się pieczątką.</p></div>
+  </div>
+
+  <footer>
+    Ogarniamy · brandguide v4 · geometria z projektu claude.ai/design (guidelines/logo.card.html), w kodzie: <code>src/components/Logo.jsx</code> — ten plik tylko dokumentuje.
+  </footer>
+</main>
+</body>
+</html>

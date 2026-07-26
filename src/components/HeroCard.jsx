@@ -11,7 +11,7 @@ export function HeroCard({ tasks, today, weekStats, onSelectDay }) {
 
   return (
     <div className="flex flex-col gap-4.5 lg:flex-row">
-      <div className="flex-1 rounded-hero bg-forest-600 px-4.5 py-5 text-moss-100 lg:flex lg:items-center lg:gap-6 lg:px-5.5">
+      <div className="flex-1 rounded-hero bg-hero px-4.5 py-5 text-moss-200 lg:flex lg:items-center lg:gap-6 lg:px-5.5">
         <div className="mb-4.5 lg:mb-0 lg:max-w-[230px] lg:flex-none">
           <p className="text-[24px] leading-[1.25] text-balance">{summarySentence(counts)}</p>
           <Subline tasks={tasks} today={today} />
@@ -22,7 +22,7 @@ export function HeroCard({ tasks, today, weekStats, onSelectDay }) {
       </div>
 
       {weekStats && (
-        <div className="hidden w-[150px] flex-none flex-col justify-between rounded-hero bg-white p-4.5 shadow-card lg:flex dark:bg-bark-800">
+        <div className="hidden w-[150px] flex-none flex-col justify-between rounded-hero bg-moss-50 p-4.5 shadow-card lg:flex dark:bg-bark-800">
           <p className="text-[10.5px] uppercase tracking-[0.15em] text-moss-500">
             {COPY.weekTitle}
           </p>
@@ -38,7 +38,7 @@ export function HeroCard({ tasks, today, weekStats, onSelectDay }) {
                 <span
                   className={[
                     'h-[9px] w-[9px] rounded-full',
-                    i === 0 ? 'bg-forest-600 dark:bg-forest-500' : 'bg-lime-400',
+                    i === 0 ? 'bg-[#3d5230] dark:bg-[#42542e]' : 'bg-lime-400',
                   ].join(' ')}
                 />
                 {person.name} {person.count}
@@ -63,7 +63,7 @@ function Subline({ tasks, today }) {
   const rest = doneToday.length - 1
 
   return (
-    <p className="mt-1 text-[13px] text-[#a9c9a5]">
+    <p className="mt-1 text-[13px] text-[#aec399]">
       Dziś z listy: {latest.name}
       {who ? ` — ${who}` : ''}
       {rest > 0 ? ` (+ ${countWith(rest, FORMS.rzecz)})` : ''}

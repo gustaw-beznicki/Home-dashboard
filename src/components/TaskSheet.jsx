@@ -80,13 +80,13 @@ export function TaskSheet({
   return (
     <div
       onClick={(e) => e.target === e.currentTarget && onClose()}
-      className="fixed inset-0 z-40 flex items-end bg-forest-700/35 sm:items-stretch sm:justify-end"
+      className="fixed inset-0 z-40 flex items-end bg-moss-900/45 sm:items-stretch sm:justify-end"
     >
       <div
         role="dialog"
         aria-modal="true"
         aria-label={isNew ? COPY.formNew : COPY.formEdit}
-        className="max-h-[92vh] w-full overflow-y-auto rounded-t-sheet bg-white px-4.5 pb-6 pt-3.5 shadow-sheet transition-transform duration-[260ms] ease-sheet sm:h-full sm:max-h-none sm:w-[440px] sm:rounded-none sm:border-l sm:border-moss-300 sm:px-6 sm:py-6 sm:shadow-pop dark:bg-bark-800 dark:sm:border-bark-600"
+        className="max-h-[92vh] w-full overflow-y-auto rounded-t-sheet bg-moss-50 px-4.5 pb-6 pt-3.5 shadow-sheet transition-transform duration-[260ms] ease-sheet sm:h-full sm:max-h-none sm:w-[440px] sm:rounded-none sm:border-l sm:border-moss-300 sm:px-6 sm:py-6 sm:shadow-pop dark:bg-bark-800 dark:sm:border-bark-600"
       >
         <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-moss-300 sm:hidden dark:bg-bark-600" />
 
@@ -124,7 +124,7 @@ export function TaskSheet({
                 className={[
                   'flex items-center gap-1.5 rounded-full px-3.5 py-2.5 text-[13.5px]',
                   active
-                    ? 'bg-forest-600 font-medium text-moss-100'
+                    ? 'bg-forest-600 font-medium text-onaccent'
                     : 'bg-moss-100 text-moss-700 dark:bg-bark-700 dark:text-moss-400',
                 ].join(' ')}
               >
@@ -183,7 +183,7 @@ export function TaskSheet({
             type="button"
             onClick={save}
             disabled={!form.name.trim()}
-            className="h-[52px] flex-1 rounded-full bg-forest-600 text-[14.5px] font-medium text-moss-100 disabled:opacity-40"
+            className="h-[52px] flex-1 rounded-full bg-cta text-[14.5px] font-medium text-onaccent disabled:opacity-40"
           >
             {isNew ? COPY.create : COPY.save}
           </button>

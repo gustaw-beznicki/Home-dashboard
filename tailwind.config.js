@@ -9,34 +9,56 @@ export default {
         mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
       },
       colors: {
-        // Warm neutral ("moss") + deep green accent ("forest") + lime action
-        // signal. Overdue is terracotta ("clay") — warm rather than alarming.
-        moss: {
-          50: '#f4f6f2',
-          100: '#eef1ec',
-          200: '#e6ebe2',
-          300: '#dbe1d8',
-          400: '#c3cdbd',
-          500: '#9aa696',
-          600: '#7b8878',
-          700: '#5c6a58',
-          800: '#3d4a39',
-          900: '#26301f',
+        // Paleta 2 (projekt claude.ai/design, tokens/palette-2.css) — pięć
+        // kotwic: krem #FFF8EC, piasek #DCCCAC, szałwia #99AD7A, zieleń
+        // #546B41, bordo #492828. Skale policzone w OKLCh; nie poprawiaj
+        // pojedynczych stopni bez przeliczenia par WCAG z tego pliku.
+        //
+        // Nazwy skal zostały historyczne (moss/lime/clay), wartości są nowe:
+        // moss = len (neutralne), lime = jasne stopnie sage, clay = bordo.
+        brand: {
+          forest: '#546b41', // sage-600, kotwica "zieleń" — znak na jasnym
+          leaf: '#99ad7a', // sage-400, kotwica "szałwia"
+          sand: '#dcccac', // len-300, kotwica "piasek" — znak na ciemnym
+          bordo: '#492828', // kotwica zaległości
         },
-        // Defined as CSS variables in index.css so the scale carries its own
-        // dark values — see the note there. `<alpha-value>` keeps `/35` working.
+        // len — ciepłe neutralne, hue 82.
+        moss: {
+          50: '#fff8ec',
+          100: '#f9f1e3',
+          200: '#ebdec7',
+          300: '#dcccac',
+          400: '#c0af90',
+          500: '#92846b',
+          600: '#6d624d',
+          700: '#4f4637',
+          800: '#332d21',
+          900: '#201b12',
+        },
+        // Role o odwróconym kierunku w trybie ciemnym — zmienne w index.css.
+        // `<alpha-value>` keeps `/35` working.
         forest: {
           500: 'rgb(var(--forest-500) / <alpha-value>)',
           600: 'rgb(var(--forest-600) / <alpha-value>)',
           700: 'rgb(var(--forest-700) / <alpha-value>)',
         },
-        lime: { 300: '#e0f8ab', 400: '#cff08a', 500: '#b8dd6c' },
-        clay: { 100: '#fbe3da', 300: '#f2d7cd', 500: '#b8492c', 700: '#8f3a22' },
-        amber: { 100: '#fdf6e9', 500: '#b3703a' },
-        bark: { 600: '#38422e', 700: '#28311f', 800: '#1e2519', 900: '#161b13' },
+        hero: 'rgb(var(--hero) / <alpha-value>)',
+        cta: {
+          DEFAULT: 'rgb(var(--cta) / <alpha-value>)',
+          hover: 'rgb(var(--cta-hover) / <alpha-value>)',
+        },
+        onaccent: 'rgb(var(--on-accent) / <alpha-value>)',
+        // jasne stopnie sage — akcent na ciemnych powierzchniach.
+        lime: { 300: '#c6d6b5', 400: '#aec399', 500: '#99ad7a' },
+        // bordo — zaległości. 500 znacznik, 700 (=bordo-800) tekst.
+        clay: { 100: '#ffe6e5', 300: '#f7d0ce', 500: '#a85f60', 700: '#492828' },
+        // przygaszone złoto na ostrzeżenia — celowo nie bordo.
+        amber: { 100: '#f7edd2', 500: '#8a6a21' },
+        // kora — tryb ciemny, zielonawa ciemność (hue 129, niska chroma).
+        bark: { 600: '#3a3f34', 700: '#272c23', 800: '#191d15', 900: '#0f120b' },
         // Category tiles — recognition, never status.
-        plant: { 100: '#e5f2dd', 500: '#4a7a3f' },
-        health: { 100: '#fdeede', 500: '#b3703a' },
+        plant: { 100: '#e2ecd7', 500: '#42542e' },
+        health: { 100: '#ebdec7', 500: '#4f4637' },
       },
       // 18 / 22 / 26 px rungs of the spacing scale. Tailwind ships 1, 2, 2.5 and
       // 3.5 but stops before these, and the design leans on all three.

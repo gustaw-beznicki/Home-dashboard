@@ -12,7 +12,7 @@ import {
 } from 'lucide-react'
 import { AdminPortal } from './AdminPortal'
 import { CategoryIcon } from './CategoryIcon'
-import { Logo } from './Logo'
+import { LogoBadge } from './Logo'
 import { CATEGORY_TILE_CLASS, COPY, STORAGE_KEY } from '../lib/constants'
 import { countWith, FORMS } from '../lib/plural'
 import { invalidateCategories } from '../hooks/useCategories'
@@ -84,7 +84,7 @@ export function HomePanel() {
             className={[
               'flex items-start gap-3 rounded-2xl px-3 py-3 text-left transition',
               active
-                ? 'bg-forest-600 text-moss-100 dark:bg-[#3a5842]'
+                ? 'bg-forest-600 text-onaccent'
                 : 'text-moss-700 hover:bg-moss-200/60 dark:text-moss-400 dark:hover:bg-bark-700',
             ].join(' ')}
           >
@@ -113,7 +113,7 @@ export function HomePanel() {
             {COPY.admin.back}
           </a>
           <span className="hidden items-center gap-2 text-[12.5px] text-moss-500 sm:flex">
-            <Logo size={16} label="" className="text-moss-500" />
+            <LogoBadge size={26} label="" className="text-moss-500" />
             {COPY.appName}
           </span>
         </div>
@@ -127,7 +127,7 @@ export function HomePanel() {
         <div className="mt-4.5 flex flex-col gap-4.5 lg:flex-row lg:gap-0">
           {/* Phone: the sections are a tappable list above the content.
               Desktop: a persistent second-column nav. */}
-          <div className="rounded-hero bg-white px-4 py-1 lg:hidden dark:bg-bark-800">
+          <div className="rounded-hero bg-moss-50 px-4 py-1 lg:hidden dark:bg-bark-800">
             {SECTIONS.map((s, i) => {
               const Icon = s.icon
               const active = section === s.key
@@ -145,7 +145,7 @@ export function HomePanel() {
                     className={[
                       'grid h-10 w-10 shrink-0 place-items-center rounded-[14px]',
                       active
-                        ? 'bg-forest-600 text-moss-100 dark:bg-[#3a5842]'
+                        ? 'bg-forest-600 text-onaccent'
                         : 'bg-moss-50 text-moss-800 dark:bg-bark-700 dark:text-moss-300',
                     ].join(' ')}
                   >
@@ -209,7 +209,7 @@ function HomeSection({ settings, onPatch }) {
         {COPY.panel.homeIntro}
       </p>
 
-      <div className="mb-3.5 rounded-hero bg-white p-5 dark:bg-bark-800">
+      <div className="mb-3.5 rounded-hero bg-moss-50 p-5 dark:bg-bark-800">
         <label className="mb-2 block text-[13px] font-medium text-moss-800 dark:text-moss-300" htmlFor="home-name">
           {COPY.panel.homeName}
         </label>
@@ -237,7 +237,7 @@ function HomeSection({ settings, onPatch }) {
               className={[
                 'flex-1 rounded-2xl py-3 text-[13.5px] transition',
                 settings.weekStart === w.v
-                  ? 'bg-forest-600 font-medium text-moss-100 dark:bg-[#3a5842]'
+                  ? 'bg-forest-600 font-medium text-onaccent'
                   : 'bg-moss-100 text-moss-700 hover:bg-moss-200 dark:bg-bark-700 dark:text-moss-400',
               ].join(' ')}
             >
@@ -262,7 +262,7 @@ function HomeSection({ settings, onPatch }) {
               className={[
                 'rounded-full px-3.5 py-2.5 text-[13.5px] transition',
                 settings.defaultRhythm === r.v
-                  ? 'bg-forest-600 font-medium text-moss-100 dark:bg-[#3a5842]'
+                  ? 'bg-forest-600 font-medium text-onaccent'
                   : 'bg-moss-100 text-moss-700 hover:bg-moss-200 dark:bg-bark-700 dark:text-moss-400',
               ].join(' ')}
             >
@@ -272,7 +272,7 @@ function HomeSection({ settings, onPatch }) {
         </div>
       </div>
 
-      <div className="rounded-hero bg-white px-5 py-4 dark:bg-bark-800">
+      <div className="rounded-hero bg-moss-50 px-5 py-4 dark:bg-bark-800">
         <p className="mb-1 text-[13px] font-medium text-moss-800 dark:text-moss-300">{COPY.panel.reminders}</p>
         {[
           { key: 'remindMorning', label: COPY.panel.remindMorning, hint: COPY.panel.remindMorningHint },
@@ -293,13 +293,13 @@ function HomeSection({ settings, onPatch }) {
                 onClick={() => onPatch({ [t.key]: !on })}
                 className={[
                   'relative h-[27px] w-[46px] shrink-0 rounded-full transition',
-                  on ? 'bg-forest-600 dark:bg-[#3a5842]' : 'bg-moss-300 dark:bg-bark-600',
+                  on ? 'bg-forest-600' : 'bg-moss-300 dark:bg-bark-600',
                 ].join(' ')}
               >
                 <span
                   className={[
                     'absolute top-[3px] h-[21px] w-[21px] rounded-full transition-all',
-                    on ? 'left-[22px] bg-lime-400' : 'left-[3px] bg-white dark:bg-moss-500',
+                    on ? 'left-[22px] bg-lime-400' : 'left-[3px] bg-moss-50 dark:bg-moss-500',
                   ].join(' ')}
                 />
               </button>
@@ -377,11 +377,11 @@ function CategoriesSection() {
         {COPY.panel.catsIntro}
       </p>
 
-      {error && <p className="mb-3 text-[13px] text-clay-500 dark:text-[#f0a58a]">{error}</p>}
+      {error && <p className="mb-3 text-[13px] text-clay-500 dark:text-[#e4a9a8]">{error}</p>}
 
       <div className="mb-4 grid gap-2.5 sm:grid-cols-2">
         {categories.map((c) => (
-          <div key={c.key} className="flex items-center gap-3.5 rounded-card bg-white px-4 py-3.5 dark:bg-bark-800">
+          <div key={c.key} className="flex items-center gap-3.5 rounded-card bg-moss-50 px-4 py-3.5 dark:bg-bark-800">
             <span
               className={[
                 'grid h-11 w-11 shrink-0 place-items-center rounded-2xl',
@@ -412,7 +412,7 @@ function CategoriesSection() {
         ))}
       </div>
 
-      <div className="flex max-w-[520px] items-center gap-2.5 rounded-card bg-white px-4 py-3.5 dark:bg-bark-800">
+      <div className="flex max-w-[520px] items-center gap-2.5 rounded-card bg-moss-50 px-4 py-3.5 dark:bg-bark-800">
         <input
           value={newLabel}
           onChange={(e) => setNewLabel(e.target.value)}
@@ -424,7 +424,7 @@ function CategoriesSection() {
         <button
           type="button"
           onClick={add}
-          className="flex items-center gap-2 rounded-2xl bg-forest-600 px-5 py-3 text-[13.5px] font-medium text-moss-100 dark:bg-[#3a5842]"
+          className="flex items-center gap-2 rounded-2xl bg-cta px-5 py-3 text-[13.5px] font-medium text-onaccent"
         >
           <Plus size={15} strokeWidth={2.4} />
           {COPY.panel.catAdd}
@@ -541,33 +541,33 @@ function DataSection() {
         {COPY.panel.dataIntro}
       </p>
 
-      {error && <p className="mb-3 text-[13px] text-clay-500 dark:text-[#f0a58a]">{error}</p>}
+      {error && <p className="mb-3 text-[13px] text-clay-500 dark:text-[#e4a9a8]">{error}</p>}
 
       {legacyCount > 0 && (
-        <div className="mb-3.5 flex flex-wrap items-center gap-3.5 rounded-card bg-amber-100 px-4.5 py-4 dark:bg-[#332a19]">
-          <TriangleAlert size={18} strokeWidth={1.8} className="shrink-0 text-amber-500 dark:text-[#e0b073]" />
-          <p className="min-w-[200px] flex-1 text-[13.5px] leading-relaxed text-amber-500 dark:text-[#e0b073]">
+        <div className="mb-3.5 flex flex-wrap items-center gap-3.5 rounded-card bg-amber-100 px-4.5 py-4 dark:bg-[#3e3a29]">
+          <TriangleAlert size={18} strokeWidth={1.8} className="shrink-0 text-amber-500 dark:text-[#d9c28a]" />
+          <p className="min-w-[200px] flex-1 text-[13.5px] leading-relaxed text-amber-500 dark:text-[#d9c28a]">
             {COPY.importBanner.text(legacyCount)}
           </p>
           <button
             type="button"
             onClick={importLegacy}
             disabled={importing}
-            className="rounded-full bg-forest-600 px-4.5 py-2.5 text-[13px] font-medium text-moss-100 disabled:opacity-60 dark:bg-[#3a5842]"
+            className="rounded-full bg-cta px-4.5 py-2.5 text-[13px] font-medium text-onaccent disabled:opacity-60"
           >
             {importing ? COPY.importBanner.working : COPY.importBanner.confirm}
           </button>
           <button
             type="button"
             onClick={dismissLegacy}
-            className="px-3 py-2.5 text-[13px] text-amber-500 dark:text-[#e0b073]"
+            className="px-3 py-2.5 text-[13px] text-amber-500 dark:text-[#d9c28a]"
           >
             {COPY.importBanner.dismiss}
           </button>
         </div>
       )}
 
-      <div className="mb-3.5 rounded-hero bg-white px-5 py-1.5 dark:bg-bark-800">
+      <div className="mb-3.5 rounded-hero bg-moss-50 px-5 py-1.5 dark:bg-bark-800">
         {rows.map((row) => (
           <div key={row.key} className="flex items-center gap-4 border-t border-moss-200 py-4 first:border-t-0 dark:border-bark-700">
             <div className="min-w-0 flex-1">
@@ -587,8 +587,8 @@ function DataSection() {
       </div>
 
       {/* The danger zone is quiet on purpose: an outline, not a red slab. */}
-      <div className="rounded-hero border border-clay-300 p-5 dark:border-[#5a2f22]">
-        <p className="mb-1.5 text-[14.5px] font-medium text-clay-700 dark:text-[#f0a58a]">
+      <div className="rounded-hero border border-clay-300 p-5 dark:border-[#492828]">
+        <p className="mb-1.5 text-[14.5px] font-medium text-clay-700 dark:text-[#e4a9a8]">
           {COPY.panel.dangerTitle}
         </p>
         <p className="mb-3.5 max-w-[56ch] text-[13px] leading-relaxed text-moss-600 dark:text-moss-500">
@@ -598,7 +598,7 @@ function DataSection() {
           type="button"
           disabled={busyAction === 'delete'}
           onClick={deleteHome}
-          className="rounded-full bg-clay-100 px-5 py-3 text-[13.5px] font-medium text-clay-700 transition hover:bg-clay-300/60 disabled:opacity-50 dark:bg-[#3a2018] dark:text-[#f0a58a]"
+          className="rounded-full bg-clay-100 px-5 py-3 text-[13.5px] font-medium text-clay-700 transition hover:bg-clay-300/60 disabled:opacity-50 dark:bg-[#301717] dark:text-[#e4a9a8]"
         >
           {COPY.panel.dangerAction}
         </button>

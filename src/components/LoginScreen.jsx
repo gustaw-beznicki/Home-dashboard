@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Sprout, Droplets } from 'lucide-react'
-import { Logo } from './Logo'
+import { LogoBadge, LogoLockup } from './Logo'
 import { signInWithGoogle } from '../lib/authClient'
 import { COPY } from '../lib/constants'
 
@@ -45,7 +45,7 @@ export function LoginScreen() {
       <main className="flex min-h-screen flex-col px-6.5 lg:min-h-0 lg:flex-1 lg:justify-center lg:px-[76px] lg:py-12">
         <div className="mx-auto flex w-full max-w-[460px] flex-1 flex-col justify-center lg:mx-0 lg:max-w-[520px] lg:flex-none">
           <div className="mb-5.5 lg:mb-7">
-            <Logo size={null} className="h-auto w-full max-w-[168px] text-forest-600 lg:max-w-[112px] dark:text-lime-400" />
+            <LogoLockup size={48} />
           </div>
 
           <h1 className="text-pretty text-[34px] leading-[1.1] text-moss-900 lg:max-w-[12ch] lg:text-[46px] lg:leading-[1.08] dark:text-moss-100">
@@ -57,9 +57,9 @@ export function LoginScreen() {
           </p>
 
           {(rejected || failed) && (
-            <div className="mt-5.5 flex max-w-[460px] items-start gap-3 rounded-card bg-clay-100 px-4.5 py-4 lg:mt-6 dark:bg-[#3a2018]">
+            <div className="mt-5.5 flex max-w-[460px] items-start gap-3 rounded-card bg-clay-100 px-4.5 py-4 lg:mt-6 dark:bg-[#301717]">
               <CircleX />
-              <p className="text-[13.5px] leading-relaxed text-clay-700 dark:text-[#f0a58a]">
+              <p className="text-[13.5px] leading-relaxed text-clay-700 dark:text-[#e4a9a8]">
                 {rejected ? COPY.login.denied : COPY.login.failed}
               </p>
             </div>
@@ -70,7 +70,7 @@ export function LoginScreen() {
               type="button"
               onClick={handleSignIn}
               disabled={isBusy}
-              className="flex h-14 items-center justify-center gap-3 rounded-full bg-forest-600 px-7 text-[15px] font-medium text-moss-100 transition hover:bg-forest-700 disabled:opacity-60 dark:bg-[#3a5842]"
+              className="flex h-14 items-center justify-center gap-3 rounded-full bg-cta px-7 text-[15px] font-medium text-onaccent transition hover:bg-cta-hover disabled:opacity-60"
             >
               <GoogleMark />
               {isBusy ? COPY.login.redirecting : COPY.login.button}
@@ -83,14 +83,14 @@ export function LoginScreen() {
         </div>
 
         <footer className="flex items-center justify-center gap-2 pb-6.5 text-[12px] text-moss-500 lg:hidden">
-          <Logo size={16} className="text-moss-500" label="" />
+          <LogoBadge size={26} className="text-moss-500" label="" />
           {COPY.appName}
         </footer>
       </main>
 
       {/* Desktop only: a preview of what's inside instead of empty space. */}
-      <aside className="hidden w-[520px] shrink-0 flex-col justify-center gap-4 bg-forest-600 px-12 py-14 text-moss-100 lg:flex">
-        <p className="text-[10.5px] font-medium uppercase tracking-[0.16em] text-[#a9c9a5]">Dziś w domu</p>
+      <aside className="hidden w-[520px] shrink-0 flex-col justify-center gap-4 bg-hero px-12 py-14 text-moss-200 lg:flex">
+        <p className="text-[10.5px] font-medium uppercase tracking-[0.16em] text-[#aec399]">Dziś w domu</p>
 
         <div className="rounded-card bg-white/[.07] px-5 py-4.5">
           <p className="mb-3.5 text-[22px] leading-[1.3]">Zostały dwie rzeczy i jedna zaległość.</p>
@@ -100,11 +100,11 @@ export function LoginScreen() {
                 <span
                   className={[
                     'w-full rounded-[5px]',
-                    i === 0 ? 'bg-[#e8875f]' : i === 1 ? 'bg-lime-400' : 'bg-[#456b50]',
+                    i === 0 ? 'bg-[#c98281]' : i === 1 ? 'bg-lime-400' : 'bg-[#3d5230]',
                   ].join(' ')}
                   style={{ height: `${height}px` }}
                 />
-                <span className="text-[9.5px] text-[#7d9c79]">{TEASE_LABELS[i]}</span>
+                <span className="text-[9.5px] text-[#99ad7a]">{TEASE_LABELS[i]}</span>
               </div>
             ))}
           </div>
@@ -118,17 +118,17 @@ export function LoginScreen() {
         />
         <TeaseRow
           icon={Droplets}
-          tile="bg-[#e8875f]/[.16] text-[#e8875f]"
+          tile="bg-[#c98281]/[.16] text-[#c98281]"
           name="Wymienić filtr w kranie"
           meta="25 dni po terminie"
-          metaClass="text-[#e8875f]"
+          metaClass="text-[#c98281]"
         />
       </aside>
     </div>
   )
 }
 
-function TeaseRow({ icon: Icon, tile, name, meta, metaClass = 'text-[#a9c9a5]' }) {
+function TeaseRow({ icon: Icon, tile, name, meta, metaClass = 'text-[#aec399]' }) {
   return (
     <div className="flex items-center gap-3 rounded-[18px] bg-white/[.07] px-4 py-3.5">
       <span className={['grid h-[38px] w-[38px] shrink-0 place-items-center rounded-[14px]', tile].join(' ')}>
@@ -151,7 +151,7 @@ function CircleX() {
       fill="none"
       stroke="currentColor"
       strokeWidth="1.8"
-      className="mt-0.5 shrink-0 text-clay-500 dark:text-[#f0a58a]"
+      className="mt-0.5 shrink-0 text-clay-500 dark:text-[#e4a9a8]"
       aria-hidden="true"
     >
       <circle cx="12" cy="12" r="9" />

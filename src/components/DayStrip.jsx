@@ -17,12 +17,12 @@ export function DayStrip({ tasks, today, days = 12, onSelectDay }) {
       {load.map((day) => {
         const height = 9 + Math.round((day.count / max) * (day.isToday ? 34 : 30))
         const tone = day.overdue
-          ? 'bg-[#e8875f]'
+          ? 'bg-[#c98281]'
           : day.isToday
             ? 'bg-lime-400'
             : day.date > today
-              ? 'bg-[#456b50]'
-              : 'bg-[#3b5c45]'
+              ? 'bg-[#3d5230]'
+              : 'bg-[#374a2b]'
 
         // Inert unless someone wants to act on a day — a button that does
         // nothing is worse than a bar that never claimed to be one.
@@ -44,7 +44,7 @@ export function DayStrip({ tasks, today, days = 12, onSelectDay }) {
             <span
               className={[
                 'text-[9.5px] sm:text-[10px]',
-                day.isToday ? 'font-bold text-lime-400' : 'text-[#7d9c79]',
+                day.isToday ? 'font-bold text-lime-400' : 'text-[#99ad7a]',
               ].join(' ')}
             >
               {day.isToday ? 'dziś' : WEEKDAY_SHORT[day.date.getDay()]}
