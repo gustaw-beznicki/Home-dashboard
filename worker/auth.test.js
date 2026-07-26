@@ -68,7 +68,13 @@ describe('authorize', () => {
       { email: 'a@example.com', name: 'Alice', role: 'member', status: 'active' },
     ])
     const result = await authorize({ email: 'a@example.com', name: 'Alice' }, { DB: db })
-    expect(result).toEqual({ email: 'a@example.com', name: 'Alice', role: 'member' })
+    expect(result).toEqual({
+      email: 'a@example.com',
+      name: 'Alice',
+      role: 'member',
+      color: null,
+      onboardedAt: null,
+    })
   })
 
   it('rejects a revoked user', async () => {
@@ -308,7 +314,15 @@ describe('devBypassUser', () => {
       email: 'dev@localhost',
       name: 'dev',
       role: 'admin',
+      color: null,
+      onboardedAt: 'dev-bypass',
     })
+  })
+
+  it('counts as already onboarded, unless DEV_ONBOARDING asks for the wizard', () => {
+    expect(devBypassUser(local(), { DEV_NO_AUTH: 'true' }).onboardedAt).toBeTruthy()
+    const env = { DEV_NO_AUTH: 'true', DEV_ONBOARDING: 'true' }
+    expect(devBypassUser(local(), env).onboardedAt).toBeNull()
   })
 
   it('can be downgraded to a member to check what the admin gate hides', () => {
@@ -337,7 +351,7 @@ describe('requireUser with the dev bypass', () => {
     const env = { DEV_NO_AUTH: 'true', DB: createFakeDb() }
     const result = await requireUser(new Request('http://localhost:8787/api/tasks'), env)
 
-    expect(result.user).toEqual({ email: 'dev@localhost', name: 'dev', role: 'admin' })
+    expect(result.user).toMatchObject({ email: 'dev@localhost', name: 'dev', role: 'admin' })
     expect(result.response).toBeUndefined()
     expect(mockGetSession).not.toHaveBeenCalled()
   })

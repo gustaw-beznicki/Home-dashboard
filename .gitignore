@@ -17,3 +17,6 @@ dist-ssr
 .agents/
 skills-lock.json
 .claude/skills/clerk*
+
+# Playwright artifacts
+test-results/

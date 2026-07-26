@@ -39,6 +39,11 @@ export function devBypassUser(request, env) {
     // Admin by default, since the point is reaching every screen. Override with
     // `--var DEV_USER_ROLE:member` to check what the admin gate actually hides.
     role: env.DEV_USER_ROLE === 'member' ? 'member' : 'admin',
+    color: null,
+    // The bypass writes no users row, so there is no onboarded_at to read —
+    // stamp it here or the onboarding wizard would greet every dev:no-auth
+    // session. Reach the wizard locally with `--var DEV_ONBOARDING:true`.
+    onboardedAt: env.DEV_ONBOARDING === 'true' ? null : 'dev-bypass',
   }
 }
 
@@ -69,7 +74,7 @@ export async function verifySession(request) {
 // household that later locked itself out.
 export async function authorize(identity, env) {
   const existing = await env.DB.prepare(
-    'SELECT email, name, role, status FROM users WHERE email = ?'
+    'SELECT email, name, role, status, color, onboarded_at FROM users WHERE email = ?'
   )
     .bind(identity.email)
     .first()
@@ -90,6 +95,8 @@ export async function authorize(identity, env) {
       email: existing.email,
       name: existing.name ?? identity.name ?? null,
       role: existing.role,
+      color: existing.color ?? null,
+      onboardedAt: existing.onboarded_at ?? null,
     }
   }
 

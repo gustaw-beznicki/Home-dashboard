@@ -161,6 +161,13 @@ open beside the dashboard being configured. The `manual-steps` skill in
 `.claude/skills/manual-steps/` has the format, including verifying something is genuinely not
 automatable before declaring it manual.
 
+**PR descriptions come from the `pr-description` skill — always.** Never hand-write a body for
+`gh pr create` / `gh pr edit`: the skill (`/pr-description`, in `~/.claude/commands/`) inspects the
+actual diff, captures light/dark screenshots for UI changes via `scripts/screenshot-pr.mjs` and
+commits them on the branch, and produces the required template (What changed / Why / How to test /
+Screenshots / Checklist). A PreToolUse hook in `.claude/settings.json` reminds about this whenever a
+`gh pr create|edit` command runs; treat the reminder as a stop sign, not a suggestion.
+
 **`main` is protected — no direct pushes.** Work on a branch, open a PR, merge. This is enforced for
 the repo owner too. Note that toggling repo visibility on GitHub can silently strip branch
 protection; re-check with `gh api repos/{owner}/{repo}/branches/main/protection` after any such
@@ -193,6 +200,17 @@ along with the old trap of having to set the same key in two places.
 **`BETTER_AUTH_SECRET` is a data-encryption key, not just a signing key.** Better Auth uses it for
 symmetric encryption as well as cookie signing, so rotating it casually can orphan encrypted values;
 rotate via `BETTER_AUTH_SECRETS` (plural, versioned) if it ever needs to change.
+
+## Onboarding
+
+A six-step wizard (`src/components/Onboarding.jsx`) greets an invited person once, between their
+first Google sign-in and the list. App gates on `users.onboarded_at IS NULL` (via `/api/whoami`);
+finishing PATCHes `/api/me` with `{ name, color, onboarded: true }` — `onboarded_at` is one-way
+(`COALESCE`) and `PATCH /api/me` can never touch `role` or `status`. Avatar `color` is a palette
+key validated against `AVATAR_COLORS` in `worker/db.js`, with the class strings (Tailwind-literal,
+for JIT) in `src/lib/constants.js`. The step-four check-off is a local demo on purpose — a tutorial
+must not tell the household a real task happened. Under `dev:no-auth` the synthetic user counts as
+already onboarded; add `--var DEV_ONBOARDING:true` to reach the wizard locally.
 
 ## Admin portal and Panel domu
 
