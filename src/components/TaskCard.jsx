@@ -38,7 +38,8 @@ export function TaskCard({ task, today, onDone, onUndo, onOpen, rolledBack = fal
         className={[
           'grid shrink-0 place-items-center rounded-2xl',
           quiet ? 'h-8 w-8 rounded-xl' : 'h-[46px] w-[46px]',
-          CATEGORY_TILE_CLASS[task.category],
+          // Custom categories from Panel domu get the neutral 'home' tile.
+          CATEGORY_TILE_CLASS[task.category] || CATEGORY_TILE_CLASS.home,
         ].join(' ')}
       >
         <CategoryIcon category={task.category} size={quiet ? 16 : 21} />

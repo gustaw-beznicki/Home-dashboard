@@ -1,10 +1,13 @@
-import { CATEGORIES, COPY } from '../lib/constants'
+import { COPY } from '../lib/constants'
+import { useCategories } from '../hooks/useCategories'
 
 // The category filter survived the tab cull, but as chips sitting next to the
 // list filter rather than in a bar of their own — the two compose, and now you
-// can see that they do.
+// can see that they do. The list itself is editable in Panel domu, hence the
+// hook rather than the constant.
 export function CategoryFilter({ activeCategory, onChange }) {
-  const chips = [{ key: null, label: COPY.allCategories }, ...CATEGORIES]
+  const categories = useCategories()
+  const chips = [{ key: null, label: COPY.allCategories }, ...categories]
 
   return (
     <div className="flex flex-wrap gap-1.5">

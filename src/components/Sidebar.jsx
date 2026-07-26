@@ -1,5 +1,6 @@
-import { Home, LogOut, Shield } from 'lucide-react'
+import { LogOut, Settings2, Shield } from 'lucide-react'
 import { CategoryFilter } from './CategoryFilter'
+import { Logo } from './Logo'
 import { COPY, VIEWS } from '../lib/constants'
 
 function initialOf(user) {
@@ -15,9 +16,7 @@ export function Sidebar({ activeView, onViewChange, activeCategory, onCategoryCh
   return (
     <aside className="hidden w-[210px] flex-none flex-col gap-5 border-r border-moss-300 bg-moss-200 px-4 py-5.5 lg:flex dark:border-bark-600 dark:bg-bark-800">
       <div className="flex items-center gap-2.5">
-        <span className="grid h-7 w-7 place-items-center rounded-[10px] bg-forest-600 text-lime-400">
-          <Home size={15} strokeWidth={2} />
-        </span>
+        <Logo size={30} />
         <span className="text-[15px] font-medium text-moss-900 dark:text-moss-100">
           {COPY.appName}
         </span>
@@ -57,10 +56,16 @@ export function Sidebar({ activeView, onViewChange, activeCategory, onCategoryCh
 
       <div className="mt-auto flex flex-col gap-2.5 text-[12.5px] text-moss-700 dark:text-moss-400">
         {user?.role === 'admin' && (
-          <a href="/admin" className="flex items-center gap-2 hover:underline">
-            <Shield size={14} strokeWidth={1.8} />
-            {COPY.admin.title}
-          </a>
+          <>
+            <a href="/admin" className="flex items-center gap-2 hover:underline">
+              <Shield size={14} strokeWidth={1.8} />
+              {COPY.admin.title}
+            </a>
+            <a href="/panel" className="flex items-center gap-2 hover:underline">
+              <Settings2 size={14} strokeWidth={1.8} />
+              {COPY.panel.title}
+            </a>
+          </>
         )}
         <div className="flex items-center gap-2.5">
           <span className="grid h-[26px] w-[26px] shrink-0 place-items-center rounded-full bg-forest-600 text-[11px] text-lime-400">

@@ -30,3 +30,4 @@ template.
 | [0010](0010-anchor-recurrence-to-a-start-date-instead-of-the-last-completion.md) | Anchor recurrence to a start date instead of the last completion | Accepted |
 | [0011](0011-allow-a-loopback-only-identity-bypass-for-local-development.md) | Allow a loopback-only identity bypass for local development | Accepted |
 | [0012](0012-grant-the-first-admin-with-a-script-not-a-login-side-effect.md) | Grant the first admin with a script, not a login side effect | Accepted |
+| [0013](0013-store-household-settings-and-categories-in-d1.md) | Store household settings and categories in D1, dropping the fixed-category CHECK | Accepted |

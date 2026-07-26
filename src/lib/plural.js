@@ -24,6 +24,7 @@ export const FORMS = {
   tydzien: ['tydzień', 'tygodnie', 'tygodni'],
   miesiac: ['miesiąc', 'miesiące', 'miesięcy'],
   rzecz: ['rzecz', 'rzeczy', 'rzeczy'],
+  domownik: ['domownik', 'domowników', 'domowników'],
   zalegla: ['zaległość', 'zaległości', 'zaległości'],
   raz: ['raz', 'razy', 'razy'],
   zadanie: ['zadanie', 'zadania', 'zadań'],

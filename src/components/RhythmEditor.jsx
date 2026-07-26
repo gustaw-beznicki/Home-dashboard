@@ -1,5 +1,6 @@
 import { AlertTriangle, CalendarDays } from 'lucide-react'
 import { COPY, MONTHLY_MODES, RHYTHMS, SLIDER_STOPS, WEEKDAYS } from '../lib/constants'
+import { useHomeSettings } from '../hooks/useHomeSettings'
 import { addDays, describeInterval, isoWeekday, parseISODate, toISODate, upcomingOccurrences } from '../lib/recurrence'
 import { countWith, FORMS, formatDate, weekdayName } from '../lib/plural'
 
@@ -18,6 +19,11 @@ export function RhythmEditor({ value, onChange, today, lastDone, rebaseChoice, o
   const interval = value
   const startsOn = interval.startsOn ? parseISODate(interval.startsOn) : today
   const preview = upcomingOccurrences(interval, today, 3)
+
+  // "Tydzień zaczyna się od" (Panel domu) decides which day leads the weekday
+  // chips. Presentation only — the stored ISO weekday keys don't change.
+  const { weekStart } = useHomeSettings()
+  const weekdays = weekStart === 7 ? [WEEKDAYS[6], ...WEEKDAYS.slice(0, 6)] : WEEKDAYS
 
   const set = (patch) => onChange({ ...interval, ...patch })
 
@@ -94,7 +100,7 @@ export function RhythmEditor({ value, onChange, today, lastDone, rebaseChoice, o
             {COPY.fieldWeekdays}
           </p>
           <div className="flex gap-1.5">
-            {WEEKDAYS.map((day) => {
+            {weekdays.map((day) => {
               const on = (interval.weekdays || []).includes(day.key)
               return (
                 <button
