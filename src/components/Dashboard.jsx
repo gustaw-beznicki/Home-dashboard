@@ -298,7 +298,7 @@ export function Dashboard() {
         {/* Fixed on a phone so adding is always a thumb away; in flow on a
             desktop, where the sheet occupies the right-hand side instead. */}
         <div className="fixed inset-x-0 bottom-0 z-30 bg-gradient-to-t from-moss-100 via-moss-100 to-transparent px-4.5 pb-4.5 pt-6 lg:static lg:mx-auto lg:w-full lg:max-w-3xl lg:bg-none lg:px-6 lg:pb-6 lg:pt-0 dark:from-bark-900 dark:via-bark-900">
-          <QuickAdd onDraft={(draft) => setSheet({ draft })} />
+          <QuickAdd today={now} onDraft={(draft) => setSheet({ draft })} />
         </div>
       </div>
 

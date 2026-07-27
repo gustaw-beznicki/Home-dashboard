@@ -1,5 +1,11 @@
 # Turning on the AI quick-add (design direction 3b)
 
+> **Read this first.** Since ADR 0014 the quick-add field suggests from a static catalog of ~200
+> common chores, prefilling name, category and a default rhythm with no model involved. That covers
+> the chores households share, which is most of what gets added. What is left for 3b is the odd
+> sentence the catalog can't know — *"co drugą sobotę miesiąca"*, *"od pierwszego"* — so the payoff
+> below is now smaller than it was when this file was written. Everything else here still holds.
+
 The quick-add field at the bottom of the dashboard is built and working, but in its **fallback**
 mode: you type a name, press Enter, and the task sheet opens with that name filled in so you can
 confirm the rhythm. Direction 3b in `Home Dashboard.dc.html` turns the same field into a

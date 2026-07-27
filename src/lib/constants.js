@@ -108,6 +108,8 @@ export const COPY = {
   appName: 'Ogarniamy',
   add: 'Nowa rzecz',
   quickAddPlaceholder: 'Co jeszcze trzeba ogarnąć?',
+  suggestionsLabel: 'Podpowiedzi',
+  suggestionsHint: 'Rytm i kategorię poprawisz w następnym kroku.',
   loading: 'Zbieram listę…',
   loadError: 'Nie udało się pobrać listy.',
   retry: 'Spróbuj jeszcze raz',
