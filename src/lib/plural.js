@@ -110,9 +110,20 @@ export const WEEKDAYS_ACCUSATIVE = {
 export const ORDINALS_ACCUSATIVE = ['pierwszą', 'drugą', 'trzecią', 'czwartą']
 
 // "Anna, 20 lipca" · "Anna, wczoraj" · "nigdy"
+// Calendar days apart, not milliseconds apart. `today` carries a time of day
+// while a completion date is midnight, so dividing the gap by 24h and rounding
+// called anything ticked off after noon "wczoraj" — the card said yesterday about
+// something done a minute earlier. Only visible in a browser after lunch, which
+// is why the old test passed: it compared two midnights.
+function daysApart(later, earlier) {
+  const a = new Date(later.getFullYear(), later.getMonth(), later.getDate())
+  const b = new Date(earlier.getFullYear(), earlier.getMonth(), earlier.getDate())
+  return Math.round((a - b) / 86400000)
+}
+
 export function formatLastDone(date, today, who) {
   if (!date) return 'nigdy'
-  const diff = Math.round((today - date) / 86400000)
+  const diff = daysApart(today, date)
   const when = diff === 0 ? 'dziś' : diff === 1 ? 'wczoraj' : formatDate(date)
   return who ? `${who}, ${when}` : when
 }

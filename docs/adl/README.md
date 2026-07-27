@@ -33,3 +33,4 @@ template.
 | [0013](0013-store-household-settings-and-categories-in-d1.md) | Store household settings and categories in D1, dropping the fixed-category CHECK | Accepted |
 | [0014](0014-suggest-chores-from-a-static-bundled-catalog.md) | Suggest chores from a static bundled catalog, not a search service | Accepted |
 | [0015](0015-express-yearly-rhythms-as-a-monthly-multiple.md) | Express yearly rhythms as a monthly multiple, and snap the anchor to the grid | Accepted |
+| [0016](0016-bring-back-a-progress-bar-scoped-to-the-day.md) | Bring back a progress bar, scoped to the day, and reward closing it | Accepted |

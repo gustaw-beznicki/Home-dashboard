@@ -144,7 +144,26 @@ export const COPY = {
   loadError: 'Nie udało się pobrać listy.',
   retry: 'Spróbuj jeszcze raz',
   rollback: 'Nie zapisało się — zadanie wróciło na miejsce.',
+  rollbackTitle: 'Nie zapisało się',
+  rollbackHint: 'wróciło na listę. Sieć wróci — spróbuj jeszcze raz.',
+  rollbackRetry: 'Ponów',
   undo: 'cofnij',
+  // The bar carries a count as well as a percentage on purpose: "60%" alone
+  // doesn't say how much is left to do.
+  dayProgress: 'Ogarnięte dziś',
+  dayProgressEmpty: 'nic nie wypada',
+  // The reward for closing the day. Not an empty state — an empty state says
+  // "there is nothing here", this says "you did it".
+  //
+  // Not "Dzień ogarnięty", which is what the design kit calls it: the hero
+  // sentence two lines above already reads "Na dziś nic więcej. Dom ogarnięty.",
+  // and the pair stuttered on the same word. The tail avoids agreeing with the
+  // count for the same sort of reason — "jedna rzecz odhaczona" / "pięć rzeczy
+  // odhaczonych" would need three forms to stay grammatical, and "mniej na
+  // liście" needs none.
+  dayCompleteTitle: 'Wszystko z głowy.',
+  dayCompleteTail: 'mniej na liście. Reszta wróci sama, kiedy przyjdzie pora — nie trzeba tego pilnować.',
+  dayCompleteAction: 'Zobacz najbliższy tydzień',
   done: 'Zrobione',
   pin: 'Trzymaj na wierzchu',
   unpin: 'Zdejmij z wierzchu',

@@ -70,4 +70,17 @@ describe('slownie / formatLastDone', () => {
     expect(formatLastDone(new Date(2026, 6, 23), today, 'Anna')).toBe('Anna, wczoraj')
     expect(formatLastDone(new Date(2026, 6, 20), today, 'Anna')).toBe('Anna, 20 lipca')
   })
+
+  it('says "dziś" whatever the time of day is', () => {
+    // The regression this guards: `today` is a live clock, a completion date is
+    // midnight, and rounding the gap in milliseconds flipped to "wczoraj" from
+    // noon onwards. Comparing two midnights, as the test above does, never
+    // reaches that.
+    const done = new Date(2026, 6, 24)
+    for (const hour of [0, 11, 12, 13, 18, 23]) {
+      const now = new Date(2026, 6, 24, hour, 30)
+      expect(formatLastDone(done, now, 'Anna'), `${hour}:30`).toBe('Anna, dziś')
+    }
+    expect(formatLastDone(new Date(2026, 6, 23), new Date(2026, 6, 24, 18, 30))).toBe('wczoraj')
+  })
 })

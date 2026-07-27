@@ -66,9 +66,21 @@
 
   --ease-settle: cubic-bezier(0.2, 0.8, 0.2, 1);
   --ease-sheet: cubic-bezier(0.32, 0.72, 0, 1);
+  /* The only overshoot in the system, and it is spent on one thing: the medallion
+     that appears when the day is closed. */
+  --ease-pop: cubic-bezier(0.34, 1.4, 0.5, 1);
 
   --animate-rollback: rollback 180ms ease-out;
   --animate-riseIn: riseIn 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  /* Closing the day. The design's motion budget allows exactly two animations
+     that look decorative — the rollback nudge and this — and both are tied to a
+     real event rather than to arriving on a screen. Neither loops.
+     `both` is load-bearing: these stagger, so each element has to hold its
+     "before" state until its own delay elapses instead of flashing in first. */
+  --animate-popIn: popIn 520ms var(--ease-pop) both;
+  --animate-ringOut: ringOut 900ms var(--ease-out) 120ms both;
+  --animate-leafFall: leafFall 2600ms var(--ease-out) both;
+  --animate-countUp: countUp 240ms var(--ease-settle) both;
 
   @keyframes rollback {
     0%,
@@ -86,6 +98,58 @@
     0% {
       opacity: 0;
       transform: translateY(8px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes popIn {
+    0% {
+      opacity: 0;
+      transform: scale(0.6);
+    }
+    70% {
+      transform: scale(1.05);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  /* A wave leaving the medallion. One pass, then gone. */
+  @keyframes ringOut {
+    0% {
+      opacity: 0.5;
+      transform: scale(0.85);
+    }
+    100% {
+      opacity: 0;
+      transform: scale(2.2);
+    }
+  }
+  /* A falling leaf. Ends on opacity 0, so nothing is left behind to clean up.
+     Distance and spin come per-leaf from --leaf-drop / --leaf-spin. */
+  @keyframes leafFall {
+    0% {
+      opacity: 0;
+      transform: translateY(-28px) rotate(0deg);
+    }
+    12% {
+      opacity: 0.85;
+    }
+    85% {
+      opacity: 0.7;
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(var(--leaf-drop, 300px)) rotate(var(--leaf-spin, 200deg));
+    }
+  }
+  @keyframes countUp {
+    0% {
+      opacity: 0;
+      transform: translateY(6px);
     }
     100% {
       opacity: 1;
@@ -184,6 +248,12 @@
       animation-iteration-count: 1 !important;
       transition-property: opacity !important;
       transition-duration: 120ms !important;
+    }
+
+    /* Falling leaves make no sense standing still, so they don't appear at all.
+       The medallion and the sentence carry the whole message without them. */
+    [data-leaf] {
+      display: none !important;
     }
   }
 }

@@ -1,24 +1,35 @@
+import { DayProgress } from './DayProgress'
 import { DayStrip } from './DayStrip'
 import { COPY } from '../lib/constants'
 import { summarise, toISODate } from '../lib/recurrence'
 import { countWith, FORMS, summarySentence } from '../lib/plural'
 
-// Replaces the old percentage bar. For ten-to-forty tasks and two people a
-// percentage carried no information, so the KPI is a sentence and the shape of
-// the week is a strip of bars instead.
-export function HeroCard({ tasks, today, weekStats, onSelectDay }) {
+// The headline replaced an old percentage bar: for ten-to-forty tasks and two
+// people a percentage carried no information, so the KPI is a sentence and the
+// shape of the week is a strip of bars. `progress` is a narrower thing and came
+// back for a narrower reason — how much of *today* is off the list, which the
+// sentence states in words and the bar shows moving.
+export function HeroCard({ tasks, today, weekStats, progress, onSelectDay }) {
   const counts = summarise(tasks, today)
 
   return (
     <div className="flex flex-col gap-4.5 lg:flex-row">
-      <div className="flex-1 rounded-hero bg-hero px-4.5 py-5 text-moss-200 lg:flex lg:items-center lg:gap-6 lg:px-5.5">
-        <div className="mb-4.5 lg:mb-0 lg:max-w-[230px] lg:flex-none">
-          <p className="text-[24px] leading-tight text-balance">{summarySentence(counts)}</p>
-          <Subline tasks={tasks} today={today} />
+      <div className="flex-1 rounded-hero bg-hero px-4.5 py-5 text-moss-200 lg:px-5.5">
+        <div className="lg:flex lg:items-center lg:gap-6">
+          <div className="mb-4.5 lg:mb-0 lg:max-w-[230px] lg:flex-none">
+            <p className="text-[24px] leading-tight text-balance">{summarySentence(counts)}</p>
+            <Subline tasks={tasks} today={today} />
+          </div>
+          <div className="lg:min-w-0 lg:flex-1">
+            <DayStrip tasks={tasks} today={today} onSelectDay={onSelectDay} />
+          </div>
         </div>
-        <div className="lg:min-w-0 lg:flex-1">
-          <DayStrip tasks={tasks} today={today} onSelectDay={onSelectDay} />
-        </div>
+
+        {progress && (
+          <div className="mt-4.5">
+            <DayProgress done={progress.done} total={progress.total} />
+          </div>
+        )}
       </div>
 
       {weekStats && (
