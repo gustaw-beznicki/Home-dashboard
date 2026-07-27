@@ -16,12 +16,19 @@ export default defineConfig({
     deviceScaleFactor: 2,
     // Motion is decoration here; freezing it keeps screenshots reproducible.
     contextOptions: { reducedMotion: 'reduce' },
+    // Only on failure, and only ever inspected from the CI artifact — a passing
+    // run leaves nothing behind.
+    trace: 'retain-on-failure',
+    screenshot: 'only-on-failure',
   },
   webServer: {
     command:
       'npm run build && npx wrangler dev --var DEV_NO_AUTH:true --var DEV_ONBOARDING:true --var ENVIRONMENT:development --port 8788',
     url: 'http://localhost:8788/api/whoami',
-    reuseExistingServer: true,
+    // Locally, reuse whatever is already on 8788 rather than paying the build
+    // and boot on every run. On CI nothing should be listening, and silently
+    // testing against a stranger's server is worse than failing.
+    reuseExistingServer: !process.env.CI,
     timeout: 120_000,
   },
 })
