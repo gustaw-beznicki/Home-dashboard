@@ -54,6 +54,12 @@ export function TaskSheet({
   const nameRef = useRef(null)
 
   const isNew = !task
+  const nameMissing = !form.name.trim()
+  // Pusta lista dni przy rytmie tygodniowym: bez tego zapis przechodzi, a
+  // terminy po cichu lecą wg dnia tygodnia kotwicy, nie wg tego, co widać.
+  const weekdaysMissing =
+    form.interval.type === 'weekly' && !form.interval.weekdays?.length
+  const incomplete = nameMissing || weekdaysMissing
   const intervalChanged = intervalKey(form.interval) !== originalInterval.current
 
   useEffect(() => {
@@ -69,7 +75,7 @@ export function TaskSheet({
   const set = (patch) => setForm((prev) => ({ ...prev, ...patch }))
 
   const save = () => {
-    if (!form.name.trim()) return
+    if (incomplete) return
     onSave({
       ...form,
       name: form.name.trim(),
@@ -90,23 +96,37 @@ export function TaskSheet({
       >
         <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-moss-300 sm:hidden dark:bg-bark-600" />
 
-        <div className="mb-4.5 flex items-center justify-between gap-3">
-          <input
-            ref={nameRef}
-            value={form.name}
-            onChange={(e) => set({ name: e.target.value })}
-            placeholder={COPY.namePlaceholder}
-            aria-label={isNew ? COPY.formNew : COPY.formEdit}
-            className="min-w-0 flex-1 border-b-[1.5px] border-moss-200 bg-transparent pb-2.5 text-[21px] text-moss-900 outline-none placeholder:text-moss-400 focus:border-forest-600 dark:border-bark-600 dark:text-moss-100"
-          />
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label={COPY.cancel}
-            className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-moss-100 text-moss-700 dark:bg-bark-700 dark:text-moss-400"
-          >
-            <X size={15} strokeWidth={2.2} />
-          </button>
+        <div className="mb-4.5">
+          <div className="flex items-center justify-between gap-3">
+            <input
+              ref={nameRef}
+              value={form.name}
+              onChange={(e) => set({ name: e.target.value })}
+              placeholder={COPY.namePlaceholder}
+              aria-label={isNew ? COPY.formNew : COPY.formEdit}
+              aria-required="true"
+              aria-describedby={nameMissing ? 'task-name-hint' : undefined}
+              className="min-w-0 flex-1 border-b-[1.5px] border-moss-200 bg-transparent pb-2.5 text-[21px] text-moss-900 outline-none placeholder:text-moss-400 focus:border-forest-600 dark:border-bark-600 dark:text-moss-100"
+            />
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label={COPY.cancel}
+              className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-moss-100 text-moss-700 dark:bg-bark-700 dark:text-moss-400"
+            >
+              <X size={15} strokeWidth={2.2} />
+            </button>
+          </div>
+          {/* Sąsiaduje z polem, a nie z wyszarzonym przyciskiem na dole: przy
+              rozwiniętym edytorze rytmu przycisk bywa poza ekranem. */}
+          {nameMissing && (
+            <p
+              id="task-name-hint"
+              className="mt-2 text-[12.5px] text-moss-600 dark:text-moss-500"
+            >
+              {COPY.nameRequired}
+            </p>
+          )}
         </div>
 
         <p className="mb-2.5 text-[13.5px] font-medium text-moss-800 dark:text-moss-300">
@@ -147,9 +167,10 @@ export function TaskSheet({
         <div className="mt-4.5">
           <label
             htmlFor="task-last-done"
-            className="mb-2 block text-[13.5px] font-medium text-moss-800 dark:text-moss-300"
+            className="mb-2 flex items-baseline gap-2 text-[13.5px] font-medium text-moss-800 dark:text-moss-300"
           >
             {COPY.fieldLastDone}
+            <OptionalTag />
           </label>
           <input
             id="task-last-done"
@@ -164,9 +185,10 @@ export function TaskSheet({
         <div className="mt-4.5">
           <label
             htmlFor="task-note"
-            className="mb-2 block text-[13.5px] font-medium text-moss-800 dark:text-moss-300"
+            className="mb-2 flex items-baseline gap-2 text-[13.5px] font-medium text-moss-800 dark:text-moss-300"
           >
             {COPY.fieldNote}
+            <OptionalTag />
           </label>
           <textarea
             id="task-note"
@@ -182,7 +204,7 @@ export function TaskSheet({
           <button
             type="button"
             onClick={save}
-            disabled={!form.name.trim()}
+            disabled={incomplete}
             className="h-[52px] flex-1 rounded-full bg-cta text-[14.5px] font-medium text-onaccent disabled:opacity-40"
           >
             {isNew ? COPY.create : COPY.save}
@@ -228,6 +250,16 @@ export function TaskSheet({
         )}
       </div>
     </div>
+  )
+}
+
+// Oznaczamy to, co można pominąć, a nie to, co wymagane: wymagana jest tylko
+// nazwa, więc gwiazdki przy wszystkim innym byłyby szumem.
+function OptionalTag() {
+  return (
+    <span className="text-[11.5px] font-normal text-moss-600 dark:text-moss-500">
+      {COPY.fieldOptional}
+    </span>
   )
 }
 

@@ -128,9 +128,15 @@ export const COPY = {
   formNew: 'Nowa rzecz do ogarnięcia',
   formEdit: 'Poprawka',
   namePlaceholder: 'Co trzeba ogarnąć?',
+  // Nazwa to jedyne pole bez sensownej wartości domyślnej, więc jedyne, które
+  // blokuje zapis. Reszta jest albo wypełniona z góry, albo wprost opcjonalna —
+  // stąd oznaczamy słowem to, co można pominąć, zamiast gwiazdkować wymagane.
+  nameRequired: 'Wpisz nazwę, żeby zapisać.',
+  fieldOptional: 'opcjonalne',
   fieldCategory: 'Kategoria',
   fieldRhythm: 'Jak często?',
   fieldWeekdays: 'W które dni?',
+  weekdaysRequired: 'Zaznacz przynajmniej jeden dzień.',
   fieldAnchor: 'Od kiedy liczymy?',
   fieldAnchorHint: 'To ta data wyznacza, kiedy zadanie wypadnie następnym razem.',
   fieldLastDone: 'Ostatnio zrobione',

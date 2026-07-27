@@ -24,6 +24,8 @@ const OUT = args.get('out') || 'docs/screenshots/local'
 const MOBILE = { width: 390, height: 844 }
 const DESKTOP = { width: 1440, height: 900 }
 
+const WEEKDAYS = ['poniedziałek', 'wtorek', 'środa', 'czwartek', 'piątek', 'sobota', 'niedziela']
+
 // Each shot names the file, the viewport, the colour scheme, and an optional
 // interaction to run before capturing. Keep the list small and deliberate —
 // a reviewer skims five useful images and ignores twenty.
@@ -83,6 +85,52 @@ const SHOTS = [
       await page.waitForTimeout(400) // the sheet transition is 260ms
     },
   },
+  // A *new* task, not an existing one: the required-field signalling only shows
+  // on a sheet that has nothing in it yet, which openFirstTask never produces.
+  // Not fullPage: the sheet scrolls inside itself, so a full-page capture just
+  // adds dashboard behind it and still crops the sheet. Two framed shots
+  // instead — the top carries the name hint, the bottom the optional markers.
+  {
+    name: 'task-sheet-required-mobile-light',
+    route: '/',
+    viewport: MOBILE,
+    scheme: 'light',
+    action: openEmptySheet,
+  },
+  {
+    name: 'task-sheet-required-mobile-dark',
+    route: '/',
+    viewport: MOBILE,
+    scheme: 'dark',
+    action: openEmptySheet,
+  },
+  {
+    name: 'task-sheet-optional-mobile-light',
+    route: '/',
+    viewport: MOBILE,
+    scheme: 'light',
+    action: async (page) => {
+      await openEmptySheet(page)
+      await page
+        .getByRole('dialog')
+        .evaluate((el) => el.scrollTo({ top: el.scrollHeight }))
+      await page.waitForTimeout(300)
+    },
+  },
+  {
+    name: 'task-sheet-weekdays-required-desktop-light',
+    route: '/',
+    viewport: DESKTOP,
+    scheme: 'light',
+    action: async (page) => {
+      await openEmptySheet(page)
+      await page.getByRole('button', { name: 'co tydzień' }).click()
+      for (const day of WEEKDAYS) {
+        const chip = page.getByRole('button', { name: day, exact: true })
+        if ((await chip.getAttribute('aria-pressed')) === 'true') await chip.click()
+      }
+    },
+  },
   { name: 'admin-desktop-light', route: '/admin', viewport: DESKTOP, scheme: 'light' },
   { name: 'panel-desktop-light', route: '/panel', viewport: DESKTOP, scheme: 'light' },
   { name: 'panel-mobile-light', route: '/panel', viewport: MOBILE, scheme: 'light', fullPage: true },
@@ -105,6 +153,13 @@ async function typeIntoQuickAdd(page, query) {
   await input.click()
   await input.fill(query)
   await page.getByRole('option').first().waitFor({ timeout: 5000 })
+}
+
+// The + beside quick-add with the field left empty — the state that blocks.
+async function openEmptySheet(page) {
+  await page.getByRole('button', { name: 'Nowa rzecz' }).click()
+  await page.getByRole('dialog').waitFor({ timeout: 5000 })
+  await page.waitForTimeout(400) // the sheet transition is 260ms
 }
 
 async function openFirstTask(page) {

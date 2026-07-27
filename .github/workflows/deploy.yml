@@ -19,6 +19,27 @@ jobs:
       - run: npm test
       - run: npm run build
 
+      # E2E last, and deliberately as its own steps rather than folded into the
+      # build: the fast checks above must be what fails first, so a broken unit
+      # test doesn't cost a browser download and a Worker boot to find out.
+      #
+      # Chromium only — the app has one target, and --with-deps pulls the system
+      # libraries the GitHub runner image doesn't ship.
+      - run: npx playwright install --with-deps chromium
+      # The local D1 starts empty on a fresh runner: `wrangler dev` creates the
+      # file but not the schema, so every /api/* call would 500 without this.
+      - run: npm run db:migrate:local
+      # Needs no secrets. The suite runs behind the dev bypass (ADR 0011), which
+      # short-circuits before Better Auth — verified to pass with no .dev.vars.
+      - run: npm run test:e2e
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-results
+          path: test-results/
+          retention-days: 7
+
   # Only runs on pushes to main, after tests pass. Applies pending D1 migrations before
   # deploying, so the live Worker never runs against a schema it doesn't expect.
   deploy:

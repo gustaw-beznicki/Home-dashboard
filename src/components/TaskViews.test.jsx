@@ -212,6 +212,16 @@ describe('RhythmEditor', () => {
     fireEvent.click(screen.getByRole('button', { name: 'czwartek' }))
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ weekdays: [1, 4] }))
   })
+
+  it('says so when the weekday list has been emptied, rather than falling back silently', () => {
+    renderEditor({ type: 'weekly', weekdays: [], startsOn: '2026-07-03' })
+    expect(screen.getByText('Zaznacz przynajmniej jeden dzień.')).toBeInTheDocument()
+  })
+
+  it('keeps the weekday hint out of the way while a day is selected', () => {
+    renderEditor({ type: 'weekly', weekdays: [1], startsOn: '2026-07-03' })
+    expect(screen.queryByText('Zaznacz przynajmniej jeden dzień.')).not.toBeInTheDocument()
+  })
 })
 
 describe('TaskSheet', () => {
@@ -246,6 +256,35 @@ describe('TaskSheet', () => {
 
   it('refuses to save a task with no name', () => {
     const { onSave } = renderSheet({ draft: {} })
+    const save = screen.getByRole('button', { name: 'Dodaj do domu' })
+    expect(save).toBeDisabled()
+    fireEvent.click(save)
+    expect(onSave).not.toHaveBeenCalled()
+  })
+
+  it('says why the save button is dead instead of leaving it greyed out unexplained', () => {
+    renderSheet({ draft: {} })
+    expect(screen.getByText('Wpisz nazwę, żeby zapisać.')).toBeInTheDocument()
+
+    fireEvent.change(screen.getByPlaceholderText('Co trzeba ogarnąć?'), {
+      target: { value: 'Wymienić filtr' },
+    })
+    expect(screen.queryByText('Wpisz nazwę, żeby zapisać.')).not.toBeInTheDocument()
+  })
+
+  it('marks the two fields that may be left empty, and nothing else', () => {
+    renderSheet({ draft: { name: 'Wymienić filtr' } })
+    const optional = screen.getAllByText('opcjonalne')
+    expect(optional).toHaveLength(2)
+    expect(screen.getByLabelText(/Ostatnio zrobione/)).toBeInTheDocument()
+    expect(screen.getByLabelText(/Notatka/)).toBeInTheDocument()
+  })
+
+  it('blocks saving a weekly task with no weekday selected', () => {
+    const { onSave } = renderSheet({ draft: { name: 'Wymienić filtr' } })
+    // The default rhythm is weekly, seeded with today's weekday — untick it.
+    fireEvent.click(screen.getByRole('button', { name: 'piątek' }))
+
     const save = screen.getByRole('button', { name: 'Dodaj do domu' })
     expect(save).toBeDisabled()
     fireEvent.click(save)

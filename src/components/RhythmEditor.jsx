@@ -127,6 +127,12 @@ export function RhythmEditor({ value, onChange, today, lastDone, rebaseChoice, o
               )
             })}
           </div>
+          {/* Wyczyszczenie wszystkich chipów jest możliwe, a wtedy recurrence po
+              cichu podstawia dzień tygodnia kotwicy — powiedzmy to wprost,
+              zamiast zostawiać rozjazd między UI a terminami w podglądzie. */}
+          {!(interval.weekdays || []).length && (
+            <p className="mt-2 text-[12.5px] text-clay-500">{COPY.weekdaysRequired}</p>
+          )}
         </div>
       )}
 
