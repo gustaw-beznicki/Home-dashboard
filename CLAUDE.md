@@ -173,6 +173,18 @@ the repo owner too. Note that toggling repo visibility on GitHub can silently st
 protection; re-check with `gh api repos/{owner}/{repo}/branches/main/protection` after any such
 change.
 
+**Merged branches are deleted automatically** (`delete_branch_on_merge`), which makes one thing
+load-bearing: **screenshot URLs in a PR body must name a commit SHA, never a branch.** A
+branch-named `raw.githubusercontent` link goes dead the moment the PR merges, silently, in a closed
+PR nobody revisits — four PRs were already in that state and had to be rewritten. The
+`pr-description` skill pins SHAs; keep it that way. A SHA stays reachable under a merge commit but
+*not* under a squash merge, so if the merge strategy ever changes to squash-only, re-pin bodies to
+the squash commit after merging. `assets/pr-14` is exempt from all of this: it hosts PR #14's images
+and has no PR of its own, so nothing deletes it — leave it alone.
+
+`/prune-branches` reports deletion candidates for local *and* remote branches, including which PR
+bodies would break, and never deletes anything itself.
+
 **Merging to `main` deploys to production.** `.github/workflows/deploy.yml` runs tests, builds,
 applies pending D1 migrations, then `wrangler deploy` on every push to `main`. Consequences:
 
