@@ -99,8 +99,8 @@ export function Onboarding({ user, onFinish }) {
           <LogoBadge size={30} className="text-moss-200" />
           <span className="text-[15px] font-medium">{settings.name}</span>
         </div>
-        <p className="text-[28px] leading-tight [text-wrap:pretty]">{O.railTitle(inviter)}</p>
-        <p className="mt-2.5 text-[14px] leading-relaxed text-[#aec399]">{O.railLead}</p>
+        <p className="text-[28px] leading-tight text-pretty">{O.railTitle(inviter)}</p>
+        <p className="mt-2.5 text-[14px] leading-relaxed text-lime-400">{O.railLead}</p>
         <nav className="mt-6.5 flex flex-col gap-0.5">
           {O.steps.map((label, k) => (
             <button
@@ -117,14 +117,14 @@ export function Onboarding({ user, onFinish }) {
                     ? 'bg-lime-400 text-hero'
                     : k < step
                       ? 'bg-lime-400/20 text-lime-400'
-                      : 'bg-white/10 text-[#aec399]'
+                      : 'bg-white/10 text-lime-400'
                 }`}
               >
                 {k < step ? <Check size={13} strokeWidth={3} /> : k + 1}
               </span>
               <span
                 className={`flex-1 text-[14px] ${
-                  k === step ? 'font-medium text-moss-100' : 'text-[#aec399]'
+                  k === step ? 'font-medium text-moss-100' : 'text-lime-400'
                 }`}
               >
                 {label}
@@ -146,7 +146,7 @@ export function Onboarding({ user, onFinish }) {
               step === 0 ? 'opacity-35' : ''
             } ${
               hero
-                ? 'bg-white/10 text-[#aec399]'
+                ? 'bg-white/10 text-lime-400'
                 : 'bg-moss-200 text-moss-700 dark:bg-bark-700 dark:text-moss-400'
             }`}
           >
@@ -174,7 +174,7 @@ export function Onboarding({ user, onFinish }) {
             <button
               type="button"
               onClick={() => go(LAST)}
-              className={`text-[12.5px] ${hero ? 'text-[#aec399]' : 'text-moss-500'}`}
+              className={`text-[12.5px] ${hero ? 'text-lime-400' : 'text-moss-500'}`}
             >
               {O.skip}
             </button>
@@ -198,12 +198,12 @@ export function Onboarding({ user, onFinish }) {
                 <p className="text-[11px] uppercase tracking-[0.15em] text-lime-400">
                   {O.welcomeEyebrow(inviter, settings.name)}
                 </p>
-                <h1 className="mt-2.5 text-[32px] leading-tight text-moss-100 [text-wrap:pretty]">
+                <h1 className="mt-2.5 text-[32px] leading-tight text-moss-100 text-pretty">
                   {O.welcomeTitle}
                 </h1>
-                <p className="mt-3.5 text-[15px] leading-relaxed text-[#aec399]">{O.welcomeLead}</p>
+                <p className="mt-3.5 text-[15px] leading-relaxed text-lime-400">{O.welcomeLead}</p>
                 {taskCount > 0 && (
-                  <p className="mt-6 rounded-card bg-white/[.08] px-4 py-3.5 text-[13px] leading-relaxed text-[#aec399]">
+                  <p className="mt-6 rounded-card bg-white/8 px-4 py-3.5 text-[13px] leading-relaxed text-lime-400">
                     {O.welcomeCount(taskCount)}
                   </p>
                 )}
@@ -222,7 +222,7 @@ export function Onboarding({ user, onFinish }) {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder={O.namePlaceholder}
-                  className="mt-6 w-full border-b-[1.5px] border-moss-300 bg-transparent pb-3 text-[26px] text-moss-900 outline-none placeholder:text-moss-400 focus:border-brand-forest dark:border-bark-600 dark:text-moss-100 lg:text-[30px]"
+                  className="mt-6 w-full border-b-[1.5px] border-moss-300 bg-transparent pb-3 text-[26px] text-moss-900 outline-hidden placeholder:text-moss-400 focus:border-brand-forest dark:border-bark-600 dark:text-moss-100 lg:text-[30px]"
                 />
                 <p className="mb-2.5 mt-7 text-[13px] font-medium text-moss-700 dark:text-moss-300">
                   {O.colorLabel}
@@ -237,7 +237,7 @@ export function Onboarding({ user, onFinish }) {
                       onClick={() => setColor(c.key)}
                       className={`grid h-[52px] w-[52px] place-items-center rounded-full ${c.className} ${
                         color === c.key
-                          ? 'outline outline-2 outline-offset-2 outline-forest-600'
+                          ? 'outline-solid outline-2 outline-offset-2 outline-forest-600'
                           : ''
                       }`}
                     >
@@ -369,7 +369,7 @@ export function Onboarding({ user, onFinish }) {
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
                   placeholder={O.draftPlaceholder}
-                  className="h-[54px] w-full max-w-[520px] rounded-full bg-white px-5 text-[14.5px] text-moss-900 shadow-card outline-none placeholder:text-moss-400 dark:bg-bark-700 dark:text-moss-100"
+                  className="h-[54px] w-full max-w-[520px] rounded-full bg-white px-5 text-[14.5px] text-moss-900 shadow-card outline-hidden placeholder:text-moss-400 dark:bg-bark-700 dark:text-moss-100"
                 />
                 {!draft.trim() && (
                   <div className="mt-3 flex max-w-[520px] flex-wrap gap-1.5">
@@ -393,10 +393,10 @@ export function Onboarding({ user, onFinish }) {
                 <div className="mx-auto mb-5 grid h-16 w-16 place-items-center rounded-full bg-lime-400/15 text-lime-400 lg:mx-0">
                   <Check size={30} strokeWidth={2.4} />
                 </div>
-                <h1 className="text-[32px] leading-tight text-moss-100 [text-wrap:pretty]">
+                <h1 className="text-[32px] leading-tight text-moss-100 text-pretty">
                   {O.doneTitle}
                 </h1>
-                <p className="mt-3 text-[15px] leading-relaxed text-[#aec399]">
+                <p className="mt-3 text-[15px] leading-relaxed text-lime-400">
                   {O.doneLead(Boolean(draft.trim()))}
                 </p>
               </div>
@@ -417,7 +417,7 @@ export function Onboarding({ user, onFinish }) {
                 step === 0 ? 'opacity-35' : ''
               } ${
                 hero
-                  ? 'border-white/20 text-[#aec399]'
+                  ? 'border-white/20 text-lime-400'
                   : 'border-moss-300 text-moss-700 dark:border-bark-600 dark:text-moss-300'
               }`}
             >
@@ -425,7 +425,7 @@ export function Onboarding({ user, onFinish }) {
             </button>
             <span
               className={`hidden text-[12.5px] lg:block ${
-                hero ? 'text-[#aec399]' : 'text-moss-500'
+                hero ? 'text-lime-400' : 'text-moss-500'
               }`}
             >
               {O.stepOf(step + 1, O.steps.length)}

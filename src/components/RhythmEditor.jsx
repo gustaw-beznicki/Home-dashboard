@@ -109,7 +109,7 @@ export function RhythmEditor({ value, onChange, today, lastDone, rebaseChoice, o
               co <b className="font-medium text-lime-400">{interval.n}</b>{' '}
               {interval.n === 1 ? 'dzień' : 'dni'}
             </span>
-            <span className="text-[12px] text-[#aec399]">
+            <span className="text-[12px] text-lime-400">
               {countWith(Math.max(1, Math.round(30 / interval.n)), FORMS.raz)} w miesiącu
             </span>
           </div>

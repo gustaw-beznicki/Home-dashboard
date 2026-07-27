@@ -35,10 +35,10 @@ export function DayStrip({ tasks, today, days = 12, onSelectDay }) {
               ? { type: 'button', onClick: () => onSelectDay(day.date) }
               : { 'aria-hidden': 'true' })}
             title={`${formatDate(day.date)} — ${countWith(day.count, FORMS.rzecz)}`}
-            className="flex min-w-0 flex-1 flex-col items-center gap-1.5 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime-400"
+            className="flex min-w-0 flex-1 flex-col items-center gap-1.5 rounded-sm focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-lime-400"
           >
             <span
-              className={['w-full rounded transition-all duration-200 ease-out', tone].join(' ')}
+              className={['w-full rounded-sm transition-all duration-200 ease-out', tone].join(' ')}
               style={{ height: `${height}px` }}
             />
             <span

@@ -28,7 +28,7 @@ export function TaskCard({ task, today, onDone, onUndo, onOpen, rolledBack = fal
     <article
       onClick={() => onOpen(task)}
       className={[
-        'relative flex items-center gap-3.5 rounded-card px-4 py-3.5 text-left transition duration-[120ms] ease-out active:scale-[.985]',
+        'relative flex items-center gap-3.5 rounded-card px-4 py-3.5 text-left transition duration-120 ease-out active:scale-[.985]',
         quiet ? 'rounded-[20px] px-3.5 py-3' : '',
         CARD_CLASS[status],
         rolledBack ? 'animate-rollback' : '',
@@ -56,7 +56,7 @@ export function TaskCard({ task, today, onDone, onUndo, onOpen, rolledBack = fal
               onOpen(task)
             }}
             className={[
-              'truncate text-left after:absolute after:inset-0 after:rounded-[inherit] focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-forest-500',
+              'truncate text-left after:absolute after:inset-0 after:rounded-[inherit] focus-visible:outline-hidden focus-visible:after:ring-2 focus-visible:after:ring-forest-500',
               quiet
                 ? 'text-[14.5px] text-moss-800 dark:text-moss-300'
                 : 'text-base font-medium text-moss-900 dark:text-moss-100',

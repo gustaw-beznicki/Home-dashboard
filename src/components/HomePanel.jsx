@@ -219,7 +219,7 @@ function HomeSection({ settings, onPatch }) {
           onChange={(e) => setName(e.target.value)}
           onBlur={() => name.trim() && name !== settings.name && onPatch({ name: name.trim() })}
           onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
-          className="mb-4.5 w-full rounded-2xl border border-moss-300 bg-transparent px-4 py-3.5 text-[15px] outline-none focus:border-forest-500 dark:border-bark-600"
+          className="mb-4.5 w-full rounded-2xl border border-moss-300 bg-transparent px-4 py-3.5 text-[15px] outline-hidden focus:border-forest-500 dark:border-bark-600"
         />
 
         <p className="text-[13px] font-medium text-moss-800 dark:text-moss-300">{COPY.panel.weekStart}</p>
@@ -419,7 +419,7 @@ function CategoriesSection() {
           onKeyDown={(e) => e.key === 'Enter' && add()}
           placeholder={COPY.panel.catPlaceholder}
           aria-label={COPY.panel.catAdd}
-          className="min-w-0 flex-1 rounded-2xl border border-moss-300 bg-transparent px-3.5 py-3 text-[14px] outline-none focus:border-forest-500 dark:border-bark-600"
+          className="min-w-0 flex-1 rounded-2xl border border-moss-300 bg-transparent px-3.5 py-3 text-[14px] outline-hidden focus:border-forest-500 dark:border-bark-600"
         />
         <button
           type="button"

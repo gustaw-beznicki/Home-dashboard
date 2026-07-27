@@ -100,7 +100,7 @@ export function TaskSheet({
         role="dialog"
         aria-modal="true"
         aria-label={isNew ? COPY.formNew : COPY.formEdit}
-        className="max-h-[92vh] w-full overflow-y-auto rounded-t-sheet bg-moss-50 px-4.5 pb-6 pt-3.5 shadow-sheet transition-transform duration-[260ms] ease-sheet sm:h-full sm:max-h-none sm:w-[440px] sm:rounded-none sm:border-l sm:border-moss-300 sm:px-6 sm:py-6 sm:shadow-pop dark:bg-bark-800 dark:sm:border-bark-600"
+        className="max-h-[92vh] w-full overflow-y-auto rounded-t-sheet bg-moss-50 px-4.5 pb-6 pt-3.5 shadow-sheet transition-transform duration-260 ease-sheet sm:h-full sm:max-h-none sm:w-[440px] sm:rounded-none sm:border-l sm:border-moss-300 sm:px-6 sm:py-6 sm:shadow-pop dark:bg-bark-800 dark:sm:border-bark-600"
       >
         <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-moss-300 sm:hidden dark:bg-bark-600" />
 
@@ -114,7 +114,7 @@ export function TaskSheet({
               aria-label={isNew ? COPY.formNew : COPY.formEdit}
               aria-required="true"
               aria-describedby={nameMissing ? 'task-name-hint' : undefined}
-              className="min-w-0 flex-1 border-b-[1.5px] border-moss-200 bg-transparent pb-2.5 text-[21px] text-moss-900 outline-none placeholder:text-moss-400 focus:border-forest-600 dark:border-bark-600 dark:text-moss-100"
+              className="min-w-0 flex-1 border-b-[1.5px] border-moss-200 bg-transparent pb-2.5 text-[21px] text-moss-900 outline-hidden placeholder:text-moss-400 focus:border-forest-600 dark:border-bark-600 dark:text-moss-100"
             />
             <button
               type="button"
@@ -186,7 +186,7 @@ export function TaskSheet({
             value={form.lastDone || ''}
             max={toISODate(today)}
             onChange={(e) => set({ lastDone: e.target.value || null })}
-            className="w-full rounded-2xl border border-moss-300 bg-transparent px-3.5 py-3 text-[14px] text-moss-900 outline-none focus:border-forest-600 dark:border-bark-600 dark:text-moss-100"
+            className="w-full rounded-2xl border border-moss-300 bg-transparent px-3.5 py-3 text-[14px] text-moss-900 outline-hidden focus:border-forest-600 dark:border-bark-600 dark:text-moss-100"
           />
         </div>
 
@@ -204,7 +204,7 @@ export function TaskSheet({
             value={form.note || ''}
             onChange={(e) => set({ note: e.target.value })}
             placeholder={COPY.notePlaceholder}
-            className="w-full resize-none rounded-2xl bg-moss-50 px-3.5 py-3 text-[13.5px] leading-relaxed text-moss-800 outline-none placeholder:text-moss-500 dark:bg-bark-700 dark:text-moss-300"
+            className="w-full resize-none rounded-2xl bg-moss-50 px-3.5 py-3 text-[13.5px] leading-relaxed text-moss-800 outline-hidden placeholder:text-moss-500 dark:bg-bark-700 dark:text-moss-300"
           />
         </div>
 

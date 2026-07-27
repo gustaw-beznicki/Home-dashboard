@@ -149,7 +149,7 @@ export function AdminPortal({ embedded = false }) {
               onChange={(e) => setInviteEmail(e.target.value)}
               placeholder={COPY.admin.emailPlaceholder}
               aria-label={COPY.admin.emailPlaceholder}
-              className="min-w-0 flex-1 bg-transparent text-[14px] text-moss-900 outline-none placeholder:text-moss-500 dark:text-moss-100"
+              className="min-w-0 flex-1 bg-transparent text-[14px] text-moss-900 outline-hidden placeholder:text-moss-500 dark:text-moss-100"
             />
           </label>
           <div className="flex gap-1.5">

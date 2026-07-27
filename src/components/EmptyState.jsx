@@ -40,7 +40,7 @@ export function EmptyState({ tasks, today, variant = 'today' }) {
       </div>
       <p className="mx-auto max-w-[20ch] text-[24px] leading-snug">{COPY.emptyToday}</p>
       {next && until !== null && (
-        <p className="mt-3 text-[13.5px] text-[#aec399]">
+        <p className="mt-3 text-[13.5px] text-lime-400">
           {COPY.emptyTodayHint} {relativeDue(until)}: {next.name}
         </p>
       )}
