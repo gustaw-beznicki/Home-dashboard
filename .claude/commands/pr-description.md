@@ -122,7 +122,7 @@ node scripts/screenshot-pr.mjs --out "$(mktemp -d)/shots"
 TAG="pr-$ARGUMENTS-images"
 gh release create "$TAG" "$SHOTS"/*.png \
   --title "PR #$ARGUMENTS screenshots" \
-  --notes "Review artefacts for PR #$ARGUMENTS. Safe to delete once merged." \
+  --notes "Screenshots for PR #$ARGUMENTS. Keep: the PR body links these." \
   --prerelease
 ```
 
@@ -146,9 +146,14 @@ image, because it looks like the UI is broken rather than the link:
 curl -sIL "<browser_download_url>" | grep -iE "^HTTP/|^content-type"
 ```
 
-Two things this buys beyond a clean history: the URL contains no branch name and no commit SHA, so
-nothing breaks when the branch is auto-deleted at merge or the history is rewritten; and cleanup is
-one command rather than a revert.
+What this buys beyond a clean history: the URL contains no branch name and no commit SHA, so nothing
+breaks when the branch is auto-deleted at merge or the history is rewritten.
+
+**Do not delete the prerelease after merging.** It is the host for images a merged PR body still
+links, so deleting it breaks them exactly the way deleting the branch used to — silently, in a closed
+PR nobody revisits. The prerelease is permanent; that is the trade for keeping the bytes out of git.
+The delete command below is only for a PR closed *without* merging, or for a set of captures replaced
+by better ones on the same PR:
 
 ```sh
 gh release delete "pr-N-images" --yes --cleanup-tag
