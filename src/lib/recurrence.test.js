@@ -514,3 +514,47 @@ describe('intervalKey', () => {
     )
   })
 })
+
+describe('nth weekday rules beyond the first Saturday', () => {
+  it('computes the third Wednesday', () => {
+    const task = baseTask({
+      interval: {
+        type: 'monthly',
+        unit: 'month',
+        every: 1,
+        day: { nth: 3, weekday: 3 },
+        startsOn: '2026-01-01',
+      },
+      lastDone: '2026-07-15', // the third Wednesday of July 2026
+    })
+    expect(toISODate(dueDate(task))).toBe('2026-08-19')
+  })
+
+  it('snaps a fresh nth rule onto its own grid rather than firing on the anchor', () => {
+    const interval = {
+      type: 'monthly',
+      unit: 'month',
+      every: 1,
+      day: { nth: 2, weekday: 1 }, // second Monday
+      startsOn: '2026-07-27',
+    }
+    expect(upcomingOccurrences(interval, TODAY, 2).map(toISODate)).toEqual([
+      '2026-08-10',
+      '2026-09-14',
+    ])
+  })
+
+  it('combines an nth rule with a quarterly cadence', () => {
+    const task = baseTask({
+      interval: {
+        type: 'monthly',
+        unit: 'month',
+        every: 3,
+        day: { nth: 1, weekday: 6 },
+        startsOn: '2026-01-03', // the first Saturday of January 2026
+      },
+      lastDone: '2026-01-03',
+    })
+    expect(toISODate(dueDate(task))).toBe('2026-04-04')
+  })
+})

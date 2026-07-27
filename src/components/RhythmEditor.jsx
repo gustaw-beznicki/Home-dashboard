@@ -10,7 +10,14 @@ import {
 } from '../lib/constants'
 import { useHomeSettings } from '../hooks/useHomeSettings'
 import { addDays, describeInterval, isoWeekday, parseISODate, toISODate, upcomingOccurrences } from '../lib/recurrence'
-import { countWith, FORMS, formatDate, weekdayName } from '../lib/plural'
+import {
+  countWith,
+  FORMS,
+  formatDate,
+  ORDINALS_ACCUSATIVE,
+  weekdayName,
+  WEEKDAYS_ACCUSATIVE,
+} from '../lib/plural'
 
 const REBASE_OPTIONS = [
   { key: 'lastDone', label: 'licz od ostatniego zrobienia' },
@@ -41,6 +48,12 @@ export function RhythmEditor({ value, onChange, today, lastDone, rebaseChoice, o
     interval.type === 'monthly' ? (interval.unit === 'year' ? 'yearly' : 'monthly') : interval.type
 
   const yearly = activeKey === 'yearly'
+  // The nth-weekday rule, when that is what `day` holds. Its own object rather
+  // than a boolean so the two selects can spread it and change one field.
+  const nthRule =
+    interval.type === 'monthly' && typeof interval.day === 'object' && interval.day !== null
+      ? interval.day
+      : null
   const steps = yearly ? YEAR_STEPS : MONTH_STEPS
   const every = Math.max(1, interval.every ?? 1)
 
@@ -262,10 +275,49 @@ export function RhythmEditor({ value, onChange, today, lastDone, rebaseChoice, o
               </div>
             )
           })}
-          <p className="col-span-full flex items-start gap-2.5 rounded-2xl bg-amber-100 px-3.5 py-3 text-[12.5px] leading-relaxed text-amber-500 dark:bg-[#3e3a29]">
-            <AlertTriangle size={16} strokeWidth={1.8} className="mt-0.5 shrink-0" />
-            W lutym „ostatni dzień” to 28., a w roku przestępnym 29. Sami to ogarniemy.
-          </p>
+
+          {/* Full width rather than squeezed beside the radio: two selects and
+              the word joining them read as a sentence, and there is no room for
+              that in a half-width cell on a phone. */}
+          {nthRule && (
+            <div className="col-span-full flex flex-wrap items-center gap-2 rounded-2xl bg-moss-50 px-4 py-3 text-[13.5px] text-moss-800 dark:bg-bark-700 dark:text-moss-300">
+              <span>w</span>
+              <select
+                value={nthRule.nth}
+                aria-label="Która z kolei"
+                onChange={(e) => set({ day: { ...nthRule, nth: Number(e.target.value) } })}
+                className="rounded-full bg-moss-200 px-2.5 py-1 text-[13px] text-moss-800 dark:bg-bark-600 dark:text-moss-200"
+              >
+                {ORDINALS_ACCUSATIVE.map((label, index) => (
+                  <option key={label} value={index + 1}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={nthRule.weekday}
+                aria-label="Dzień tygodnia"
+                onChange={(e) => set({ day: { ...nthRule, weekday: Number(e.target.value) } })}
+                className="rounded-full bg-moss-200 px-2.5 py-1 text-[13px] text-moss-800 dark:bg-bark-600 dark:text-moss-200"
+              >
+                {WEEKDAYS.map((day) => (
+                  <option key={day.key} value={day.key}>
+                    {WEEKDAYS_ACCUSATIVE[day.key]}
+                  </option>
+                ))}
+              </select>
+              <span className="text-moss-600 dark:text-moss-500">miesiąca</span>
+            </div>
+          )}
+
+          {/* Only "ostatniego dnia" has a February problem. Under a fixed day or
+              an nth-weekday rule this was answering a question nobody asked. */}
+          {interval.day === 'last' && (
+            <p className="col-span-full flex items-start gap-2.5 rounded-2xl bg-amber-100 px-3.5 py-3 text-[12.5px] leading-relaxed text-amber-500 dark:bg-[#3e3a29]">
+              <AlertTriangle size={16} strokeWidth={1.8} className="mt-0.5 shrink-0" />
+              W lutym „ostatni dzień” to 28., a w roku przestępnym 29. Sami to ogarniemy.
+            </p>
+          )}
         </div>
       )}
 

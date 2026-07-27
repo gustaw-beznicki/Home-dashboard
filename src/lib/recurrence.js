@@ -28,21 +28,9 @@
 // read as a bug every time. Without an anchor "every 3 days" has nothing to hang
 // off at all, which is why it is never hidden in the editor.
 
-import { countWith, FORMS } from './plural.js'
+import { countWith, FORMS, ORDINALS_ACCUSATIVE, WEEKDAYS_ACCUSATIVE } from './plural.js'
 
 const DAY = 86400000
-
-// For `describeInterval` only: "w pierwszą **sobotę**" needs the accusative, so
-// the nominative names in plural.js can't be reused here.
-const WEEKDAY_ACCUSATIVE = {
-  1: 'poniedziałek',
-  2: 'wtorek',
-  3: 'środę',
-  4: 'czwartek',
-  5: 'piątek',
-  6: 'sobotę',
-  7: 'niedzielę',
-}
 
 export function toMidnight(date) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate())
@@ -378,8 +366,8 @@ export function describeInterval(interval) {
       if (interval.day === 'first') return `${cadence}, 1.`
       if (interval.day === 'last') return `${cadence}, ostatniego`
       if (typeof interval.day === 'object' && interval.day !== null) {
-        const nth = ['pierwszą', 'drugą', 'trzecią', 'czwartą'][interval.day.nth - 1] ?? 'pierwszą'
-        return `${cadence}, w ${nth} ${WEEKDAY_ACCUSATIVE[interval.day.weekday] ?? 'sobotę'}`
+        const nth = ORDINALS_ACCUSATIVE[interval.day.nth - 1] ?? ORDINALS_ACCUSATIVE[0]
+        return `${cadence}, w ${nth} ${WEEKDAYS_ACCUSATIVE[interval.day.weekday] ?? 'sobotę'}`
       }
       if (interval.day === undefined || interval.day === null) return cadence
       return `${cadence}, ${interval.day}.`

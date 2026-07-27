@@ -93,6 +93,22 @@ export function weekdayName(date) {
   return DNI[date.getDay()]
 }
 
+// "w pierwszą **sobotę**" needs the accusative, so the nominative `DNI` above
+// can't be reused. Keyed by ISO weekday (1 = Monday), like the interval model.
+export const WEEKDAYS_ACCUSATIVE = {
+  1: 'poniedziałek',
+  2: 'wtorek',
+  3: 'środę',
+  4: 'czwartek',
+  5: 'piątek',
+  6: 'sobotę',
+  7: 'niedzielę',
+}
+
+// Feminine accusative, agreeing with the weekday: "w trzecią środę". Only 1–4,
+// because a fifth weekday is absent from most months.
+export const ORDINALS_ACCUSATIVE = ['pierwszą', 'drugą', 'trzecią', 'czwartą']
+
 // "Anna, 20 lipca" · "Anna, wczoraj" · "nigdy"
 export function formatLastDone(date, today, who) {
   if (!date) return 'nigdy'

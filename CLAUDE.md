@@ -202,10 +202,14 @@ artefact, so it is committed deliberately; `docs/screenshots/` is gitignored as 
 `github.com/<owner>/<repo>/releases/download/pr-<N>-images/<file>.png`. GitHub hosts the bytes; git
 never sees them. This replaced committing them to the PR branch, which welded a few hundred kilobytes
 into `main` per merged PR — 8.1 MB of it was deleted in one go. The URLs carry neither a branch name
-nor a SHA, so auto-delete-on-merge can't break them, and cleanup is
-`gh release delete pr-<N>-images --yes --cleanup-tag`. There is no attachment API and `data:` URIs are
-stripped by GitHub's sanitiser — `pr-description` documents both dead ends so they don't get
-re-derived.
+nor a SHA, so auto-delete-on-merge can't break them.
+
+**Those prereleases are permanent — don't tidy them away after merging.** They host images the merged
+PR body still links, so deleting one breaks them the same silent way deleting the branch used to. Keep
+the bytes out of git *and* the release in place; that's the whole trade. `gh release delete` is for a
+PR closed without merging, or captures superseded on the same PR. There is no attachment API and
+`data:` URIs are stripped by GitHub's sanitiser — `pr-description` documents both dead ends so they
+don't get re-derived.
 
 Two legacy exceptions: PRs #16–#18 and #20 link SHA-pinned `raw.githubusercontent` URLs into `main`'s
 history, and `assets/pr-14` is a branch that exists solely to host PR #14's images. Neither has a PR
