@@ -28,6 +28,7 @@ import {
   groupTasks,
   parseISODate,
   sortByNextDue,
+  toISODate,
 } from '../lib/recurrence'
 import { formatDate, weekdayName } from '../lib/plural'
 
@@ -147,6 +148,28 @@ export function Dashboard() {
     if (activeView === 'archive') {
       const label = VIEWS.find((view) => view.key === 'archive').label
       return [{ key: 'archive', label, mark: 'later', tasks: inView }]
+    }
+
+    // A day drill-down is about a date, so today's status must not remove anything
+    // from it. The bar counted `dueDate`, and a thing ticked off this morning is
+    // counted under its *next* deadline — but the `done` filter below then dropped
+    // exactly those, so clicking a bar reading "2" opened a list saying "Tu nic nie
+    // ma". ADR 0018's rule, one layer lower than it was written.
+    //
+    // Today is the one day you can act on, so it keeps the tick buttons by
+    // rendering each card at its real status; every other day is a look-ahead and
+    // renders as the quiet tier, like Najbliższy tydzień.
+    if (activeDay) {
+      const isToday = activeDay === toISODate(now)
+      return [
+        {
+          key: 'day',
+          label: COPY.dayFilterHeading,
+          mark: isToday ? 'due' : 'later',
+          renderAs: isToday ? undefined : 'later',
+          tasks: sortByNextDue(inView, now),
+        },
+      ]
     }
 
     // Najbliższy tydzień is flat too, and for a related reason: everything in it

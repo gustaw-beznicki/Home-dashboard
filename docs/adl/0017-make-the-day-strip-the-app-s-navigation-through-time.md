@@ -21,7 +21,9 @@ of them answers *"what falls on the 12th"*. The design kit has arrows either sid
 ## Decision
 
 **A bar filters the list to the day it counted.** `filterByDay` uses the same `dueDate` test `dayLoad`
-uses, so the drill-down and the number above the bar can never disagree. The filter composes with the
+uses, so the two agree on what belongs to a date — though the *list* built on top of them has to honour
+that too, and initially did not: it re-applied the "hide today's completions" filter and so emptied
+itself on a closed day while the bar still read 2. See ADR 0018. The filter composes with the
 existing category filter and view rather than replacing them, which is what makes it cheap: it behaves
 like the category chips, including a chip of its own and a "Pokaż wszystko" to clear.
 

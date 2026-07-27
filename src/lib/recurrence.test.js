@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  addDays,
   computeStatus,
   dayClosed,
   dayLoad,
@@ -809,5 +810,34 @@ describe('upcomingForTask', () => {
   it('previews nothing for a rhythmless thing, done or not', () => {
     expect(upcomingForTask({ type: 'manual' }, '2026-06-01', TODAY, 3)).toEqual([])
     expect(upcomingForTask({ type: 'manual' }, null, TODAY, 3)).toEqual([])
+  })
+})
+
+describe('the bar and its drill-down agree', () => {
+  // The contract the day strip rests on, pinned explicitly because it is the
+  // thing a list-building bug breaks: whatever `dayLoad` counted on a date,
+  // `filterByDay` returns for that date. Both read `dueDate` and neither looks at
+  // the status — and the one time the list dropped completions on top of this, the
+  // bar said 3 and the list said nothing. That composition is covered by
+  // e2e/day-complete.spec.mjs, which is the level it broke at.
+  it('counts and lists the same things, completions included', () => {
+    const tasks = [
+      baseTask({ id: 'due', lastDone: daysAgo(1) }),
+      baseTask({ id: 'doneToday', lastDone: toISODate(TODAY) }),
+      baseTask({
+        id: 'later',
+        interval: { type: 'everyNDays', n: 30, startsOn: daysAgo(-10) },
+        lastDone: null,
+      }),
+    ]
+
+    for (const day of dayLoad(tasks, TODAY, 12)) {
+      const iso = toISODate(day.date)
+      expect(filterByDay(tasks, iso).length, iso).toBe(day.count)
+    }
+
+    // And concretely: the thing ticked off today is on tomorrow's bar, not today's.
+    expect(filterByDay(tasks, toISODate(TODAY)).map((t) => t.id)).toEqual(['due'])
+    expect(filterByDay(tasks, toISODate(addDays(TODAY, 1))).map((t) => t.id)).toEqual(['doneToday'])
   })
 })
