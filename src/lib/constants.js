@@ -111,7 +111,10 @@ export const MONTHLY_MODES = [
   { key: 'first', label: 'pierwszego dnia', hint: '1.' },
   { key: 'last', label: 'ostatniego dnia', hint: '28./30./31.' },
   { key: 'day', label: 'konkretnego dnia', hint: null },
-  { key: 'nth', label: 'w pierwszą sobotę', hint: 'sob' },
+  // Was labelled "w pierwszą sobotę" while storing a hardcoded first-Saturday
+  // rule, so the label was the only thing that could ever be true. The two
+  // pickers that appear when it is selected are what make it honest.
+  { key: 'nth', label: 'w dany dzień tygodnia', hint: null },
 ]
 
 export const WEEKDAYS = [

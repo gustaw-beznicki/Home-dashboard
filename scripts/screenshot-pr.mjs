@@ -177,6 +177,20 @@ const SHOTS = [
       await page.getByRole('button', { name: 'kwartał', exact: true }).click()
     },
   },
+  {
+    name: 'rhythm-nth-weekday-desktop-light',
+    route: '/',
+    viewport: DESKTOP,
+    scheme: 'light',
+    action: async (page) => {
+      await openEmptySheet(page)
+      await page.getByPlaceholder('Co trzeba ogarnąć?').fill('Segregacja i wystawka')
+      await page.getByRole('button', { name: 'co miesiąc' }).click()
+      await page.getByText('w dany dzień tygodnia').click()
+      await page.getByLabel('Która z kolei').selectOption('3')
+      await page.getByLabel('Dzień tygodnia').selectOption('3')
+    },
+  },
   { name: 'admin-desktop-light', route: '/admin', viewport: DESKTOP, scheme: 'light' },
   { name: 'panel-desktop-light', route: '/panel', viewport: DESKTOP, scheme: 'light' },
   { name: 'panel-mobile-light', route: '/panel', viewport: MOBILE, scheme: 'light', fullPage: true },

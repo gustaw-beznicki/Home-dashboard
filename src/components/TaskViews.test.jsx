@@ -424,3 +424,99 @@ describe('RhythmEditor preview across years', () => {
     expect(screen.queryByText('24 lipca 2026')).not.toBeInTheDocument()
   })
 })
+
+describe('RhythmEditor nth-weekday pickers', () => {
+  function renderNth(interval) {
+    const onChange = vi.fn()
+    render(
+      <RhythmEditor
+        value={interval}
+        onChange={onChange}
+        today={TODAY}
+        lastDone={null}
+        rebaseChoice={null}
+        onRebase={vi.fn()}
+      />
+    )
+    return onChange
+  }
+
+  const monthly = (day) => ({ type: 'monthly', unit: 'month', every: 1, day, startsOn: '2026-07-01' })
+
+  it('no longer claims the rule is the first Saturday', () => {
+    renderNth(monthly('first'))
+    // The old label was a promise the stored rule could not break, because it
+    // was hardcoded. Now it describes a choice.
+    expect(screen.queryByText('w pierwszą sobotę')).not.toBeInTheDocument()
+    expect(screen.getByText('w dany dzień tygodnia')).toBeInTheDocument()
+  })
+
+  it('shows the pickers only once the nth rule is the selected one', () => {
+    const onChange = renderNth(monthly('first'))
+    expect(screen.queryByLabelText('Która z kolei')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByText('w dany dzień tygodnia'))
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ day: { nth: 1, weekday: 6 } }))
+  })
+
+  it('reflects the stored rule in both pickers', () => {
+    renderNth(monthly({ nth: 3, weekday: 3 }))
+    expect(screen.getByLabelText('Która z kolei')).toHaveValue('3')
+    expect(screen.getByLabelText('Dzień tygodnia')).toHaveValue('3')
+  })
+
+  it('changes one field without disturbing the other', () => {
+    const onChange = renderNth(monthly({ nth: 1, weekday: 6 }))
+
+    fireEvent.change(screen.getByLabelText('Która z kolei'), { target: { value: '3' } })
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ day: { nth: 3, weekday: 6 } }))
+
+    fireEvent.change(screen.getByLabelText('Dzień tygodnia'), { target: { value: '2' } })
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ day: { nth: 1, weekday: 2 } }))
+  })
+
+  it('describes the chosen rule in the preview, in the accusative', () => {
+    renderNth(monthly({ nth: 3, weekday: 3 }))
+    expect(screen.getByText('co miesiąc, w trzecią środę')).toBeInTheDocument()
+  })
+
+  it('offers only the four ordinals a month reliably has', () => {
+    renderNth(monthly({ nth: 1, weekday: 6 }))
+    const options = screen.getByLabelText('Która z kolei').querySelectorAll('option')
+    // A fifth Saturday is missing from most months, so it is not offered.
+    expect([...options].map((o) => o.textContent)).toEqual([
+      'pierwszą',
+      'drugą',
+      'trzecią',
+      'czwartą',
+    ])
+  })
+})
+
+describe('RhythmEditor February warning', () => {
+  function renderDay(day) {
+    render(
+      <RhythmEditor
+        value={{ type: 'monthly', unit: 'month', every: 1, day, startsOn: '2026-07-01' }}
+        onChange={vi.fn()}
+        today={TODAY}
+        lastDone={null}
+        rebaseChoice={null}
+        onRebase={vi.fn()}
+      />
+    )
+  }
+
+  it('warns about February only under the last-day rule', () => {
+    renderDay('last')
+    expect(screen.getByText(/W lutym „ostatni dzień”/)).toBeInTheDocument()
+  })
+
+  it.each([['first', 'first'], ['a day number', 15], ['an nth weekday', { nth: 1, weekday: 6 }]])(
+    'stays quiet under %s, which has no February problem',
+    (_label, day) => {
+      renderDay(day)
+      expect(screen.queryByText(/W lutym „ostatni dzień”/)).not.toBeInTheDocument()
+    }
+  )
+})
