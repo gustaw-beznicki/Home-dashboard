@@ -27,7 +27,7 @@ template.
 | [0007](0007-automate-deploy-and-migrations-with-github-actions.md) | Automate deploy and migrations with GitHub Actions | Accepted |
 | [0008](0008-use-clerk-as-managed-identity-provider.md) | Use Clerk as a managed identity provider | Superseded by [0009](0009-replace-clerk-with-self-hosted-better-auth-on-d1.md) |
 | [0009](0009-replace-clerk-with-self-hosted-better-auth-on-d1.md) | Replace Clerk with self-hosted Better Auth on D1 | Accepted |
-| [0010](0010-anchor-recurrence-to-a-start-date-instead-of-the-last-completion.md) | Anchor recurrence to a start date instead of the last completion | Accepted |
+| [0010](0010-anchor-recurrence-to-a-start-date-instead-of-the-last-completion.md) | Anchor recurrence to a start date instead of the last completion | Accepted (amended by [0015](0015-express-yearly-rhythms-as-a-monthly-multiple.md)) |
 | [0011](0011-allow-a-loopback-only-identity-bypass-for-local-development.md) | Allow a loopback-only identity bypass for local development | Accepted |
 | [0012](0012-grant-the-first-admin-with-a-script-not-a-login-side-effect.md) | Grant the first admin with a script, not a login side effect | Accepted |
 | [0013](0013-store-household-settings-and-categories-in-d1.md) | Store household settings and categories in D1, dropping the fixed-category CHECK | Accepted |
@@ -35,3 +35,4 @@ template.
 | [0015](0015-express-yearly-rhythms-as-a-monthly-multiple.md) | Express yearly rhythms as a monthly multiple, and snap the anchor to the grid | Accepted |
 | [0016](0016-bring-back-a-progress-bar-scoped-to-the-day.md) | Bring back a progress bar, scoped to the day, and reward closing it | Accepted |
 | [0017](0017-make-the-day-strip-the-app-s-navigation-through-time.md) | Make the day strip the app's navigation through time | Accepted |
+| [0018](0018-separate-what-is-true-today-from-when-a-thing-happens.md) | Separate "what is true today" from "when does this happen" | Accepted |

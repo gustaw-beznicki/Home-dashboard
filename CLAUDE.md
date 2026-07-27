@@ -162,6 +162,13 @@ place of the forward arrow — replacing it made a second week forward unreachab
 for that. `DoneToday` and the reward are suppressed while a day is selected, since both summarise today
 as a whole.
 
+**Scheduling questions are keyed off dates, never off the derived status** (ADR 0018). `computeStatus`
+says what is true *today* — and `done` is true only until midnight — so anything asking *when* uses
+`filterForView('upcoming')` on `daysUntilDue`, `sortByNextDue`, `filterByDay` on `dueDate`, or
+`upcomingForTask`. Three user-visible bugs came from reaching for the status instead, the last one after
+the previous had been fixed, which is why it is a rule now rather than three fixes. `upcomingOccurrences`
+still answers "what does this *rule* produce", which is what a task with no completion shows.
+
 **Two of the four views are flat, and `upcoming` is flat for a reason worth knowing.** *Najbliższy
 tydzień* asks *when does this next fall due* — nothing else. So it filters on `daysUntilDue`
 (`0 < until <= 7`) rather than on `status === 'later'`, sorts with `sortByNextDue` rather than
