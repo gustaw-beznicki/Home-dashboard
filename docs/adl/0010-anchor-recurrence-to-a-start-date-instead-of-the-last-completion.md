@@ -43,7 +43,7 @@ grid of deadlines. The first deadline is `startsOn`; subsequent ones step from i
 been completed, its next deadline is the first grid point strictly after `lastDone`. The interval
 model becomes:
 
-```
+```js
 { type: 'daily',      startsOn }
 { type: 'everyNDays', n, startsOn }
 { type: 'weekly',     weekdays: [1..7], startsOn }   // 1 = Monday

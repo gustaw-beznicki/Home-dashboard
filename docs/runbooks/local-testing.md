@@ -83,7 +83,7 @@ under **Test users** — an unpublished app refuses sign-ins from anyone not on 
 **2. Add the localhost redirect URI.**
 Under **Authorized redirect URIs**, add exactly:
 
-```
+```text
 http://localhost:8787/api/auth/callback/google
 ```
 
@@ -100,7 +100,7 @@ Google can take a few minutes to propagate a redirect URI change.
 **3. Paste the two values into `.dev.vars`.**
 Fill the two empty lines:
 
-```
+```ini
 GOOGLE_CLIENT_ID=<the Client ID>
 GOOGLE_CLIENT_SECRET=<the Client secret>
 ```

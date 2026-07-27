@@ -175,7 +175,11 @@ change.
 
 **Merged branches are deleted automatically** (`delete_branch_on_merge`).
 
-**PR screenshots are release assets, never commits.** They go on a `pr-<N>-images` **prerelease**
+**PR screenshots are release assets, never commits** — with exactly one exception, the README's
+product shot in `docs/img/`. That one is documentation with the lifespan of the project, not a review
+artefact, so it is committed deliberately; `docs/screenshots/` is gitignored as a backstop and
+`screenshot-pr.mjs` defaults its output to the system temp directory. Review screenshots go on a
+`pr-<N>-images` **prerelease**
 (`gh release create … --prerelease`), and the body links
 `github.com/<owner>/<repo>/releases/download/pr-<N>-images/<file>.png`. GitHub hosts the bytes; git
 never sees them. This replaced committing them to the PR branch, which welded a few hundred kilobytes

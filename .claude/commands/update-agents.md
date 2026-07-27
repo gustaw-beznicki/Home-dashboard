@@ -81,7 +81,7 @@ Make the smallest edits that make AGENTS.md accurate:
 
 After updating, output a compact summary:
 
-```
+```markdown
 ## AGENTS.md update summary
 
 **Updated:** <list of stale items fixed>
@@ -96,6 +96,6 @@ If nothing needed changing, say so explicitly — a verified-accurate AGENTS.md 
 
 After AGENTS.md is updated (or verified accurate), invoke the built-in `/init` skill to keep CLAUDE.md in sync with the same codebase snapshot.
 
-```
+```text
 use Skill: init
 ```

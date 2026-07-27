@@ -1,6 +1,10 @@
 // Captures the screenshots the /pr-description command attaches to a PR.
 //
-//   node scripts/screenshot-pr.mjs --out docs/screenshots/pr-14
+//   node scripts/screenshot-pr.mjs --out "$(mktemp -d)/shots"
+//
+// The output goes outside the repo: PR screenshots are uploaded as assets on a
+// `pr-N-images` prerelease, never committed. Omitting --out writes to the system
+// temp directory rather than into the working tree.
 //
 // Assumes the app is already serving on --base (default http://localhost:8787).
 // Start it with `npm run dev:no-auth`, which needs no Google credentials — that
@@ -10,6 +14,7 @@
 // Playwright is a hard dependency of this script. The command installs it.
 
 import { mkdir, writeFile } from 'node:fs/promises'
+import os from 'node:os'
 import path from 'node:path'
 import { chromium } from 'playwright'
 
@@ -19,7 +24,10 @@ for (let i = 2; i < process.argv.length; i += 2) {
 }
 
 const BASE = args.get('base') || 'http://localhost:8787'
-const OUT = args.get('out') || 'docs/screenshots/local'
+// Defaults outside the repo on purpose. PR screenshots are uploaded as release
+// assets, never committed, so a forgotten --out must not drop 3 MB of PNGs into
+// the working tree. The one committed image is docs/img/, for the README.
+const OUT = args.get('out') || path.join(os.tmpdir(), 'ogarniamy-shots')
 
 const MOBILE = { width: 390, height: 844 }
 const DESKTOP = { width: 1440, height: 900 }

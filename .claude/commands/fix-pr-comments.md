@@ -13,7 +13,7 @@ You are given a PR number in `$ARGUMENTS`. Follow this exact interactive loop:
 Determine the repo owner and name from: `git remote get-url origin`
 
 Fetch review threads via GraphQL, which exposes the resolved status:
-```
+```sh
 gh api graphql -f query='
   query($owner: String!, $repo: String!, $pr: Int!) {
     repository(owner: $owner, name: $repo) {
