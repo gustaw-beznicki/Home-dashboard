@@ -47,7 +47,7 @@ recommending a branch someone is actively reviewing:
 
 ```sh
 gh --version
-gh pr list --state merged --json number,headRefName,mergeCommit --limit 200
+gh pr list --state merged --json number,headRefName,mergeCommit,mergedAt --limit 200
 gh pr list --state open   --json number,headRefName --limit 200
 ```
 
@@ -57,8 +57,10 @@ For remote branches, "merged" is not `git branch --merged`. Ask git directly:
 git log --oneline <default-branch>..origin/<branch> | wc -l
 ```
 
-Zero means fully merged. Non-zero does **not** mean unmerged work — a squash-merged PR always leaves
-its original commits outside `main`. Step 2 says how to tell those apart.
+Zero means fully merged. Non-zero does **not** automatically mean unmerged work — a squash-merged PR
+always leaves its original commits outside `main` — but it also does not automatically mean a squash
+artefact. Step 2 says how to tell those apart, and why the third possibility (a commit pushed after
+the merge, so it never landed anywhere) is the one to raise loudly.
 
 ### Step 2 — Classify
 
@@ -111,6 +113,30 @@ git diff <default>...<sha> --stat
 - **Real unique content, contained nowhere else** → promote to a blocker, name the commit, and say
   what it changes. Do not bury this in a table cell.
 
+#### The case worth shouting about: pushed after the merge
+
+A branch whose PR is **merged** and which still carries unique content is usually not a squash
+artefact. It is far more often a commit pushed *after* the merge completed, which means that work
+never reached the default branch and nobody will ever read it. `git push` succeeded, CI may even have
+run — and the change is nowhere. Auto-delete-on-merge won't catch it either, because the branch moved
+after the deletion already happened, so it looks like an ordinary live branch.
+
+Compare the tip against the merge to tell:
+
+```sh
+gh pr list --state merged --head <branch> --json number,mergedAt --jq '.[0]'
+git log -1 --format=%cI origin/<branch>
+```
+
+A tip newer than `mergedAt` is the signature. Report it as **work that never landed**, with the
+commit subject and what it touches, and recommend cherry-picking onto a fresh branch off the default —
+not deletion. Only after the content is somewhere reachable does the branch become an ordinary
+candidate.
+
+This has happened twice in this repo: a `CLAUDE.md` tweak stranded on `feat/chore-catalog` after
+PR #20, and the correction to the personal-command note stranded on `feat/monthly-nth-weekday` after
+PR #25. Both were found by accident. That is what this check is for.
+
 ### Step 3 — Hazard check: PR bodies that link files from the branch
 
 **Run this before recommending any remote branch for deletion.** GitHub has no API for attaching
@@ -139,6 +165,11 @@ Then, per remote deletion candidate:
 - **A PR body references it and the files exist nowhere else** → the branch is asset-only.
   Not a candidate. Say which PR depends on it.
 
+A PR body that links `github.com/<owner>/<repo>/releases/download/…` instead is immune to all of
+this: release assets hang off a tag, not a branch. That is the current convention, so this hazard
+check is mostly about older PRs. The equivalent trap on that side is deleting the `pr-N-images`
+prerelease, which is out of scope here — `/pr-description` covers it.
+
 Verifying the rewrite is not optional:
 
 ```sh
@@ -152,7 +183,18 @@ branch, which merge-commit merges guarantee and squash merges do not.
 
 ### Step 4 — Present results
 
-Four sections. Local and remote stay separate — they are different risks and different commands.
+Local and remote stay separate — they are different risks and different commands. If the section
+below has any rows, put it **first**, above every candidate table: it is the only part of this report
+that asks for action other than deletion.
+
+**Stranded work — landed nowhere, do not delete:**
+
+| Branch        | Commit    | Merged | Pushed | What it changes |
+| ------------- | --------- | ------ | ------ | --------------- |
+| `branch-name` | `abc1234` | PR #25 | after  | `CLAUDE.md` — … |
+
+Recommend a cherry-pick onto a fresh branch off the default, not a delete. Say it plainly: this
+change is currently in no branch anyone reads.
 
 **Local — strong candidates:**
 
