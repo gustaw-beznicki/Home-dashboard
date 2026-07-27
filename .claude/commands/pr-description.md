@@ -105,34 +105,62 @@ perfectly fine while the console is full of errors, which is exactly what a revi
 are verifying the UI renders, not generating attachments. If something is visibly broken, say so in
 the PR description instead of quietly attaching a picture of the bug.
 
-**5. Make them visible in the PR.** GitHub has no public API for uploading images to a PR body, so
-committing them to the branch and linking raw URLs is the only way they render without the user
-dragging files in:
+**5. Make them visible in the PR — as release assets, never as commits.** Screenshots do not belong
+in the repository. They are review artefacts with a lifespan of days, and committing them means every
+merged PR welds a few hundred kilobytes into `main`'s history permanently. Host them as assets on a
+**prerelease** instead: GitHub serves the bytes, git never sees them.
+
+Capture to a temp directory, not into the working tree, so there is nothing to accidentally commit:
 
 ```sh
-git add docs/screenshots/pr-$ARGUMENTS && git commit -m "Add PR screenshots" && git push
+node scripts/screenshot-pr.mjs --out "$(mktemp -d)/shots"
 ```
 
-Reference them with absolute raw URLs pinned to the **commit SHA**, not relative paths and not the
-branch name. Relative paths don't resolve in PR bodies, and a branch name is a moving target that
-stops resolving the day the branch is deleted after merge — which is how four merged PRs ended up
-needing their bodies rewritten. Grab the SHA of the commit you just pushed:
+```sh
+TAG="pr-$ARGUMENTS-images"
+gh release create "$TAG" "$SHOTS"/*.png \
+  --title "PR #$ARGUMENTS screenshots" \
+  --notes "Review artefacts for PR #$ARGUMENTS. Safe to delete once merged." \
+  --prerelease
+```
+
+`--prerelease` keeps it out of "Latest release" so it never looks like a shipped version. Then read
+the URLs back rather than constructing them by hand — the asset name is normalised (spaces become
+dots) and guessing gets it wrong:
 
 ```sh
-git rev-parse HEAD
+gh api "repos/<owner>/<repo>/releases/tags/$TAG" \
+  --jq '.assets[] | "\(.name)\t\(.browser_download_url)"'
 ```
 
 ```markdown
-![Dashboard, mobile](https://raw.githubusercontent.com/<owner>/<repo>/<sha>/docs/screenshots/pr-N/dashboard-mobile-light.png)
+![Dashboard, mobile](https://github.com/<owner>/<repo>/releases/download/pr-N-images/dashboard-mobile-light.png)
 ```
 
-This holds as long as the PR lands as a merge commit, which keeps the branch commits reachable from
-`main`. Under squash-merge the SHA would be orphaned instead, so re-pin to the squash commit if the
-merge strategy ever changes.
+Check one of them resolves before pasting the body — a 404 in a PR description is worse than no
+image, because it looks like the UI is broken rather than the link:
 
-Ask before committing binaries if the repo has no precedent for it — some projects would rather the
-images stayed out of git history. If the user declines, leave the files on disk and give them the
-paths to drag in.
+```sh
+curl -sIL "<browser_download_url>" | grep -iE "^HTTP/|^content-type"
+```
+
+Two things this buys beyond a clean history: the URL contains no branch name and no commit SHA, so
+nothing breaks when the branch is auto-deleted at merge or the history is rewritten; and cleanup is
+one command rather than a revert.
+
+```sh
+gh release delete "pr-N-images" --yes --cleanup-tag
+```
+
+Do **not** fall back to committing the PNGs if something here fails. Say what failed and hand over
+the paths — a repo is not an image host.
+
+Two dead ends, so nobody re-derives them: there is no attachment API
+(`POST repos/{o}/{r}/issues/{n}/attachments` is a 404, `gh` has no such command, and the GitHub MCP
+server only offers commit-based writes — the browser's uploader posts to `/upload/policies/assets`
+with a web session). And `data:` URIs do not work: GitHub's sanitiser strips the `src` outright
+(verifiable with `gh api --method POST markdown -f mode=gfm -f text='![x](data:image/png;base64,…)'`),
+and a single screenshot is 166k–486k base64 characters against a 65,536-character body limit anyway.
 
 **Killing the dev server afterwards, on Windows:** `pkill -f "wrangler dev"` does **not** work. The
 listeners are `workerd.exe` processes with `node.exe` wrangler parents, and orphans left on the port

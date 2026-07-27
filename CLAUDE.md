@@ -173,14 +173,25 @@ the repo owner too. Note that toggling repo visibility on GitHub can silently st
 protection; re-check with `gh api repos/{owner}/{repo}/branches/main/protection` after any such
 change.
 
-**Merged branches are deleted automatically** (`delete_branch_on_merge`), which makes one thing
-load-bearing: **screenshot URLs in a PR body must name a commit SHA, never a branch.** A
-branch-named `raw.githubusercontent` link goes dead the moment the PR merges, silently, in a closed
-PR nobody revisits — four PRs were already in that state and had to be rewritten. The
-`pr-description` skill pins SHAs; keep it that way. A SHA stays reachable under a merge commit but
-*not* under a squash merge, so if the merge strategy ever changes to squash-only, re-pin bodies to
-the squash commit after merging. `assets/pr-14` is exempt from all of this: it hosts PR #14's images
-and has no PR of its own, so nothing deletes it — leave it alone.
+**Merged branches are deleted automatically** (`delete_branch_on_merge`).
+
+**PR screenshots are release assets, never commits.** They go on a `pr-<N>-images` **prerelease**
+(`gh release create … --prerelease`), and the body links
+`github.com/<owner>/<repo>/releases/download/pr-<N>-images/<file>.png`. GitHub hosts the bytes; git
+never sees them. This replaced committing them to the PR branch, which welded a few hundred kilobytes
+into `main` per merged PR — 8.1 MB of it was deleted in one go. The URLs carry neither a branch name
+nor a SHA, so auto-delete-on-merge can't break them, and cleanup is
+`gh release delete pr-<N>-images --yes --cleanup-tag`. There is no attachment API and `data:` URIs are
+stripped by GitHub's sanitiser — `pr-description` documents both dead ends so they don't get
+re-derived.
+
+Two legacy exceptions: PRs #16–#18 and #20 link SHA-pinned `raw.githubusercontent` URLs into `main`'s
+history, and `assets/pr-14` is a branch that exists solely to host PR #14's images. Neither has a PR
+of its own, so nothing deletes them automatically — leave both alone.
+
+**`/pr-description` lives in two places and the user-scope copy wins.**
+`~/.claude/commands/pr-description.md` shadows this repo's `.claude/commands/pr-description.md`, so
+editing only the tracked one changes nothing about what actually runs. Change both, or delete one.
 
 `/prune-branches` reports deletion candidates for local *and* remote branches, including which PR
 bodies would break, and never deletes anything itself.
