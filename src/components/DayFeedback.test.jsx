@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { DayProgress } from './DayProgress'
 import { DayComplete } from './DayComplete'
 import { DayStrip } from './DayStrip'
+import { DoneToday } from './DoneToday'
 import { RollbackBanner } from './RollbackBanner'
 import { COPY } from '../lib/constants'
 
@@ -132,5 +133,55 @@ describe('day-complete copy', () => {
       expect(screen.getByText(/mniej na liście\./)).toBeInTheDocument()
       unmount()
     }
+  })
+})
+
+describe('DoneToday', () => {
+  function doneTask(id, name) {
+    return {
+      id,
+      name,
+      lastDone: '2026-07-24',
+      interval: { type: 'daily', startsOn: '2026-07-01' },
+      note: '',
+      category: 'home',
+      pinned: false,
+      archived: false,
+      completedBy: { name: 'Anna' },
+    }
+  }
+
+  const two = [doneTask('a', 'Podlać monsterę'), doneTask('b', 'Witamina D')]
+
+  it('keeps "cofnij" reachable for the rest of the day', () => {
+    // The whole point: the sticky groups hold a completion for eight seconds, and
+    // after that this section is the only place undo still exists.
+    const onUndo = vi.fn()
+    render(<DoneToday tasks={two} today={TODAY} onUndo={onUndo} onOpen={vi.fn()} />)
+
+    expect(screen.getByText(COPY.doneTodayTitle)).toBeInTheDocument()
+    expect(screen.getByText('Podlać monsterę')).toBeInTheDocument()
+
+    fireEvent.click(screen.getAllByRole('button', { name: COPY.undo })[0])
+    expect(onUndo).toHaveBeenCalledWith(two[0])
+  })
+
+  it('collapses to one line, and says what is behind it', () => {
+    render(<DoneToday tasks={two} today={TODAY} onUndo={vi.fn()} onOpen={vi.fn()} />)
+
+    const toggle = screen.getByRole('button', { expanded: true })
+    fireEvent.click(toggle)
+
+    expect(screen.getByText(COPY.doneTodayCollapsed)).toBeInTheDocument()
+    expect(screen.queryByText('Podlać monsterę')).not.toBeInTheDocument()
+    // Still counted while hidden — collapsed is not the same as gone.
+    expect(screen.getByText('2')).toBeInTheDocument()
+  })
+
+  it('renders nothing at all on a day with no completions', () => {
+    const { container } = render(
+      <DoneToday tasks={[]} today={TODAY} onUndo={vi.fn()} onOpen={vi.fn()} />
+    )
+    expect(container).toBeEmptyDOMElement()
   })
 })

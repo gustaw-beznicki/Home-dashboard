@@ -16,6 +16,10 @@ import { mkdir } from 'node:fs/promises'
 // that ticked off "whatever is due" passed here and failed there against a list
 // with nothing on it. Three things anchored today, created and removed per test.
 
+// Mirrors UNDO_WINDOW_MS in src/lib/constants.js. Duplicated rather than
+// imported: this file runs in Node against a built app, not through Vite.
+const UNDO_WINDOW_MS = 8000
+
 const SHOTS_DIR = process.env.SHOTS_DIR
 const MOBILE = { width: 390, height: 844 }
 const DESKTOP = { width: 1440, height: 900 }
@@ -181,5 +185,41 @@ test.describe('desktop, light', () => {
     // Taking one back reopens the day: the reward has to go with it.
     await undo.click()
     await expect(reward).toBeHidden()
+  })
+
+  test('the day just finished survives the undo window and a reload', async ({ page }) => {
+    await page.goto('/')
+    await skipOnboarding(page)
+    await clearTheDay(page)
+
+    // The state that started this: the undo window closes, the page is reloaded,
+    // and the hero still counts the day as finished. The completions used to be
+    // gone from the list entirely — nothing to look at and nothing to take back.
+    await page.waitForTimeout(UNDO_WINDOW_MS + 500)
+    await page.reload()
+    // The bypass writes no `users` row, so DEV_ONBOARDING greets every load —
+    // including this one. Reloading without jumping the wizard again asserts
+    // against the wizard.
+    await skipOnboarding(page)
+
+    await expect(page.getByText('Zrobione dziś')).toBeVisible()
+    // Name each fixture rather than counting: locally the seed contributes its own
+    // completions, so a fixed count is a number that only holds on CI.
+    for (const fixture of FIXTURES) {
+      // By role, not by text: the card's title is a button, and a bare text match
+      // also hits the wrapper whose text merely contains it.
+      await expect(page.getByRole('button', { name: fixture.name })).toBeVisible()
+    }
+    const undo = page.getByRole('button', { name: 'cofnij' })
+    expect(await undo.count()).toBeGreaterThanOrEqual(FIXTURES.length)
+    await expect(page.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '100')
+
+    // And the empty state stays out of it: a finished day is not an empty one.
+    await expect(page.getByText('Dom się sam ogarnął')).toBeHidden()
+
+    // Collapsing is one line, and the count stays visible while hidden.
+    await page.getByRole('button', { expanded: true }).click()
+    await expect(page.getByText('Schowane.', { exact: false })).toBeVisible()
+    await expect(undo).toHaveCount(0)
   })
 })

@@ -152,12 +152,18 @@ two colours are measured against a surface that is dark in **both** themes, so t
 theme roles that flip.
 
 **`DayComplete` stands above the completions, never in their place.** The guard is `dayClosed`, and it
-tests for a *visible* completion rather than for a non-empty list — reopen the app once the undo window
-has closed and the list still holds everything in "Na spokojnie", which is a non-empty list with
-nothing to take back. Keep the sticky groups: the design kit moves completions into a separate
-"Zrobione dziś" section, and the invariant that motivates it is already met here. The falling leaves
-are removed outright under `prefers-reduced-motion` (`[data-leaf]`), not slowed down, and `playKey` is
-what keeps the celebration playing once.
+tests for a *visible* completion rather than for a non-empty list — a list holding only "Na spokojnie"
+is non-empty with nothing to take back. `EmptyState` is suppressed while it shows: "Na dziś nic" is for
+a day that never had anything on it and undercuts the reward for a day that did. The falling leaves are
+removed outright under `prefers-reduced-motion` (`[data-leaf]`), not slowed down, and `playKey` is what
+keeps the celebration playing once.
+
+**Two affordances split the day, and both are needed** (ADR 0016). The sticky map holds a completion
+*in place* for `UNDO_WINDOW_MS` so the list doesn't reshuffle under the thumb that just tapped it; when
+that window closes it settles into `DoneToday` ("Zrobione dziś") rather than leaving the page, and
+"cofnij" keeps working until midnight. Shipping the reward with only the sticky groups was a mistake
+that no test caught: after a reload the hero read "4 z 4 · 100%" above "Na dziś nic", with the day's
+work gone from the page. `DoneToday` excludes anything still sticky, so nothing appears twice.
 
 `src/hooks/useTasks.js` applies changes to local state immediately, fires the API call, then merges
 the server response or rolls back on failure. Its exported shape is intentionally stable so the
