@@ -10,10 +10,11 @@ import { mkdir } from 'node:fs/promises'
 // CSS media query, which jsdom does not evaluate; the shared config runs with
 // `reducedMotion: 'reduce'`, so this run is the one that proves they go.
 //
-// This spec ticks things off, so it changes the seeded database. Nothing else in
-// e2e/ asserts anything about which tasks are due, and `workers: 1` keeps the
-// files from overlapping — but it reopens the day around every test anyway, so
-// running it twice in a row behaves the same as running it once.
+// The spec brings its own day rather than relying on what is in the database.
+// That is not tidiness: locally the database is seeded and has six things due,
+// while CI never runs `db:seed:local` and starts empty — so a version of this
+// that ticked off "whatever is due" passed here and failed there against a list
+// with nothing on it. Three things anchored today, created and removed per test.
 
 const SHOTS_DIR = process.env.SHOTS_DIR
 const MOBILE = { width: 390, height: 844 }
@@ -73,6 +74,28 @@ function isoToday() {
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
 }
 
+const FIXTURES = [
+  { name: 'E2E dzień: podlać monsterę', category: 'plants' },
+  { name: 'E2E dzień: wynieść śmieci', category: 'home' },
+  { name: 'E2E dzień: witamina D', category: 'health' },
+]
+
+async function giveTheDaySomeWork(page) {
+  for (const fixture of FIXTURES) {
+    const response = await page.request.post('/api/tasks', {
+      data: { ...fixture, note: '', interval: { type: 'daily', startsOn: isoToday() } },
+    })
+    expect(response.ok(), await response.text()).toBe(true)
+  }
+}
+
+async function takeItAway(page) {
+  const tasks = await (await page.request.get('/api/tasks')).json()
+  for (const task of tasks) {
+    if (task.name.startsWith('E2E dzień: ')) await page.request.delete(`/api/tasks/${task.id}`)
+  }
+}
+
 // Reopen the day through the API, not through the "cofnij" affordance. The
 // affordance lives for UNDO_WINDOW_MS (8s) after the tick, which is less than a
 // test spends asserting — restoring through the UI worked when it ran alone and
@@ -90,10 +113,18 @@ async function reopenTheDay({ page }) {
   }
 }
 
-// Each test starts from an open day and leaves one behind, so the pair can run in
-// either order and a local run twice in a row behaves the same as a run once.
-test.beforeEach(reopenTheDay)
-test.afterEach(reopenTheDay)
+// Each test starts from an open day with work on it and leaves the database as it
+// found it, so the pair can run in either order and running the file twice in a
+// row behaves the same as running it once.
+test.beforeEach(async ({ page }) => {
+  await reopenTheDay({ page })
+  await giveTheDaySomeWork(page)
+})
+
+test.afterEach(async ({ page }) => {
+  await takeItAway(page)
+  await reopenTheDay({ page })
+})
 
 test.describe('phone, dark', () => {
   test.use({ viewport: MOBILE, colorScheme: 'dark' })
