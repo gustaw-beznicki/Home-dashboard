@@ -25,6 +25,7 @@ import {
   filterByCategory,
   filterForView,
   groupTasks,
+  sortByNextDue,
 } from '../lib/recurrence'
 import { formatDate, weekdayName } from '../lib/plural'
 
@@ -138,6 +139,24 @@ export function Dashboard() {
       return [{ key: 'archive', label, mark: 'later', tasks: inView }]
     }
 
+    // Najbliższy tydzień is flat too, and for a related reason: everything in it
+    // is future work by construction, so the three urgency stops would all say
+    // the same thing. It renders as the quiet tier because it answers "when does
+    // this next fall due" — grouping by today's status would file a thing ticked
+    // off this morning under "Na dziś", which is the one stop it is not in.
+    if (activeView === 'upcoming') {
+      const label = VIEWS.find((view) => view.key === 'upcoming').label
+      return [
+        {
+          key: 'upcoming',
+          label,
+          mark: 'later',
+          renderAs: 'later',
+          tasks: sortByNextDue(inView, now),
+        },
+      ]
+    }
+
     // A completed task is only still on the list while its undo window is open.
     const visible = inView.filter(
       (task) => computeStatus(task, now) !== 'done' || sticky.has(task.id)
@@ -154,7 +173,10 @@ export function Dashboard() {
   // here. The Schowek is left out — an archived thing's completion is not part of
   // today's work.
   const doneToday = useMemo(() => {
-    if (activeView === 'archive') return []
+    // Not in the Schowek, and not in Najbliższy tydzień: that view already lists
+    // today's completions as the future work they are, and a second copy under
+    // "Zrobione dziś" would be the same card twice on one screen.
+    if (activeView === 'archive' || activeView === 'upcoming') return []
     const inView = filterByCategory(filterForView(tasks, activeView, now), activeCategory)
     return inView.filter(
       (task) => computeStatus(task, now) === 'done' && !sticky.has(task.id)
@@ -170,11 +192,12 @@ export function Dashboard() {
     [tasks, now, sticky]
   )
 
-  const dayComplete = dayClosed(
-    progress,
-    [...sections.flatMap((section) => section.tasks), ...doneToday],
-    now
-  )
+  // Only in the views that are about today. Najbliższy tydzień lists today's
+  // completions as future work, and the Schowek is about things put away — a
+  // reward for closing the day would be answering a question neither view asked.
+  const dayComplete =
+    (activeView === 'all' || activeView === 'today') &&
+    dayClosed(progress, [...sections.flatMap((section) => section.tasks), ...doneToday], now)
 
   // "Na dziś nic. Dom się sam ogarnął." is only true of the unfiltered list —
   // a filter that happens to match nothing is a different, duller message.

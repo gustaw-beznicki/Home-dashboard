@@ -222,4 +222,25 @@ test.describe('desktop, light', () => {
     await expect(page.getByText('Schowane.', { exact: false })).toBeVisible()
     await expect(undo).toHaveCount(0)
   })
+
+  test('the coming week still lists what was ticked off today', async ({ page }) => {
+    await page.goto('/')
+    await skipOnboarding(page)
+    await clearTheDay(page)
+
+    // Najbliższy tydzień answers "when does this next fall due", and a thing done
+    // this morning is due again tomorrow. It used to ask for status `later`
+    // instead, so the view sat empty while the day strip drew bars for tomorrow.
+    await page.getByRole('button', { name: /Najbliższy tydzień/ }).first().click()
+
+    await expect(page.getByText('Tu nic nie ma')).toBeHidden()
+    for (const fixture of FIXTURES) {
+      await expect(page.getByRole('button', { name: fixture.name })).toBeVisible()
+    }
+
+    // Listed as future work rather than as completions: a date on the right, and
+    // no "cofnij" anywhere — that belongs to the views that are about today.
+    await expect(page.getByText('jutro').first()).toBeVisible()
+    await expect(page.getByRole('button', { name: 'cofnij' })).toHaveCount(0)
+  })
 })

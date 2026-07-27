@@ -4,10 +4,21 @@ import { CARD_CLASS, CATEGORY_TILE_CLASS, COPY, STATUS_TEXT_CLASS } from '../lib
 import { computeStatus, daysUntilDue, describeInterval, parseISODate } from '../lib/recurrence'
 import { formatLastDone, relativeDue } from '../lib/plural'
 
-// Everything is subordinate to one action — ticking the thing off. Editing,
-// pinning, archiving and deleting all live one level down, in the sheet.
-export function TaskCard({ task, today, onDone, onUndo, onOpen, rolledBack = false }) {
-  const status = computeStatus(task, today)
+/**
+ * Everything is subordinate to one action — ticking the thing off. Editing,
+ * pinning, archiving and deleting all live one level down, in the sheet.
+ *
+ * `renderAs` overrides the derived status for the whole card, and exists for one
+ * caller: the Najbliższy tydzień view, which is about *when a thing next falls
+ * due* and not about today. A thing ticked off this morning and due again
+ * tomorrow belongs in that list, and rendering it there as a completion —
+ * struck through, "cofnij", no date — answers a question nobody asked in that
+ * view. It is not a lie about the data: the card is standing in for a future
+ * deadline, and the quiet tier it renders as carries no tick button, so the same
+ * thing can't be completed twice from there.
+ */
+export function TaskCard({ task, today, onDone, onUndo, onOpen, rolledBack = false, renderAs }) {
+  const status = renderAs ?? computeStatus(task, today)
   const until = daysUntilDue(task, today)
   const rhythm = describeInterval(task.interval)
 
