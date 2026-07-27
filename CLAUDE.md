@@ -189,9 +189,15 @@ Two legacy exceptions: PRs #16–#18 and #20 link SHA-pinned `raw.githubusercont
 history, and `assets/pr-14` is a branch that exists solely to host PR #14's images. Neither has a PR
 of its own, so nothing deletes them automatically — leave both alone.
 
-**`/pr-description` lives in two places and the user-scope copy wins.**
-`~/.claude/commands/pr-description.md` shadows this repo's `.claude/commands/pr-description.md`, so
-editing only the tracked one changes nothing about what actually runs. Change both, or delete one.
+**Personal commands shadow this repo's, not the other way round.** Precedence is enterprise >
+personal (`~/.claude/`) > project (`.claude/`) — project is *lowest*, which is the opposite of the
+intuition ([slash-commands docs](https://code.claude.com/docs/en/slash-commands)). So a
+`~/.claude/commands/<name>.md` makes the tracked copy dead code: editing the one in this repo changes
+nothing about what runs, and `skillOverrides` is no escape hatch, since hiding a name errors rather
+than falling through to the next level. The only fixes are to delete or rename the personal copy.
+`~/.claude/commands/pr-description.md` was removed for exactly this reason, after a change to the
+tracked copy silently did nothing. If you add a command here, check `~/.claude/commands/` for a
+collision first.
 
 `/prune-branches` reports deletion candidates for local *and* remote branches, including which PR
 bodies would break, and never deletes anything itself.
