@@ -20,3 +20,8 @@ skills-lock.json
 
 # Playwright artifacts
 test-results/
+
+# PR screenshots are release assets, never commits (see /pr-description). This is
+# a backstop for a stray `--out docs/screenshots/...`; the one image that IS
+# committed is docs/img/, for the README.
+docs/screenshots/
