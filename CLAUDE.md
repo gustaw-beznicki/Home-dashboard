@@ -223,11 +223,16 @@ nothing about what runs, and `skillOverrides` is no escape hatch, since hiding a
 of falling through. This bit twice in one session — a rewritten `/prune-branches` and a rewritten
 `/pr-description` both sat inert in the repo while the personal copies ran.
 
-The fix is a **namespace directory**: personal commands live in `~/.claude/commands/personal/`, so
-they resolve as `/personal:prune-branches` and the bare names belong to this repo. The docs' naming
-table says a `commands/` file takes its name from the file alone and doesn't mention subdirectories,
-but a colon-namespaced command is what actually appears — verified against the live skill listing, not
-inferred. If you add a command here, check `~/.claude/commands/` for an un-namespaced collision.
+The fix is a **`personal-` prefix in the filename**: `~/.claude/commands/personal-prune-branches.md`
+gives `/personal-prune-branches`, leaving the bare name to this repo. If you add a command here, check
+`~/.claude/commands/` for a collision on the unprefixed name.
+
+A subdirectory (`~/.claude/commands/personal/prune-branches.md`) is *not* the answer, despite looking
+like one: it does produce `personal:prune-branches` in the skill listing the model is shown, but that
+name is not typeable in the `/` menu — `/personal:` matches nothing — so a human can't reach it. The
+naming table in the docs covers neither case, and the two surfaces disagree, so check the `/` menu and
+not just the listing before believing a namespaced command works. A colon can't go in the filename
+either; NTFS reserves it.
 
 `/prune-branches` reports deletion candidates for local *and* remote branches, including which PR
 bodies would break, and never deletes anything itself.
