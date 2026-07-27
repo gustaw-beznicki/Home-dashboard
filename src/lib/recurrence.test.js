@@ -6,6 +6,7 @@ import {
   describeInterval,
   dueDate,
   filterForView,
+  intervalKey,
   groupTasks,
   rebaseInterval,
   sortByUrgency,
@@ -314,5 +315,202 @@ describe('describeInterval', () => {
     expect(describeInterval({ type: 'monthly', day: 'last' })).toBe('co miesiąc, ostatniego')
     expect(describeInterval({ type: 'monthly', day: 12 })).toBe('co miesiąc, 12.')
     expect(describeInterval({ type: 'manual' })).toBe('bez rytmu')
+  })
+})
+
+// The anchor says "not before this", not "this is the first deadline". Honouring
+// it literally used to fire one occurrence that no rule in the editor asked for,
+// which read as a bug every single time.
+describe('anchor snapping', () => {
+  it('does not fire on an anchor that is off its own monthly grid', () => {
+    const task = baseTask({
+      interval: { type: 'monthly', unit: 'month', every: 1, day: 'first', startsOn: '2026-07-27' },
+      lastDone: null,
+    })
+    expect(toISODate(dueDate(task))).toBe('2026-08-01')
+  })
+
+  it('keeps an anchor that already sits on the grid', () => {
+    const task = baseTask({
+      interval: { type: 'monthly', unit: 'month', every: 1, day: 'first', startsOn: '2026-08-01' },
+      lastDone: null,
+    })
+    expect(toISODate(dueDate(task))).toBe('2026-08-01')
+  })
+
+  it('snaps a weekly anchor forward to a selected weekday', () => {
+    const task = baseTask({
+      // Anchored on a Tuesday, but only Mondays are selected.
+      interval: { type: 'weekly', weekdays: [1], startsOn: '2026-07-28' },
+      lastDone: null,
+    })
+    expect(toISODate(dueDate(task))).toBe('2026-08-03')
+  })
+
+  it('leaves daily and everyNDays anchors alone — they are grid point zero', () => {
+    expect(
+      toISODate(dueDate(baseTask({ interval: { type: 'daily', startsOn: '2026-07-27' }, lastDone: null })))
+    ).toBe('2026-07-27')
+    expect(
+      toISODate(
+        dueDate(baseTask({ interval: { type: 'everyNDays', n: 4, startsOn: '2026-07-27' }, lastDone: null }))
+      )
+    ).toBe('2026-07-27')
+  })
+
+  it('previews the snapped grid rather than the raw anchor', () => {
+    const interval = { type: 'monthly', unit: 'month', every: 1, day: 'first', startsOn: '2026-07-27' }
+    expect(upcomingOccurrences(interval, TODAY, 3).map(toISODate)).toEqual([
+      '2026-08-01',
+      '2026-09-01',
+      '2026-10-01',
+    ])
+  })
+})
+
+describe('monthly cadence', () => {
+  it('skips the months between steps', () => {
+    const task = baseTask({
+      interval: { type: 'monthly', unit: 'month', every: 2, day: 'first', startsOn: '2026-01-01' },
+      lastDone: '2026-01-01',
+    })
+    expect(toISODate(dueDate(task))).toBe('2026-03-01')
+  })
+
+  it('handles a quarter', () => {
+    const task = baseTask({
+      interval: { type: 'monthly', unit: 'month', every: 3, day: 15, startsOn: '2026-01-15' },
+      lastDone: '2026-01-15',
+    })
+    expect(toISODate(dueDate(task))).toBe('2026-04-15')
+  })
+
+  it('handles half a year, across the year boundary', () => {
+    const task = baseTask({
+      interval: { type: 'monthly', unit: 'month', every: 6, day: 'last', startsOn: '2026-09-30' },
+      lastDone: '2026-09-30',
+    })
+    expect(toISODate(dueDate(task))).toBe('2027-03-31')
+  })
+
+  it('stays on its own grid when completed off-schedule', () => {
+    // Done nine days late. The grid is anchored, not re-based on completion
+    // (ADR 0010), so the next deadline is still the 15th.
+    const task = baseTask({
+      interval: { type: 'monthly', unit: 'month', every: 3, day: 15, startsOn: '2026-01-15' },
+      lastDone: '2026-01-24',
+    })
+    expect(toISODate(dueDate(task))).toBe('2026-04-15')
+  })
+
+  it('treats a missing cadence as every one month', () => {
+    // What every row written before migration 0008 looks like.
+    const task = baseTask({
+      interval: { type: 'monthly', day: 'first', startsOn: '2026-01-01' },
+      lastDone: '2026-07-01',
+    })
+    expect(toISODate(dueDate(task))).toBe('2026-08-01')
+  })
+})
+
+describe('yearly cadence', () => {
+  it('takes month and day from the anchor, with no day rule involved', () => {
+    const task = baseTask({
+      interval: { type: 'monthly', unit: 'year', every: 1, startsOn: '2026-03-12' },
+      lastDone: '2026-03-12',
+    })
+    expect(toISODate(dueDate(task))).toBe('2027-03-12')
+  })
+
+  it('spaces a two-year rhythm two years apart — the car inspection case', () => {
+    const interval = { type: 'monthly', unit: 'year', every: 2, startsOn: '2026-03-12' }
+    expect(upcomingOccurrences(interval, new Date(2026, 0, 1), 3).map(toISODate)).toEqual([
+      '2026-03-12',
+      '2028-03-12',
+      '2030-03-12',
+    ])
+  })
+
+  it('clamps a leap-day anchor to the 28th in a common year', () => {
+    const task = baseTask({
+      interval: { type: 'monthly', unit: 'year', every: 1, startsOn: '2028-02-29' },
+      lastDone: '2028-02-29',
+    })
+    expect(toISODate(dueDate(task))).toBe('2029-02-28')
+  })
+
+  it('lands back on the 29th when the target year is a leap year', () => {
+    const interval = { type: 'monthly', unit: 'year', every: 4, startsOn: '2028-02-29' }
+    expect(upcomingOccurrences(interval, new Date(2028, 0, 1), 3).map(toISODate)).toEqual([
+      '2028-02-29',
+      '2032-02-29',
+      '2036-02-29',
+    ])
+  })
+
+  it('ignores a day rule left over from a spell as a monthly rhythm', () => {
+    const task = baseTask({
+      interval: { type: 'monthly', unit: 'year', every: 1, day: 'last', startsOn: '2026-03-12' },
+      lastDone: '2026-03-12',
+    })
+    expect(toISODate(dueDate(task))).toBe('2027-03-12')
+  })
+
+  it('reports overdue for a yearly rhythm whose deadline has passed', () => {
+    const task = baseTask({
+      interval: { type: 'monthly', unit: 'year', every: 2, startsOn: '2024-03-12' },
+      lastDone: '2024-03-12',
+    })
+    expect(computeStatus(task, TODAY)).toBe('overdue')
+    expect(daysUntilDue(task, TODAY)).toBeLessThan(0)
+  })
+})
+
+describe('describeInterval for cadences', () => {
+  it('inflects months and years', () => {
+    expect(describeInterval({ type: 'monthly', unit: 'month', every: 1, day: 'first' })).toBe(
+      'co miesiąc, 1.'
+    )
+    expect(describeInterval({ type: 'monthly', unit: 'month', every: 2, day: 15 })).toBe(
+      'co 2 miesiące, 15.'
+    )
+    expect(describeInterval({ type: 'monthly', unit: 'month', every: 6, day: 'last' })).toBe(
+      'co 6 miesięcy, ostatniego'
+    )
+    expect(describeInterval({ type: 'monthly', unit: 'year', every: 1 })).toBe('co rok')
+    expect(describeInterval({ type: 'monthly', unit: 'year', every: 2 })).toBe('co 2 lata')
+    expect(describeInterval({ type: 'monthly', unit: 'year', every: 5 })).toBe('co 5 lat')
+  })
+
+  it('names the nth weekday it was actually given, not a hardcoded Saturday', () => {
+    expect(
+      describeInterval({ type: 'monthly', unit: 'month', every: 1, day: { nth: 1, weekday: 6 } })
+    ).toBe('co miesiąc, w pierwszą sobotę')
+    expect(
+      describeInterval({ type: 'monthly', unit: 'month', every: 1, day: { nth: 3, weekday: 3 } })
+    ).toBe('co miesiąc, w trzecią środę')
+  })
+})
+
+describe('intervalKey', () => {
+  it('treats a pre-0008 monthly row as identical to the same rhythm rebuilt', () => {
+    // Rows written before migration 0008 read back without a cadence. If the key
+    // differed, opening a task and saving it would trigger the "which base do we
+    // count from?" prompt for a rhythm nobody touched.
+    expect(intervalKey({ type: 'monthly', day: 'first', startsOn: '2026-01-01' })).toBe(
+      intervalKey({ type: 'monthly', unit: 'month', every: 1, day: 'first', startsOn: '2026-01-01' })
+    )
+  })
+
+  it('still notices a real change of cadence or unit', () => {
+    const monthly = { type: 'monthly', unit: 'month', every: 1, day: 15, startsOn: '2026-01-15' }
+    expect(intervalKey({ ...monthly, every: 3 })).not.toBe(intervalKey(monthly))
+    expect(intervalKey({ ...monthly, unit: 'year' })).not.toBe(intervalKey(monthly))
+  })
+
+  it('ignores cadence fields on rhythms that have no cadence', () => {
+    expect(intervalKey({ type: 'weekly', weekdays: [1], startsOn: '2026-01-01', every: 9 })).toBe(
+      intervalKey({ type: 'weekly', weekdays: [1], startsOn: '2026-01-01' })
+    )
   })
 })

@@ -76,9 +76,28 @@ describe('chore catalog', () => {
         for (const day of interval.weekdays) expect(day, id).toBeLessThanOrEqual(7)
       }
       if (interval.type === 'monthly') {
-        const day = interval.day
-        const valid = day === 'first' || day === 'last' || (Number.isInteger(day) && day >= 1 && day <= 28)
-        expect(valid, `${id}: ${JSON.stringify(day)}`).toBe(true)
+        // `unit` and `every` may be omitted, which the Worker and
+        // `src/lib/recurrence.js` both read as "every 1 month" — that is the
+        // common case and spelling it out 85 times would be noise. What is
+        // checked is that anything present is *valid*, so a typo fails CI
+        // instead of shipping as a chore that never comes due.
+        if ('unit' in interval) expect(['month', 'year'], id).toContain(interval.unit)
+        if ('every' in interval) {
+          expect(Number.isInteger(interval.every) && interval.every >= 1, id).toBe(true)
+        }
+        // A multiplier without a unit would silently mean months; say which.
+        if ('every' in interval) expect(interval.unit, id).toBeDefined()
+
+        if (interval.unit === 'year') {
+          // A yearly rhythm takes its month and day from the anchor stamped when
+          // the suggestion is picked, so a day rule here could only contradict it.
+          expect(interval.day, id).toBeUndefined()
+        } else {
+          const day = interval.day
+          const valid =
+            day === 'first' || day === 'last' || (Number.isInteger(day) && day >= 1 && day <= 28)
+          expect(valid, `${id}: ${JSON.stringify(day)}`).toBe(true)
+        }
       }
       if (interval.type === 'daily' || interval.type === 'manual') {
         expect(Object.keys(interval), id).toEqual(['type'])

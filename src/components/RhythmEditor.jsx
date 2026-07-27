@@ -1,5 +1,13 @@
 import { AlertTriangle, CalendarDays } from 'lucide-react'
-import { COPY, MONTHLY_MODES, RHYTHMS, SLIDER_STOPS, WEEKDAYS } from '../lib/constants'
+import {
+  COPY,
+  MONTH_STEPS,
+  MONTHLY_MODES,
+  RHYTHMS,
+  SLIDER_STOPS,
+  WEEKDAYS,
+  YEAR_STEPS,
+} from '../lib/constants'
 import { useHomeSettings } from '../hooks/useHomeSettings'
 import { addDays, describeInterval, isoWeekday, parseISODate, toISODate, upcomingOccurrences } from '../lib/recurrence'
 import { countWith, FORMS, formatDate, weekdayName } from '../lib/plural'
@@ -27,15 +35,31 @@ export function RhythmEditor({ value, onChange, today, lastDone, rebaseChoice, o
 
   const set = (patch) => onChange({ ...interval, ...patch })
 
-  const setType = (type) => {
-    if (type === 'manual') return onChange({ type: 'manual' })
+  // Which chip is lit. Months and years share `type: 'monthly'`, so the unit is
+  // what separates them; anything else is decided by the type alone.
+  const activeKey =
+    interval.type === 'monthly' ? (interval.unit === 'year' ? 'yearly' : 'monthly') : interval.type
 
-    const base = { type, startsOn: interval.startsOn || toISODate(today) }
-    if (type === 'everyNDays') base.n = interval.n || 3
-    if (type === 'weekly') {
+  const yearly = activeKey === 'yearly'
+  const steps = yearly ? YEAR_STEPS : MONTH_STEPS
+  const every = Math.max(1, interval.every ?? 1)
+
+  const setRhythm = (rhythm) => {
+    if (rhythm.type === 'manual') return onChange({ type: 'manual' })
+
+    const base = { type: rhythm.type, startsOn: interval.startsOn || toISODate(today) }
+    if (rhythm.type === 'everyNDays') base.n = interval.n || 3
+    if (rhythm.type === 'weekly') {
       base.weekdays = interval.weekdays?.length ? interval.weekdays : [isoWeekday(startsOn)]
     }
-    if (type === 'monthly') base.day = interval.day ?? 'first'
+    if (rhythm.type === 'monthly') {
+      base.unit = rhythm.unit
+      // Cadence doesn't carry across units — "co 6 miesięcy" becoming "co 6 lat"
+      // on one tap would be a nasty surprise.
+      base.every = rhythm.unit === interval.unit ? every : 1
+      // A yearly rhythm takes its date from the anchor, so it holds no day rule.
+      if (rhythm.unit === 'month') base.day = interval.day ?? 'first'
+    }
     onChange(base)
   }
 
@@ -48,13 +72,13 @@ export function RhythmEditor({ value, onChange, today, lastDone, rebaseChoice, o
         <div className="flex flex-wrap gap-1.5">
           {RHYTHMS.map((rhythm) => (
             <button
-              key={rhythm.type}
+              key={rhythm.key}
               type="button"
-              onClick={() => setType(rhythm.type)}
-              aria-pressed={interval.type === rhythm.type}
+              onClick={() => setRhythm(rhythm)}
+              aria-pressed={activeKey === rhythm.key}
               className={[
                 'rounded-full px-3.5 py-2.5 text-[14px] transition',
-                interval.type === rhythm.type
+                activeKey === rhythm.key
                   ? 'bg-forest-600 font-medium text-onaccent'
                   : 'bg-moss-100 text-moss-700 hover:bg-moss-200 dark:bg-bark-700 dark:text-moss-400',
               ].join(' ')}
@@ -137,6 +161,46 @@ export function RhythmEditor({ value, onChange, today, lastDone, rebaseChoice, o
       )}
 
       {interval.type === 'monthly' && (
+        <div>
+          <p className="mb-2.5 text-[13.5px] font-medium text-moss-800 dark:text-moss-300">
+            {COPY.fieldCadence}
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {steps.map((step) => (
+              <button
+                key={step.every}
+                type="button"
+                aria-pressed={every === step.every}
+                onClick={() => set({ every: step.every })}
+                className={[
+                  'rounded-full px-3.5 py-2 text-[13.5px]',
+                  every === step.every
+                    ? 'bg-forest-600 font-medium text-onaccent'
+                    : 'bg-moss-100 text-moss-700 dark:bg-bark-700 dark:text-moss-400',
+                ].join(' ')}
+              >
+                {step.label}
+              </button>
+            ))}
+          </div>
+          {/* A cadence the chips don't cover stays visible rather than silently
+              snapping to the nearest one — a task imported as "co 4 lata" would
+              otherwise look like "co rok". */}
+          {!steps.some((step) => step.every === every) && (
+            <p className="mt-2 text-[12.5px] text-moss-600 dark:text-moss-500">
+              {describeInterval(interval)}
+            </p>
+          )}
+        </div>
+      )}
+
+      {yearly && (
+        <p className="rounded-2xl bg-moss-100 px-3.5 py-3 text-[12.5px] leading-relaxed text-moss-700 dark:bg-bark-700 dark:text-moss-400">
+          {COPY.yearlyDateHint}
+        </p>
+      )}
+
+      {interval.type === 'monthly' && !yearly && (
         <div className="grid gap-2 sm:grid-cols-2">
           {MONTHLY_MODES.map((mode) => {
             const active =

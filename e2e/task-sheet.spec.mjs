@@ -132,6 +132,44 @@ test.describe('desktop, light', () => {
     await expect(page.getByText('Wypadnie')).toBeHidden()
   })
 
+  test('a yearly rhythm survives the round trip through D1', async ({ page }) => {
+    await openSheet(page)
+
+    const name = `Przegląd techniczny ${Date.now()}`
+    test.info().annotations.push({ type: 'creates', description: name })
+    await page.getByPlaceholder('Co trzeba ogarnąć?').fill(name)
+
+    await page.getByRole('button', { name: 'co rok' }).click()
+    await page.getByRole('button', { name: '2 lata', exact: true }).click()
+
+    // No day picker under a yearly rhythm — the anchor holds the date.
+    await expect(page.getByText('W które dni?')).toBeHidden()
+    await expect(page.getByText('pierwszego dnia')).toBeHidden()
+    await expect(page.getByText('Dzień i miesiąc bierzemy z daty poniżej.')).toBeVisible()
+
+    // The preview is the proof the cadence reached recurrence.js: two years
+    // between deadlines, not two months.
+    const preview = page.getByText('co 2 lata')
+    await expect(preview).toBeVisible()
+
+    await saveButton(page).click()
+    await expect(page.getByRole('dialog')).toBeHidden()
+
+    // Reload: this is what proves the two new columns were written and read
+    // back, rather than the cadence living only in React state.
+    await page.reload()
+    await skipOnboarding(page)
+    await page.getByText(name).click()
+    await expect(page.getByRole('button', { name: 'co rok' })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    )
+    await expect(page.getByRole('button', { name: '2 lata', exact: true })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    )
+  })
+
   test('a task with only the required fields filled reaches the list', async ({ page }) => {
     await openSheet(page)
 

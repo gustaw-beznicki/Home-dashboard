@@ -12,7 +12,15 @@ import { intervalKey, isoWeekday, rebaseInterval, toISODate } from '../lib/recur
 function defaultInterval(defaultRhythm, today) {
   const startsOn = toISODate(today)
   if (defaultRhythm === 'manual') return { type: 'manual' }
-  if (defaultRhythm === 'monthly') return { type: 'monthly', day: Math.min(today.getDate(), 28), startsOn }
+  if (defaultRhythm === 'monthly') {
+    return {
+      type: 'monthly',
+      every: 1,
+      unit: 'month',
+      day: Math.min(today.getDate(), 28),
+      startsOn,
+    }
+  }
   return { type: 'weekly', weekdays: [isoWeekday(today)], startsOn }
 }
 

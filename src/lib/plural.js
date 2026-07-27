@@ -23,6 +23,7 @@ export const FORMS = {
   dzien: ['dzień', 'dni', 'dni'],
   tydzien: ['tydzień', 'tygodnie', 'tygodni'],
   miesiac: ['miesiąc', 'miesiące', 'miesięcy'],
+  rok: ['rok', 'lata', 'lat'],
   rzecz: ['rzecz', 'rzeczy', 'rzeczy'],
   domownik: ['domownik', 'domowników', 'domowników'],
   zalegla: ['zaległość', 'zaległości', 'zaległości'],

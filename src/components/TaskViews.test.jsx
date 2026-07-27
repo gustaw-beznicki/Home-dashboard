@@ -179,9 +179,74 @@ describe('RhythmEditor', () => {
     fireEvent.click(screen.getByRole('button', { name: 'co miesiąc' }))
     expect(onChange).toHaveBeenCalledWith({
       type: 'monthly',
+      unit: 'month',
+      every: 1,
       day: 'first',
       startsOn: '2026-07-03',
     })
+  })
+
+  it('builds a yearly rhythm with no day rule, since the anchor holds the date', () => {
+    const onChange = renderEditor({ type: 'monthly', unit: 'month', every: 3, day: 15, startsOn: '2026-03-12' })
+    fireEvent.click(screen.getByRole('button', { name: 'co rok' }))
+    // `every` resets rather than carrying across: "co 3 miesiące" turning into
+    // "co 3 lata" on one tap would be a nasty surprise.
+    expect(onChange).toHaveBeenCalledWith({
+      type: 'monthly',
+      unit: 'year',
+      every: 1,
+      startsOn: '2026-03-12',
+    })
+  })
+
+  it('lights the yearly chip for a stored yearly rhythm, not the monthly one', () => {
+    renderEditor({ type: 'monthly', unit: 'year', every: 2, startsOn: '2026-03-12' })
+    expect(screen.getByRole('button', { name: 'co rok' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: 'co miesiąc' })).toHaveAttribute(
+      'aria-pressed',
+      'false'
+    )
+  })
+
+  it('hides the day rules under a yearly rhythm and says why', () => {
+    renderEditor({ type: 'monthly', unit: 'year', every: 2, startsOn: '2026-03-12' })
+    expect(screen.queryByText('pierwszego dnia')).not.toBeInTheDocument()
+    expect(screen.queryByText('ostatniego dnia')).not.toBeInTheDocument()
+    expect(screen.getByText('Dzień i miesiąc bierzemy z daty poniżej.')).toBeInTheDocument()
+  })
+
+  it('keeps the day rules under a monthly rhythm', () => {
+    renderEditor({ type: 'monthly', unit: 'month', every: 1, day: 'first', startsOn: '2026-03-12' })
+    expect(screen.getByText('pierwszego dnia')).toBeInTheDocument()
+    expect(screen.queryByText('Dzień i miesiąc bierzemy z daty poniżej.')).not.toBeInTheDocument()
+  })
+
+  it('offers year cadences under years and month cadences under months', () => {
+    const { unmount } = render(
+      <RhythmEditor
+        value={{ type: 'monthly', unit: 'year', every: 1, startsOn: '2026-03-12' }}
+        onChange={vi.fn()}
+        today={TODAY}
+        lastDone={null}
+        rebaseChoice={null}
+        onRebase={vi.fn()}
+      />
+    )
+    expect(screen.getByRole('button', { name: '2 lata' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'kwartał' })).not.toBeInTheDocument()
+    unmount()
+
+    renderEditor({ type: 'monthly', unit: 'month', every: 1, day: 1, startsOn: '2026-03-12' })
+    expect(screen.getByRole('button', { name: 'kwartał' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '2 lata' })).not.toBeInTheDocument()
+  })
+
+  it('sets the cadence without disturbing the day rule', () => {
+    const onChange = renderEditor({ type: 'monthly', unit: 'month', every: 1, day: 15, startsOn: '2026-03-12' })
+    fireEvent.click(screen.getByRole('button', { name: 'kwartał' }))
+    expect(onChange).toHaveBeenCalledWith(
+      expect.objectContaining({ every: 3, unit: 'month', day: 15 })
+    )
   })
 
   it('seeds weekly with the anchor’s own weekday', () => {
