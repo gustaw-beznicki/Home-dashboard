@@ -155,9 +155,16 @@ row and recomputes the cache from what remains.
 
 UI copy is Polish and lives in `COPY` in `src/lib/constants.js`, which also holds the category /
 rhythm / view vocabulary and the status→Tailwind class maps as **literal** class strings (not
-template-interpolated) so Tailwind's JIT scanner can see them. Note the design tokens in
-`tailwind.config.js` extend `spacing` with the 4.5 / 5.5 / 6.5 rungs (18/22/26 px) that Tailwind
-doesn't ship — several layouts depend on them.
+template-interpolated) so Tailwind's scanner can see them. That still matters on Tailwind 4, which has
+no `content` array to widen — it auto-scans the project, and a class assembled by template
+interpolation is invisible to it just as before.
+
+**Design tokens live in `@theme` in `src/index.css`, not in a config file.** Tailwind 4 is CSS-first,
+so there is no `tailwind.config.js` — colours, radii (`card`/`hero`/`sheet` = 22/26/28 px), the
+`ease-sheet` curve and the keyframes are all `--*` custom properties there. The 4.5 / 5.5 / 6.5
+spacing rungs are *gone as custom values* and did not need replacing: v4 derives fractional spacing
+from `--spacing` (0.25rem), so `px-4.5` computes to the same 18 px it always did. PostCSS runs
+`@tailwindcss/postcss`, and `autoprefixer` is no longer a dependency — v4 handles prefixing itself.
 
 **Colour never carries status on its own.** Every status also has a marker *shape* (square / filled
 circle / hollow circle), a card treatment, and a word. Icons are `lucide-react` at stroke 1.8, and

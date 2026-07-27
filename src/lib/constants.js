@@ -16,7 +16,7 @@ export const CATEGORY_LABELS = Object.fromEntries(CATEGORIES.map((c) => [c.key, 
 // Category tile behind the icon. Recognition, not status — statuses never use
 // category colour and vice versa.
 export const CATEGORY_TILE_CLASS = {
-  plants: 'bg-plant-100 text-plant-500 dark:bg-[#202a14] dark:text-[#aec399]',
+  plants: 'bg-plant-100 text-plant-500 dark:bg-[#202a14] dark:text-lime-400',
   equipment: 'bg-clay-100 text-clay-700 dark:bg-[#301717] dark:text-[#e4a9a8]',
   home: 'bg-moss-300 text-moss-800 dark:bg-bark-600 dark:text-moss-300',
   health: 'bg-health-100 text-health-500 dark:bg-bark-700 dark:text-moss-400',

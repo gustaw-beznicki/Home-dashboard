@@ -170,7 +170,7 @@ export function QuickAdd({ today, onDraft }) {
           aria-activedescendant={
             suggestions[active] ? `quick-add-suggestion-${suggestions[active].id}` : undefined
           }
-          className="h-[54px] min-w-0 flex-1 rounded-full bg-moss-50 px-4.5 text-[14.5px] text-moss-900 shadow-card outline-none placeholder:text-moss-500 focus:ring-2 focus:ring-forest-500 dark:bg-bark-800 dark:text-moss-100"
+          className="h-[54px] min-w-0 flex-1 rounded-full bg-moss-50 px-4.5 text-[14.5px] text-moss-900 shadow-card outline-hidden placeholder:text-moss-500 focus:ring-2 focus:ring-forest-500 dark:bg-bark-800 dark:text-moss-100"
         />
         <button
           type="button"

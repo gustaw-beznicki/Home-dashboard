@@ -1,25 +1,137 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
 
-/* Self-hosted variable fonts (public/fonts, OFL) — replaced the Google Fonts
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+  --font-sans: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  --color-brand-forest: #546b41;
+  --color-brand-leaf: #99ad7a;
+  --color-brand-sand: #dcccac;
+  --color-brand-bordo: #492828;
+
+  --color-moss-50: #fff8ec;
+  --color-moss-100: #f9f1e3;
+  --color-moss-200: #ebdec7;
+  --color-moss-300: #dcccac;
+  --color-moss-400: #c0af90;
+  --color-moss-500: #92846b;
+  --color-moss-600: #6d624d;
+  --color-moss-700: #4f4637;
+  --color-moss-800: #332d21;
+  --color-moss-900: #201b12;
+
+  --color-forest-500: rgb(var(--forest-500));
+  --color-forest-600: rgb(var(--forest-600));
+  --color-forest-700: rgb(var(--forest-700));
+
+  --color-hero: rgb(var(--hero));
+
+  --color-cta: rgb(var(--cta));
+  --color-cta-hover: rgb(var(--cta-hover));
+
+  --color-onaccent: rgb(var(--on-accent));
+
+  --color-lime-300: #c6d6b5;
+  --color-lime-400: #aec399;
+  --color-lime-500: #99ad7a;
+
+  --color-clay-100: #ffe6e5;
+  --color-clay-300: #f7d0ce;
+  --color-clay-500: #a85f60;
+  --color-clay-700: #492828;
+
+  --color-amber-100: #f7edd2;
+  --color-amber-500: #8a6a21;
+
+  --color-bark-600: #3a3f34;
+  --color-bark-700: #272c23;
+  --color-bark-800: #191d15;
+  --color-bark-900: #0f120b;
+
+  --color-plant-100: #e2ecd7;
+  --color-plant-500: #42542e;
+
+  --color-health-100: #ebdec7;
+  --color-health-500: #4f4637;
+
+  --radius-card: 22px;
+  --radius-hero: 26px;
+  --radius-sheet: 28px;
+
+  --shadow-card: 0 1px 2px rgb(38 48 31 / 0.06);
+  --shadow-sheet: 0 -12px 40px rgb(38 48 31 / 0.18);
+  --shadow-pop: 0 12px 30px rgb(38 48 31 / 0.12);
+
+  --ease-settle: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-sheet: cubic-bezier(0.32, 0.72, 0, 1);
+
+  --animate-rollback: rollback 180ms ease-out;
+  --animate-riseIn: riseIn 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  @keyframes rollback {
+    0%,
+    100% {
+      transform: translateX(0);
+    }
+    25% {
+      transform: translateX(-4px);
+    }
+    75% {
+      transform: translateX(4px);
+    }
+  }
+  @keyframes riseIn {
+    0% {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+}
+
+@layer utilities {
+  /* Self-hosted variable fonts (public/fonts, OFL) — replaced the Google Fonts
    <link>, so the app makes no third-party requests. Only the upright faces
    ship, same as before: the Google CSS never served italics either, so any
    <em> was and remains synthesized. */
-@font-face {
-  font-family: 'DM Sans';
-  src: url('/fonts/DMSans-Variable.woff2') format('woff2');
-  font-weight: 100 1000;
-  font-style: normal;
-  font-display: swap;
-}
+  @font-face {
+    font-family: 'DM Sans';
+    src: url('/fonts/DMSans-Variable.woff2') format('woff2');
+    font-weight: 100 1000;
+    font-style: normal;
+    font-display: swap;
+  }
 
-@font-face {
-  font-family: 'JetBrains Mono';
-  src: url('/fonts/JetBrainsMono-Variable.woff2') format('woff2');
-  font-weight: 100 800;
-  font-style: normal;
-  font-display: swap;
+  @font-face {
+    font-family: 'JetBrains Mono';
+    src: url('/fonts/JetBrainsMono-Variable.woff2') format('woff2');
+    font-weight: 100 800;
+    font-style: normal;
+    font-display: swap;
+  }
 }
 
 @layer base {

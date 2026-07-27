@@ -90,7 +90,7 @@ export function LoginScreen() {
 
       {/* Desktop only: a preview of what's inside instead of empty space. */}
       <aside className="hidden w-[520px] shrink-0 flex-col justify-center gap-4 bg-hero px-12 py-14 text-moss-200 lg:flex">
-        <p className="text-[10.5px] font-medium uppercase tracking-[0.16em] text-[#aec399]">Dziś w domu</p>
+        <p className="text-[10.5px] font-medium uppercase tracking-[0.16em] text-lime-400">Dziś w domu</p>
 
         <div className="rounded-card bg-white/[.07] px-5 py-4.5">
           <p className="mb-3.5 text-[22px] leading-[1.3]">Zostały dwie rzeczy i jedna zaległość.</p>
@@ -118,7 +118,7 @@ export function LoginScreen() {
         />
         <TeaseRow
           icon={Droplets}
-          tile="bg-[#c98281]/[.16] text-[#c98281]"
+          tile="bg-[#c98281]/16 text-[#c98281]"
           name="Wymienić filtr w kranie"
           meta="25 dni po terminie"
           metaClass="text-[#c98281]"
@@ -128,7 +128,7 @@ export function LoginScreen() {
   )
 }
 
-function TeaseRow({ icon: Icon, tile, name, meta, metaClass = 'text-[#aec399]' }) {
+function TeaseRow({ icon: Icon, tile, name, meta, metaClass = 'text-lime-400' }) {
   return (
     <div className="flex items-center gap-3 rounded-[18px] bg-white/[.07] px-4 py-3.5">
       <span className={['grid h-[38px] w-[38px] shrink-0 place-items-center rounded-[14px]', tile].join(' ')}>
