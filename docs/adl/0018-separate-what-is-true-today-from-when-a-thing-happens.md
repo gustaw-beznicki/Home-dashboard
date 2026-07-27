@@ -31,8 +31,15 @@ Every one of the bugs came from reaching for the first where the second was need
    about the task. On a monthly bill anchored in January and last paid on 1 June, the preview said
    "1 sierpnia" while the card next to it said "26 dni po terminie".
 
+4. **A day drill-down showed nothing** while the bar that opened it said "2". `filterByDay` was right,
+   but the list built around it still dropped anything whose status was `done`, so on a closed day it
+   removed exactly the things the bar had counted — every completion is counted under its *next*
+   deadline.
+
 Each was fixed locally, and each fix looked like a one-line correction, which is exactly why the next
-one landed.
+one landed. The fourth arrived *after this record was written*, from the paragraph below that claimed
+the bar and its drill-down "cannot disagree": that was true of the two functions and false of the list
+built on top of them. Getting the helpers right is not the same as getting every reader of them right.
 
 ## Decision
 
@@ -73,6 +80,14 @@ choice: `filterByDay` uses `dueDate`, so a thing ticked off today is filed under
 Today's bar therefore empties as the day is cleared, and the drill-down for today shows what is still
 to do. Anyone who "fixes" that by special-casing today's completions will reintroduce bug 1 in a new
 place.
+
+**Every list built on those functions has to honour the rule too**, which is where bug 4 came from. A
+date-keyed list must not re-apply a status filter on top: the day drill-down is one flat section that
+keeps completions, rendered at each card's real status only when the selected day *is* today — that is
+the one day you can act on, so it keeps its tick buttons — and as the quiet tier otherwise. The
+guard is `e2e/day-complete.spec.mjs`, at the level the bug actually lived: the library functions were
+correct throughout, so no unit test of them could have caught it, and `src/lib/recurrence.test.js` now
+pins the count-equals-list contract they provide.
 
 **The editor's preview is now anchored to the same completion the card is**, so the two cannot
 disagree. The cost is that the preview changes when the last-completion field changes, which is why

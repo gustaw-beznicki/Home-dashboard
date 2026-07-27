@@ -165,8 +165,10 @@ as a whole.
 **Scheduling questions are keyed off dates, never off the derived status** (ADR 0018). `computeStatus`
 says what is true *today* — and `done` is true only until midnight — so anything asking *when* uses
 `filterForView('upcoming')` on `daysUntilDue`, `sortByNextDue`, `filterByDay` on `dueDate`, or
-`upcomingForTask`. Three user-visible bugs came from reaching for the status instead, the last one after
-the previous had been fixed, which is why it is a rule now rather than three fixes. `upcomingOccurrences`
+`upcomingForTask`. Four user-visible bugs came from reaching for the status instead — the last one from
+a *list* re-applying a status filter on top of a correct date filter, which emptied the day drill-down
+while the bar above it still read 2. Getting the helpers right is not the same as getting their readers
+right. `upcomingOccurrences`
 still answers "what does this *rule* produce", which is what a task with no completion shows.
 
 **Two of the four views are flat, and `upcoming` is flat for a reason worth knowing.** *Najbliższy

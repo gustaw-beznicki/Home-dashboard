@@ -173,6 +173,9 @@ export const COPY = {
   stripNext: 'Następny tydzień',
   stripToday: 'dziś',
   dayFilterClear: 'Pokaż wszystko',
+  // The chip above the list already names the day, so the heading says what the
+  // list is rather than repeating the date.
+  dayFilterHeading: 'Co wypada',
   done: 'Zrobione',
   pin: 'Trzymaj na wierzchu',
   unpin: 'Zdejmij z wierzchu',

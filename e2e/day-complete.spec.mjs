@@ -281,4 +281,35 @@ test.describe('desktop, light', () => {
     await back.click()
     await expect(back).toBeHidden()
   })
+
+  test('a bar that says two opens a list of two, after the day is closed', async ({ page }) => {
+    await page.goto('/')
+    await skipOnboarding(page)
+    await clearTheDay(page)
+
+    // Past the undo window and reloaded, which is the state the report came from:
+    // every fixture is done, and each is counted under its *next* deadline —
+    // tomorrow. Dropping `done` from the day list made the bar say 3 and the list
+    // say "Tu nic nie ma".
+    await page.waitForTimeout(UNDO_WINDOW_MS + 500)
+    await page.reload()
+    await skipOnboarding(page)
+    await waitForList(page)
+
+    const bars = page.locator('main button[aria-pressed]')
+    // Bar 2 is tomorrow: the window opens on yesterday.
+    const label = await bars.nth(2).getAttribute('aria-label')
+    const counted = Number(label.match(/ (\d+) rzecz/)[1])
+    expect(counted).toBeGreaterThanOrEqual(FIXTURES.length)
+
+    await bars.nth(2).click()
+    await expect(page.getByText('Tu nic nie ma')).toBeHidden()
+    expect(await page.locator('article').count()).toBe(counted)
+    for (const fixture of FIXTURES) {
+      await expect(page.getByRole('button', { name: fixture.name, exact: true })).toBeVisible()
+    }
+
+    // A look-ahead, so no tick buttons: you cannot do tomorrow today from here.
+    await expect(page.getByRole('button', { name: /^Zrobione:/ })).toHaveCount(0)
+  })
 })
