@@ -8,7 +8,7 @@ watering the plants, changing a filter, restocking batteries, paying a bill that
 month. Everyone in the household sees the same list, on their own phone, and it stays in sync.
 
 <p align="center">
-  <img src="docs/screenshots/pr-brand-paleta-2/dashboard-desktop-light.png" alt="Ogarniamy dashboard, desktop, light mode" width="600">
+  <img src="docs/img/dashboard-desktop-light.png" alt="Ogarniamy dashboard, desktop, light mode" width="600">
 </p>
 
 ## What it does
