@@ -11,6 +11,7 @@ import {
   intervalKey,
   groupTasks,
   rebaseInterval,
+  sortByNextDue,
   sortByUrgency,
   summarise,
   toISODate,
@@ -632,5 +633,88 @@ describe('dayClosed', () => {
     expect(computeStatus(quiet, TODAY)).toBe('later')
     expect(dayClosed(closed, [quiet], TODAY)).toBe(false)
     expect(dayClosed(closed, [], TODAY)).toBe(false)
+  })
+})
+
+describe('filterForView: Najbliższy tydzień', () => {
+  it('keeps a thing ticked off today whose next deadline is inside the week', () => {
+    // The bug: status reads "done" for the rest of the day, so a daily thing done
+    // this morning and due again tomorrow fell out of the coming week — while the
+    // day strip, which reads dueDate, still drew a bar for tomorrow.
+    const task = baseTask({ id: 'daily', lastDone: toISODate(TODAY) })
+    expect(computeStatus(task, TODAY)).toBe('done')
+    expect(daysUntilDue(task, TODAY)).toBe(1)
+    expect(filterForView([task], 'upcoming', TODAY).map((t) => t.id)).toEqual(['daily'])
+  })
+
+  it('still excludes today and the arrears — those are the Dziś view', () => {
+    const due = baseTask({ id: 'due', lastDone: daysAgo(1) })
+    const overdue = baseTask({ id: 'overdue', lastDone: daysAgo(5) })
+    expect(computeStatus(due, TODAY)).toBe('due')
+    expect(computeStatus(overdue, TODAY)).toBe('overdue')
+    expect(filterForView([due, overdue], 'upcoming', TODAY)).toEqual([])
+  })
+
+  it('still excludes anything further out than a week, and manual rhythms', () => {
+    const soon = baseTask({
+      id: 'soon',
+      interval: { type: 'everyNDays', n: 5, startsOn: toISODate(TODAY) },
+      lastDone: toISODate(TODAY),
+    })
+    const far = baseTask({
+      id: 'far',
+      interval: { type: 'everyNDays', n: 30, startsOn: toISODate(TODAY) },
+      lastDone: toISODate(TODAY),
+    })
+    const manual = baseTask({ id: 'manual', interval: { type: 'manual' }, lastDone: null })
+
+    expect(filterForView([soon, far, manual], 'upcoming', TODAY).map((t) => t.id)).toEqual(['soon'])
+  })
+
+  it('leaves the archive out of it', () => {
+    const shelved = baseTask({ id: 'shelved', archived: true, lastDone: toISODate(TODAY) })
+    expect(filterForView([shelved], 'upcoming', TODAY)).toEqual([])
+  })
+})
+
+describe('sortByNextDue', () => {
+  it('is chronological, whatever today says about each thing', () => {
+    // The mix that broke it: two of these were ticked off today, so their status
+    // is "done" and urgency ranking put them wherever it liked.
+    const tomorrow = baseTask({ id: 'tomorrow', lastDone: toISODate(TODAY) })
+    const inThree = baseTask({
+      id: 'inThree',
+      interval: { type: 'everyNDays', n: 3, startsOn: toISODate(TODAY) },
+      lastDone: toISODate(TODAY),
+    })
+    const inSeven = baseTask({
+      id: 'inSeven',
+      interval: { type: 'everyNDays', n: 7, startsOn: daysAgo(0) },
+      lastDone: daysAgo(0),
+    })
+
+    expect(sortByNextDue([inSeven, inThree, tomorrow], TODAY).map((t) => t.id)).toEqual([
+      'tomorrow',
+      'inThree',
+      'inSeven',
+    ])
+  })
+
+  it('does not let a pin jump the queue', () => {
+    // A pin means "keep this in front of me", not "this happens sooner".
+    const pinnedLater = baseTask({
+      id: 'pinned',
+      pinned: true,
+      interval: { type: 'everyNDays', n: 5, startsOn: toISODate(TODAY) },
+      lastDone: toISODate(TODAY),
+    })
+    const soon = baseTask({ id: 'soon', lastDone: toISODate(TODAY) })
+    expect(sortByNextDue([pinnedLater, soon], TODAY).map((t) => t.id)).toEqual(['soon', 'pinned'])
+  })
+
+  it('puts a rhythmless thing last rather than first', () => {
+    const manual = baseTask({ id: 'manual', interval: { type: 'manual' }, lastDone: null })
+    const dated = baseTask({ id: 'dated', lastDone: toISODate(TODAY) })
+    expect(sortByNextDue([manual, dated], TODAY).map((t) => t.id)).toEqual(['dated', 'manual'])
   })
 })

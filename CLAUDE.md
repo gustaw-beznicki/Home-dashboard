@@ -140,7 +140,18 @@ that choice.
 `groupTasks` and `filterForView` split responsibilities: the view filter decides *which* tasks
 (including archived), the grouper decides *which stop* — pass `groupTasks` an already-filtered list.
 A task ticked off today keeps its place via the sticky-group map in `Dashboard`'s `useUndoWindow`,
-then drops off the list when the undo window closes.
+then settles into `DoneToday` when the undo window closes.
+
+**Two of the four views are flat, and `upcoming` is flat for a reason worth knowing.** *Najbliższy
+tydzień* asks *when does this next fall due* — nothing else. So it filters on `daysUntilDue`
+(`0 < until <= 7`) rather than on `status === 'later'`, sorts with `sortByNextDue` rather than
+`sortByUrgency`, and renders every card as the quiet tier via `TaskCard`'s `renderAs`. Each of those
+three is a fix for the same wrong instinct — that today's status can stand in for a future date. It
+can't: anything ticked off today reads `done`, so the status filter dropped a daily chore done this
+morning out of the coming week entirely (the day strip drew a bar for tomorrow while the view said "Tu
+nic nie ma"), urgency sorting put "za tydzień" above "za 3 dni" because the statuses were mixed, and
+the card rendered a strikethrough and "cofnij" where a date belonged. `DoneToday` and the day-complete
+reward are both suppressed there for the same reason — they are about today, and that view isn't.
 
 **The day has a progress bar again, and it is not the one that was removed** (ADR 0016). `dayProgress`
 measures *today* — what fell due today or earlier, with the already-ticked-off kept in the

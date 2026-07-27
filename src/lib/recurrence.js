@@ -286,15 +286,43 @@ export function groupTasks(tasks, today, stickyGroups) {
   return groups
 }
 
+/**
+ * Sorted by when each thing next falls due, soonest first — for the Najbliższy
+ * tydzień view, which is a chronology and not a queue.
+ *
+ * `sortByUrgency` is the wrong instrument there: it ranks by today's status
+ * before proximity, and in that view the statuses are mixed (anything ticked off
+ * today reads `done`), so "za tydzień" ended up above "za 3 dni". Pinning does
+ * not reorder here either — a pin cannot make a thing happen sooner.
+ */
+export function sortByNextDue(tasks, today) {
+  return [...tasks].sort((a, b) => {
+    const left = daysUntilDue(a, today)
+    const right = daysUntilDue(b, today)
+    if (left === right) return a.name.localeCompare(b.name, 'pl')
+    if (left === null) return 1
+    if (right === null) return -1
+    return left - right
+  })
+}
+
 export function filterForView(tasks, view, today) {
   const active = tasks.filter((t) => !t.archived)
   switch (view) {
     case 'today':
       return active.filter((t) => ['due', 'overdue', 'done'].includes(computeStatus(t, today)))
+    // Keyed off *when the next deadline falls*, not off today's status. Asking for
+    // `later` looked equivalent and was not: a thing ticked off today reads `done`
+    // for the rest of the day, so one done this morning and due again tomorrow
+    // dropped out of the coming week entirely — the day strip showed bars for
+    // tomorrow while this view said "Tu nic nie ma".
+    //
+    // `until > 0` is what keeps the two views apart: 0 is today (Dziś) and
+    // negatives are arrears, which are also today's problem.
     case 'upcoming':
       return active.filter((t) => {
         const until = daysUntilDue(t, today)
-        return computeStatus(t, today) === 'later' && until !== null && until <= 7
+        return until !== null && until > 0 && until <= 7
       })
     case 'archive':
       return tasks.filter((t) => t.archived)

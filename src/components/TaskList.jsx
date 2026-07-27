@@ -37,6 +37,7 @@ export function TaskList({ sections, today, onDone, onUndo, onOpen, rolledBackId
                   onUndo={onUndo}
                   onOpen={onOpen}
                   rolledBack={rolledBackId === task.id}
+                  renderAs={section.renderAs}
                 />
               ))}
             </div>
