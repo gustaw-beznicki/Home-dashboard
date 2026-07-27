@@ -164,6 +164,10 @@ export const COPY = {
   dayCompleteTitle: 'Wszystko z głowy.',
   dayCompleteTail: 'mniej na liście. Reszta wróci sama, kiedy przyjdzie pora — nie trzeba tego pilnować.',
   dayCompleteAction: 'Zobacz najbliższy tydzień',
+  // Today's completions, kept on the list once the undo window has closed —
+  // otherwise the day's work leaves the page and "cofnij" leaves with it.
+  doneTodayTitle: 'Zrobione dziś',
+  doneTodayCollapsed: 'Schowane. Rozwiń, żeby podejrzeć albo cofnąć.',
   done: 'Zrobione',
   pin: 'Trzymaj na wierzchu',
   unpin: 'Zdejmij z wierzchu',

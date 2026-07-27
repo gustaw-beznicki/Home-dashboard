@@ -22,7 +22,10 @@ explaining that the day-complete state used to eat that section and make undo im
 something different and also deliberate — a completed thing keeps its place in the group it was ticked
 off in for `UNDO_WINDOW_MS`, greyed out, with "cofnij" (`useUndoWindow` in `Dashboard.jsx`, recorded in
 `CLAUDE.md`), because the list must not reshuffle under the thumb that just tapped it. Two designs,
-each with a written rationale, and they conflict.
+each with a written rationale, and they looked like they conflicted.
+
+They do not. They cover different spans of the same day, which only became obvious after shipping the
+reward without the section and watching the day's work disappear from a reloaded page.
 
 ## Decision
 
@@ -38,17 +41,32 @@ A "na spokojnie" thing ticked off early stays out of the count, keyed off the st
 remembers which stop each completion came from. Without that, the tap that gets ahead of the week
 would grow the denominator and send the percentage backwards.
 
-**The reward stands above the completions, and the sticky groups stay.** `DayComplete` renders above
-the list, never in its place, which is the rule the design system states and the reason the kit
-restructured the list at all. The app satisfies that rule already: the things just ticked off are
-sitting in their own groups with "cofnij" on them. So the sticky-group behaviour stays and the
-separate **Zrobione dziś** section does not get built — it would trade a recorded decision for
-nothing, since the invariant it protects is met either way.
+**The reward stands above the completions, and both the sticky groups *and* a Zrobione dziś section
+exist.** `DayComplete` renders above the list, never in its place, which is the rule the design system
+states and the reason the kit restructured the list at all.
+
+The first version of this change kept only the sticky groups, on the argument that the app satisfied
+that rule already — the things just ticked off are sitting in their own groups with "cofnij" on them.
+That was wrong, and wrong in a way no test caught: it holds for the eight seconds of the undo window
+and not one second longer. Reload the app after that and the hero reads "4 z 4 · 100%" above a list
+saying "Na dziś nic. Dom się sam ogarnął.", with the day's work nowhere on the page and nothing to take
+back until midnight. The kit's comment said as much — *"wcześniej stan pusty zjadał tę sekcję i
+cofnięcie stawało się niemożliwe"* — and it was read as being about the reward card alone.
+
+So the two affordances split the day between them. The sticky map holds a completion **in place** for
+the undo window, because the list must not reshuffle under the thumb that just tapped it. When that
+window closes the completion settles into **Zrobione dziś** instead of leaving the page, and "cofnij"
+keeps working for the rest of the day. `DoneToday` excludes anything still sticky, so nothing is
+listed twice, and it collapses to a single line — the default state of this app is still meant to look
+like nothing is pending.
 
 `dayClosed` in `src/lib/recurrence.js` is the guard, and it tests for *a visible completion*, not for
-a non-empty list. Those are not the same thing and the difference is a real state: reopen the app after
-the undo window has closed and the list still holds everything in "Na spokojnie", so a non-empty test
-would show a reward for work no longer on screen and offer nothing to take back.
+a non-empty list. With the section in place that test is nearly always satisfied, but it is the honest
+statement of the rule and it is what makes the rule a unit test instead of a comment.
+
+**A finished day and an empty day are different, and only one of them may speak.** `EmptyState` is
+suppressed while the reward shows: "Na dziś nic" is for a day that never had anything on it, and it
+undercuts the reward for a day that did.
 
 **The two animations are the system's whole motion budget for decoration**, and both hang off a real
 event rather than off arriving on a screen: the rollback nudge, and this. Neither loops. The falling

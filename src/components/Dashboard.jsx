@@ -12,6 +12,7 @@ import { TaskSheet } from './TaskSheet'
 import { QuickAdd } from './QuickAdd'
 import { EmptyState } from './EmptyState'
 import { DayComplete } from './DayComplete'
+import { DoneToday } from './DoneToday'
 import { RollbackBanner } from './RollbackBanner'
 import { CategoryFilter } from './CategoryFilter'
 import { DarkModeToggle } from './DarkModeToggle'
@@ -147,6 +148,19 @@ export function Dashboard() {
 
   const isEmpty = sections.every((section) => section.tasks.length === 0)
 
+  // Today's completions, once their undo window has closed. Excluding the sticky
+  // ones is what keeps a thing from appearing twice: for the first few seconds it
+  // is still sitting in the group it was ticked off in, and only then settles
+  // here. The Schowek is left out — an archived thing's completion is not part of
+  // today's work.
+  const doneToday = useMemo(() => {
+    if (activeView === 'archive') return []
+    const inView = filterByCategory(filterForView(tasks, activeView, now), activeCategory)
+    return inView.filter(
+      (task) => computeStatus(task, now) === 'done' && !sticky.has(task.id)
+    )
+  }, [tasks, activeView, activeCategory, now, sticky])
+
   // The sticky map remembers which stop each thing was ticked off in, which is
   // what lets a "na spokojnie" thing ticked off early stay out of today's load —
   // count it and the denominator would grow under the thumb that just tapped it,
@@ -158,7 +172,7 @@ export function Dashboard() {
 
   const dayComplete = dayClosed(
     progress,
-    sections.flatMap((section) => section.tasks),
+    [...sections.flatMap((section) => section.tasks), ...doneToday],
     now
   )
 
@@ -311,7 +325,10 @@ export function Dashboard() {
             </div>
           )}
 
-          {!isLoading && !error && isEmpty && (
+          {/* A finished day and an empty one are different things and must not
+              both speak: "Na dziś nic" is for a day that never had anything on
+              it, and it would undercut the reward for a day that did. */}
+          {!isLoading && !error && isEmpty && !dayComplete && (
             <EmptyState tasks={tasks} today={now} variant={emptyVariant} />
           )}
 
@@ -335,6 +352,13 @@ export function Dashboard() {
               rolledBackId={rolledBackId}
             />
           )}
+
+          <DoneToday
+            tasks={doneToday}
+            today={now}
+            onUndo={handleUndo}
+            onOpen={(task) => setSheet({ task })}
+          />
         </main>
 
         {/* Fixed on a phone so adding is always a thumb away; in flow on a
