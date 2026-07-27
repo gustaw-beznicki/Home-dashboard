@@ -142,6 +142,16 @@ that choice.
 A task ticked off today keeps its place via the sticky-group map in `Dashboard`'s `useUndoWindow`,
 then settles into `DoneToday` when the undo window closes.
 
+**The day strip is navigation, not decoration** (ADR 0017). A bar filters the list to the day it
+counted — `filterByDay` uses the same `dueDate` test as `dayLoad`, so the drill-down and the number
+above the bar cannot disagree — and the arrows page `dayLoad`'s window by a week through an `offset`,
+with `isToday`/`overdue` still measured against the real today. Two consequences to keep: a thing
+ticked off today is filed under its *next* deadline, so today's bar empties as the day is cleared (the
+bars count work, not history); and the way back to today sits *beside* the range caption, never in
+place of the forward arrow — replacing it made a second week forward unreachable, and there is a test
+for that. `DoneToday` and the reward are suppressed while a day is selected, since both summarise today
+as a whole.
+
 **Two of the four views are flat, and `upcoming` is flat for a reason worth knowing.** *Najbliższy
 tydzień* asks *when does this next fall due* — nothing else. So it filters on `daysUntilDue`
 (`0 < until <= 7`) rather than on `status === 'later'`, sorts with `sortByNextDue` rather than

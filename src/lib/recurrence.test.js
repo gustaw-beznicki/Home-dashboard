@@ -7,6 +7,7 @@ import {
   daysUntilDue,
   describeInterval,
   dueDate,
+  filterByDay,
   filterForView,
   intervalKey,
   groupTasks,
@@ -716,5 +717,56 @@ describe('sortByNextDue', () => {
     const manual = baseTask({ id: 'manual', interval: { type: 'manual' }, lastDone: null })
     const dated = baseTask({ id: 'dated', lastDone: toISODate(TODAY) })
     expect(sortByNextDue([manual, dated], TODAY).map((t) => t.id)).toEqual(['dated', 'manual'])
+  })
+})
+
+describe('dayLoad windowing', () => {
+  it('starts yesterday, so arrears have a bar to sit on', () => {
+    const load = dayLoad([], TODAY, 3)
+    expect(load.map((d) => toISODate(d.date))).toEqual(['2026-07-23', '2026-07-24', '2026-07-25'])
+    expect(load[1].isToday).toBe(true)
+  })
+
+  it('pages by an offset without moving what "today" means', () => {
+    const load = dayLoad([], TODAY, 3, 7)
+    expect(load.map((d) => toISODate(d.date))).toEqual(['2026-07-30', '2026-07-31', '2026-08-01'])
+    // Scrolled a week out, no bar is today — and none claims to be.
+    expect(load.some((d) => d.isToday)).toBe(false)
+  })
+
+  it('pages backwards too, and marks what is already late', () => {
+    const missed = baseTask({ id: 'missed', lastDone: daysAgo(3) })
+    const load = dayLoad([missed], TODAY, 7, -7)
+    const late = load.filter((d) => d.count > 0)
+    expect(late).toHaveLength(1)
+    expect(late[0].overdue).toBe(true)
+  })
+})
+
+describe('filterByDay', () => {
+  it('picks the things a bar counted, by the same test the bar used', () => {
+    const today = baseTask({ id: 'today', lastDone: daysAgo(1) })
+    const tomorrow = baseTask({ id: 'tomorrow', lastDone: toISODate(TODAY) })
+
+    expect(filterByDay([today, tomorrow], toISODate(TODAY)).map((t) => t.id)).toEqual(['today'])
+    expect(filterByDay([today, tomorrow], '2026-07-25').map((t) => t.id)).toEqual(['tomorrow'])
+  })
+
+  it('files a thing ticked off today under its next deadline, not under today', () => {
+    // Which is why today's bar goes flat as the day is cleared: it counts work,
+    // not history. The drill-down has to agree with the bar it came from.
+    const done = baseTask({ id: 'done', lastDone: toISODate(TODAY) })
+    expect(computeStatus(done, TODAY)).toBe('done')
+    expect(filterByDay([done], toISODate(TODAY))).toEqual([])
+  })
+
+  it('leaves a rhythmless thing off every day', () => {
+    const manual = baseTask({ id: 'manual', interval: { type: 'manual' }, lastDone: null })
+    expect(filterByDay([manual], toISODate(TODAY))).toEqual([])
+  })
+
+  it('is a no-op without a date', () => {
+    const tasks = [baseTask({ id: 'a' })]
+    expect(filterByDay(tasks, null)).toBe(tasks)
   })
 })

@@ -243,4 +243,42 @@ test.describe('desktop, light', () => {
     await expect(page.getByText('jutro').first()).toBeVisible()
     await expect(page.getByRole('button', { name: 'cofnij' })).toHaveCount(0)
   })
+
+  test('the chart is navigation: a bar filters the list, the arrows page weeks', async ({
+    page,
+  }) => {
+    await page.goto('/')
+    await skipOnboarding(page)
+    await waitForList(page)
+
+    const bars = page.locator('main button[aria-pressed]')
+    expect(await bars.count()).toBe(12)
+
+    // Bar index 1 is today: the window opens on yesterday.
+    await bars.nth(1).click()
+    await expect(bars.nth(1)).toHaveAttribute('aria-pressed', 'true')
+    for (const fixture of FIXTURES) {
+      // `exact`, because getByRole matches an accessible name by substring, and
+      // an undone card also carries a "Zrobione: <name>" tick button.
+      await expect(page.getByRole('button', { name: fixture.name, exact: true })).toBeVisible()
+    }
+
+    // Clearing it puts the rest of the list back.
+    await page.getByRole('button', { name: 'Pokaż wszystko' }).click()
+    await expect(bars.nth(1)).toHaveAttribute('aria-pressed', 'false')
+
+    // Two weeks forward, which is what caught the arrow going missing: the way
+    // back used to take the forward arrow's place.
+    const next = page.getByRole('button', { name: 'Następny tydzień' })
+    await next.click()
+    await next.click()
+    await expect(next).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Wcześniejszy tydzień' })).toBeVisible()
+
+    // And the way back is there, and works.
+    const back = page.getByRole('button', { name: 'dziś', exact: true })
+    await expect(back).toBeVisible()
+    await back.click()
+    await expect(back).toBeHidden()
+  })
 })

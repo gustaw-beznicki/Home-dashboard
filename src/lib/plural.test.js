@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { countWith, FORMS, formatLastDone, plural, relativeDue, slownie, summarySentence } from './plural'
+import {
+  countWith,
+  FORMS,
+  formatDayRange,
+  formatLastDone,
+  plural,
+  relativeDue,
+  slownie,
+  summarySentence,
+} from './plural'
 
 describe('plural', () => {
   it('picks the singular, the 2–4 form and the many form', () => {
@@ -82,5 +91,21 @@ describe('slownie / formatLastDone', () => {
       expect(formatLastDone(done, now, 'Anna'), `${hour}:30`).toBe('Anna, dziś')
     }
     expect(formatLastDone(new Date(2026, 6, 23), new Date(2026, 6, 24, 18, 30))).toBe('wczoraj')
+  })
+})
+
+describe('formatDayRange', () => {
+  it('names the month once when both ends share it', () => {
+    expect(formatDayRange(new Date(2026, 6, 24), new Date(2026, 6, 30))).toBe('24 – 30 lip')
+  })
+
+  it('names both months when the window crosses one', () => {
+    expect(formatDayRange(new Date(2026, 6, 26), new Date(2026, 7, 6))).toBe('26 lip – 6 sie')
+  })
+
+  it('adds the years only when the window crosses one', () => {
+    expect(formatDayRange(new Date(2026, 11, 28), new Date(2027, 0, 8))).toBe(
+      '28 gru 2026 – 8 sty 2027'
+    )
   })
 })
