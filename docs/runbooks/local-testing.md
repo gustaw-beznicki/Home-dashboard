@@ -183,13 +183,14 @@ the fixture.
 
 ## Getting sign-in to work at all
 
-Neither route above fixes authentication itself — production is currently missing
-`BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`, so every `/api/*` route there
-returns `503`, and `.dev.vars` has the two Google values empty.
+Production has its three auth secrets and signs people in, so the one-off setup runbook this section
+used to link is gone. What's left is the local side: fill `.dev.vars` with `BETTER_AUTH_SECRET` and
+the two Google values (the same OAuth client production uses — Google accepts
+`http://localhost:8787/api/auth/callback/google` as a redirect URI), then `npm run dev:worker`.
 
-That sequence lives in **[make-auth-work.md](make-auth-work.md)** — kept separate so there is one
-authoritative copy rather than two that drift. It also covers the trap that matters most: the
-first admin is now granted explicitly with `npm run admin:grant` rather than by signing in.
+The trap worth restating: signing in does **not** grant you access. The first admin is granted
+explicitly with `npm run admin:grant -- you@example.com`, and an empty `users` table means nobody
+gets in (ADR 0012).
 
 ## If something fails
 

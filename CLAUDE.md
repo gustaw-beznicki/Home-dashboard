@@ -270,9 +270,14 @@ carries no such claim. That's the same position ADR 0003 accepted with Access + 
 Access (Google SSO) → Clerk → Better Auth. Access intercepts at the edge before app code runs, so it
 and an in-app login screen can't both gate one hostname; the Access application is kept
 configured-but-bypassed for a short bake period as an emergency fallback. Because Better Auth runs *in*
-the app rather than at the edge, it can be verified in production behind a still-active Access gate
-before the Bypass policy goes on — see `docs/runbooks/better-auth-cutover.md`. Once clean, delete the
-Access application and drop the now-dead `users.clerk_user_id` column in a follow-up migration.
+the app rather than at the edge, it could be verified in production behind a still-active Access gate
+before the Bypass policy went on.
+
+`users.clerk_user_id` is gone (migration 0007). The one thing still outstanding is deleting the
+Cloudflare Access application itself, which is dashboard work and nothing in this repo depends on.
+The cutover runbook that walked through the bake period is deleted too — it described a sequence
+that has already happened, and a runbook for a completed one-off is a trap: it reads like
+instructions.
 
 ## Local development
 

@@ -83,10 +83,10 @@ That is expected — run it and wait rather than giving up and stubbing the tabl
 
 ```sh
 npm run db:migrate:local && npm run db:seed:local
-npm run dev-no-auth
+npm run dev:no-auth
 ```
 
-`dev-no-auth` exists precisely so this works without Google OAuth credentials (ADR 0011), and the
+`dev:no-auth` exists precisely so this works without Google OAuth credentials (ADR 0011), and the
 seed gives the list something on it. Wait ~30 s: the script builds the frontend before wrangler
 starts, and wrangler serves built assets from `dist/`.
 
@@ -113,12 +113,22 @@ dragging files in:
 git add docs/screenshots/pr-$ARGUMENTS && git commit -m "Add PR screenshots" && git push
 ```
 
-Reference them with absolute raw URLs pinned to the branch, not relative paths — relative paths do
-not resolve in PR bodies:
+Reference them with absolute raw URLs pinned to the **commit SHA**, not relative paths and not the
+branch name. Relative paths don't resolve in PR bodies, and a branch name is a moving target that
+stops resolving the day the branch is deleted after merge — which is how four merged PRs ended up
+needing their bodies rewritten. Grab the SHA of the commit you just pushed:
+
+```sh
+git rev-parse HEAD
+```
 
 ```markdown
-![Dashboard, mobile](https://raw.githubusercontent.com/<owner>/<repo>/<branch>/docs/screenshots/pr-N/dashboard-mobile-light.png)
+![Dashboard, mobile](https://raw.githubusercontent.com/<owner>/<repo>/<sha>/docs/screenshots/pr-N/dashboard-mobile-light.png)
 ```
+
+This holds as long as the PR lands as a merge commit, which keeps the branch commits reachable from
+`main`. Under squash-merge the SHA would be orphaned instead, so re-pin to the squash commit if the
+merge strategy ever changes.
 
 Ask before committing binaries if the repo has no precedent for it — some projects would rather the
 images stayed out of git history. If the user declines, leave the files on disk and give them the
@@ -159,7 +169,7 @@ Output the description in this exact format. Write concrete sentences — no fil
 <!-- Steps to verify locally or on preview deploy -->
 
 ## Checklist
-- [ ] Tested locally (`npm run dev-no-auth`)
+- [ ] Tested locally (`npm run dev:no-auth`)
 - [ ] Build passes (`npm run build`)
 - [ ] Tests pass (`npm test`)
 - [ ] No secrets in diff
@@ -182,7 +192,7 @@ Output the description in this exact format. Write concrete sentences — no fil
 
 ## Screenshots
 
-Captured with `node scripts/screenshot-pr.mjs` against `npm run dev-no-auth` and the local seed.
+Captured with `node scripts/screenshot-pr.mjs` against `npm run dev:no-auth` and the local seed.
 
 | Mobile (390px) | Desktop (1440px) |
 |----------------|------------------|
@@ -193,7 +203,7 @@ Captured with `node scripts/screenshot-pr.mjs` against `npm run dev-no-auth` and
      should be looking at, not just the route. -->
 
 ## Checklist
-- [ ] Tested locally (`npm run dev-no-auth`)
+- [ ] Tested locally (`npm run dev:no-auth`)
 - [ ] Build passes (`npm run build`)
 - [ ] Tests pass (`npm test`)
 - [ ] No secrets in diff
@@ -208,7 +218,7 @@ Rules for each section:
 
 **How to test** — numbered steps a reviewer can follow locally or on a preview deploy. Be specific: name the URL, the Studio document, or the config flag to toggle. When UI_CHANGED=true, include a step to visually verify the affected routes/components.
 
-**Screenshots** — only present when UI_CHANGED=true, and it must contain **real images captured in Step 2.6**, not placeholders. Caption each one with what the reviewer should be looking at. If a shot failed or a state could not be reached (a login screen is unreachable under `dev-no-auth`, for instance), say which and why rather than leaving a silent gap.
+**Screenshots** — only present when UI_CHANGED=true, and it must contain **real images captured in Step 2.6**, not placeholders. Caption each one with what the reviewer should be looking at. If a shot failed or a state could not be reached (a login screen is unreachable under `dev:no-auth`, for instance), say which and why rather than leaving a silent gap.
 
 **Checklist** — always include exactly as shown above, all unchecked; the author ticks them. Add the screenshots item only when UI_CHANGED=true. Do not pre-tick items on the author's behalf — but do state plainly in the body which of them you actually verified and which you did not.
 

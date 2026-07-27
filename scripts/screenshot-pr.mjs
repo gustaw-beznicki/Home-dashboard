@@ -3,7 +3,7 @@
 //   node scripts/screenshot-pr.mjs --out docs/screenshots/pr-14
 //
 // Assumes the app is already serving on --base (default http://localhost:8787).
-// Start it with `npm run dev-no-auth`, which needs no Google credentials — that
+// Start it with `npm run dev:no-auth`, which needs no Google credentials — that
 // is precisely what it exists for (ADR 0011) — and `npm run db:seed:local` so
 // there is something on the list worth looking at.
 //

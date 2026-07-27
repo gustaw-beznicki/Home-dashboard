@@ -1,0 +1,16 @@
+-- Drops the last trace of the Clerk era. `users.clerk_user_id` has held no
+-- meaning since ADR 0009 replaced Clerk with Better Auth: identity now lives in
+-- Better Auth's own `user` table, keyed by email, and nothing reads this column.
+--
+-- Safe to apply before the code deploys (ADR 0007) precisely because nothing
+-- reads it: every query against `users` names its columns explicitly — there is
+-- no `SELECT *` on this table — so the currently-live Worker cannot notice.
+--
+-- A plain DROP COLUMN, not the create/copy/drop/rename dance migrations 0002 and
+-- 0005 needed. That pattern is required for *widening a CHECK constraint*, which
+-- D1 can't ALTER; dropping a column is a different operation and D1's SQLite
+-- supports it directly. Verified against the local D1 before writing this.
+--
+-- No index, no constraint and no view referenced the column, which is the other
+-- thing that would have forced a rebuild.
+ALTER TABLE users DROP COLUMN clerk_user_id;
