@@ -42,6 +42,13 @@ gh api graphql -f query='
 
 Also run `gh pr view $ARGUMENTS --comments --json comments` to get any general (non-inline) PR-level comments.
 
+If the GitHub MCP server is connected, it returns the same fields without hand-writing the query, which is cheaper and harder to typo:
+
+- `pull_request_read` with `method: "get_review_comments"` — threads with `isResolved`, `isOutdated`, and their comments (author, body, path, line, diffHunk). Paginate with `perPage`/`after`.
+- `pull_request_read` with `method: "get_comments"` — the general, non-inline PR comments.
+
+Either route is fine; the GraphQL above is the fallback when MCP is unavailable, and it is what the rest of this document assumes the fields are named after.
+
 **Discard any thread where `isResolved: true`.** Outdated threads (`isOutdated: true`) should still be shown but flagged as outdated — the code changed since the comment was left, so interpret the concern rather than the exact line.
 
 List only the unresolved comments, numbered. Tell the user how many there are total and how many were skipped as already resolved.
