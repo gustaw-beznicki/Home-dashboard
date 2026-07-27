@@ -317,7 +317,8 @@ export function RhythmEditor({ value, onChange, today, lastDone, rebaseChoice, o
             </label>
           </div>
           <p className="text-[13px] text-moss-700 dark:text-moss-400">
-            {weekdayName(startsOn)}, {formatDate(startsOn)}
+            {weekdayName(startsOn)},{' '}
+            {formatDate(startsOn, { withYear: startsOn.getFullYear() !== today.getFullYear() })}
           </p>
         </div>
       )}
@@ -367,7 +368,7 @@ export function RhythmEditor({ value, onChange, today, lastDone, rebaseChoice, o
                 className="flex-1 rounded-2xl bg-moss-50 px-3 py-2.5 dark:bg-bark-800"
               >
                 <p className="text-[15px] font-medium text-moss-900 dark:text-moss-100">
-                  {formatDate(date)}
+                  {formatDate(date, { withYear: date.getFullYear() !== today.getFullYear() })}
                 </p>
                 <p className="text-[11.5px] text-moss-600 dark:text-moss-500">{weekdayName(date)}</p>
               </div>

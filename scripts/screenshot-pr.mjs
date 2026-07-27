@@ -139,6 +139,44 @@ const SHOTS = [
       }
     },
   },
+  // The two panels the cadence work adds. Yearly is the interesting one: no day
+  // rules at all, because the anchor below holds the month and the day.
+  {
+    name: 'rhythm-yearly-desktop-light',
+    route: '/',
+    viewport: DESKTOP,
+    scheme: 'light',
+    action: async (page) => {
+      await openEmptySheet(page)
+      await page.getByPlaceholder('Co trzeba ogarnąć?').fill('Przegląd techniczny')
+      await page.getByRole('button', { name: 'co rok' }).click()
+      await page.getByRole('button', { name: '2 lata', exact: true }).click()
+    },
+  },
+  {
+    name: 'rhythm-yearly-mobile-dark',
+    route: '/',
+    viewport: MOBILE,
+    scheme: 'dark',
+    action: async (page) => {
+      await openEmptySheet(page)
+      await page.getByPlaceholder('Co trzeba ogarnąć?').fill('Przegląd techniczny')
+      await page.getByRole('button', { name: 'co rok' }).click()
+      await page.getByRole('button', { name: '2 lata', exact: true }).click()
+    },
+  },
+  {
+    name: 'rhythm-quarterly-desktop-light',
+    route: '/',
+    viewport: DESKTOP,
+    scheme: 'light',
+    action: async (page) => {
+      await openEmptySheet(page)
+      await page.getByPlaceholder('Co trzeba ogarnąć?').fill('Wymienić filtr wody')
+      await page.getByRole('button', { name: 'co miesiąc' }).click()
+      await page.getByRole('button', { name: 'kwartał', exact: true }).click()
+    },
+  },
   { name: 'admin-desktop-light', route: '/admin', viewport: DESKTOP, scheme: 'light' },
   { name: 'panel-desktop-light', route: '/panel', viewport: DESKTOP, scheme: 'light' },
   { name: 'panel-mobile-light', route: '/panel', viewport: MOBILE, scheme: 'light', fullPage: true },

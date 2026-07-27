@@ -148,9 +148,15 @@ test.describe('desktop, light', () => {
     await expect(page.getByText('Dzień i miesiąc bierzemy z daty poniżej.')).toBeVisible()
 
     // The preview is the proof the cadence reached recurrence.js: two years
-    // between deadlines, not two months.
-    const preview = page.getByText('co 2 lata')
-    await expect(preview).toBeVisible()
+    // between deadlines, not two months. Assert the dates, not just the caption —
+    // an earlier version of this test checked only the caption and let through a
+    // preview rendering three different years as three identical "27 lipca".
+    await expect(page.getByText('co 2 lata')).toBeVisible()
+    const previewed = await page
+      .locator('p', { hasText: /^\d+ \w+( \d{4})?$/ })
+      .allInnerTexts()
+    const years = previewed.map((t) => t.match(/\d{4}$/)?.[0] ?? String(new Date().getFullYear()))
+    expect(new Set(years).size).toBeGreaterThan(1)
 
     await saveButton(page).click()
     await expect(page.getByRole('dialog')).toBeHidden()

@@ -394,3 +394,33 @@ describe('TaskSheet', () => {
     expect(onClose).toHaveBeenCalled()
   })
 })
+
+describe('RhythmEditor preview across years', () => {
+  function renderYears(interval) {
+    render(
+      <RhythmEditor
+        value={interval}
+        onChange={vi.fn()}
+        today={TODAY}
+        lastDone={null}
+        rebaseChoice={null}
+        onRebase={vi.fn()}
+      />
+    )
+  }
+
+  it('stamps the year on deadlines outside the current one', () => {
+    // Without the year these three read "27 lipca · 27 lipca · 27 lipca": correct
+    // dates two years apart, rendered identically, so the preview looked broken.
+    renderYears({ type: 'monthly', unit: 'year', every: 2, startsOn: '2026-07-27' })
+    expect(screen.getByText('27 lipca')).toBeInTheDocument()
+    expect(screen.getByText('27 lipca 2028')).toBeInTheDocument()
+    expect(screen.getByText('27 lipca 2030')).toBeInTheDocument()
+  })
+
+  it('leaves the year off dates inside the current one', () => {
+    renderYears({ type: 'everyNDays', n: 2, startsOn: '2026-07-24' })
+    expect(screen.getByText('24 lipca')).toBeInTheDocument()
+    expect(screen.queryByText('24 lipca 2026')).not.toBeInTheDocument()
+  })
+})
