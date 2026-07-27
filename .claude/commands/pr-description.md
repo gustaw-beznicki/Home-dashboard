@@ -83,17 +83,19 @@ That is expected — run it and wait rather than giving up and stubbing the tabl
 
 ```sh
 npm run db:migrate:local && npm run db:seed:local
-npm run dev-no-auth
+npm run dev:no-auth
 ```
 
-`dev-no-auth` exists precisely so this works without Google OAuth credentials (ADR 0011), and the
+`dev:no-auth` exists precisely so this works without Google OAuth credentials (ADR 0011), and the
 seed gives the list something on it. Wait ~30 s: the script builds the frontend before wrangler
 starts, and wrangler serves built assets from `dist/`.
 
-**3. Capture.**
+**3. Capture — into a temp directory, outside the working tree**, so there is nothing to commit by
+accident. The PNGs never enter the repo; see step 5.
 
 ```sh
-node scripts/screenshot-pr.mjs --out docs/screenshots/pr-$ARGUMENTS
+SHOTS="$(mktemp -d)/shots"
+node scripts/screenshot-pr.mjs --out "$SHOTS"
 ```
 
 That script owns the shot list — mobile and desktop, light and dark, plus the task sheet, the rhythm
@@ -105,24 +107,70 @@ perfectly fine while the console is full of errors, which is exactly what a revi
 are verifying the UI renders, not generating attachments. If something is visibly broken, say so in
 the PR description instead of quietly attaching a picture of the bug.
 
-**5. Make them visible in the PR.** GitHub has no public API for uploading images to a PR body, so
-committing them to the branch and linking raw URLs is the only way they render without the user
-dragging files in:
+**5. Make them visible in the PR — as release assets, never as commits.** Screenshots do not belong
+in the repository. They are review artefacts with a lifespan of days, and committing them means every
+merged PR welds a few hundred kilobytes into `main`'s history permanently. Host them as assets on a
+**prerelease** instead: GitHub serves the bytes, git never sees them.
+
+Capture to a temp directory, not into the working tree, so there is nothing to accidentally commit:
 
 ```sh
-git add docs/screenshots/pr-$ARGUMENTS && git commit -m "Add PR screenshots" && git push
+node scripts/screenshot-pr.mjs --out "$(mktemp -d)/shots"
 ```
 
-Reference them with absolute raw URLs pinned to the branch, not relative paths — relative paths do
-not resolve in PR bodies:
+```sh
+TAG="pr-$ARGUMENTS-images"
+gh release create "$TAG" "$SHOTS"/*.png \
+  --title "PR #$ARGUMENTS screenshots" \
+  --notes "Review artefacts for PR #$ARGUMENTS. Safe to delete once merged." \
+  --prerelease
+```
+
+`--prerelease` keeps it out of "Latest release" so it never looks like a shipped version. Then read
+the URLs back rather than constructing them by hand — the asset name is normalised (spaces become
+dots) and guessing gets it wrong:
+
+```sh
+gh api "repos/<owner>/<repo>/releases/tags/$TAG" \
+  --jq '.assets[] | "\(.name)\t\(.browser_download_url)"'
+```
 
 ```markdown
-![Dashboard, mobile](https://raw.githubusercontent.com/<owner>/<repo>/<branch>/docs/screenshots/pr-N/dashboard-mobile-light.png)
+![Dashboard, mobile](https://github.com/<owner>/<repo>/releases/download/pr-N-images/dashboard-mobile-light.png)
 ```
 
-Ask before committing binaries if the repo has no precedent for it — some projects would rather the
-images stayed out of git history. If the user declines, leave the files on disk and give them the
-paths to drag in.
+Check one of them resolves before pasting the body — a 404 in a PR description is worse than no
+image, because it looks like the UI is broken rather than the link:
+
+```sh
+curl -sIL "<browser_download_url>" | grep -iE "^HTTP/|^content-type"
+```
+
+Two things this buys beyond a clean history: the URL contains no branch name and no commit SHA, so
+nothing breaks when the branch is auto-deleted at merge or the history is rewritten; and cleanup is
+one command rather than a revert.
+
+```sh
+gh release delete "pr-N-images" --yes --cleanup-tag
+```
+
+**The headers look wrong and it works anyway — don't "fix" this.** The download serves
+`Content-Type: application/octet-stream` with `Content-Disposition: attachment` and
+`X-Content-Type-Options: nosniff`, even though the API reports the asset as `image/png`. Verified
+end to end rather than assumed: bytes round-trip identical, Chromium renders it (780×1688 via
+`new Image()`), and GitHub's PR-page CSP allows both hops — `img-src` covers the `github.com` URL via
+`'self'` and lists `release-assets.githubusercontent.com` for the redirect target. Nothing goes
+through Camo, since the URL is first-party.
+
+Do **not** fall back to committing the PNGs if something here fails. Say what failed and hand over
+the paths — a repo is not an image host.
+
+Two dead ends, so nobody re-derives them: there is no attachment API
+(`POST repos/{o}/{r}/issues/{n}/attachments` is a 404, `gh` has no such command, and the GitHub MCP
+server only offers commit-based writes — the browser's uploader posts to `/upload/policies/assets`
+with a web session). And `data:` URIs do not work: GitHub's sanitiser strips the `src` outright
+(verifiable with `gh api --method POST markdown -f mode=gfm -f text='![x](data:image/png;base64,…)'`),
+and a single screenshot is 166k–486k base64 characters against a 65,536-character body limit anyway.
 
 **Killing the dev server afterwards, on Windows:** `pkill -f "wrangler dev"` does **not** work. The
 listeners are `workerd.exe` processes with `node.exe` wrangler parents, and orphans left on the port
@@ -159,7 +207,7 @@ Output the description in this exact format. Write concrete sentences — no fil
 <!-- Steps to verify locally or on preview deploy -->
 
 ## Checklist
-- [ ] Tested locally (`npm run dev-no-auth`)
+- [ ] Tested locally (`npm run dev:no-auth`)
 - [ ] Build passes (`npm run build`)
 - [ ] Tests pass (`npm test`)
 - [ ] No secrets in diff
@@ -182,18 +230,19 @@ Output the description in this exact format. Write concrete sentences — no fil
 
 ## Screenshots
 
-Captured with `node scripts/screenshot-pr.mjs` against `npm run dev-no-auth` and the local seed.
+Captured with `node scripts/screenshot-pr.mjs` against `npm run dev:no-auth` and the local seed,
+uploaded as assets on the `pr-N-images` prerelease — not committed.
 
 | Mobile (390px) | Desktop (1440px) |
 |----------------|------------------|
-| ![...](raw URL) | ![...](raw URL) |
+| ![...](https://github.com/OWNER/REPO/releases/download/pr-N-images/shot-mobile-light.png) | ![...](https://github.com/OWNER/REPO/releases/download/pr-N-images/shot-desktop-light.png) |
 
 <!-- Add a dark-mode row, and a row for any distinctive state the PR introduces
      (a new sheet, an empty state, an error state). Caption what the reviewer
      should be looking at, not just the route. -->
 
 ## Checklist
-- [ ] Tested locally (`npm run dev-no-auth`)
+- [ ] Tested locally (`npm run dev:no-auth`)
 - [ ] Build passes (`npm run build`)
 - [ ] Tests pass (`npm test`)
 - [ ] No secrets in diff
@@ -208,7 +257,7 @@ Rules for each section:
 
 **How to test** — numbered steps a reviewer can follow locally or on a preview deploy. Be specific: name the URL, the Studio document, or the config flag to toggle. When UI_CHANGED=true, include a step to visually verify the affected routes/components.
 
-**Screenshots** — only present when UI_CHANGED=true, and it must contain **real images captured in Step 2.6**, not placeholders. Caption each one with what the reviewer should be looking at. If a shot failed or a state could not be reached (a login screen is unreachable under `dev-no-auth`, for instance), say which and why rather than leaving a silent gap.
+**Screenshots** — only present when UI_CHANGED=true, and it must contain **real images captured in Step 2.6**, not placeholders. Caption each one with what the reviewer should be looking at. If a shot failed or a state could not be reached (a login screen is unreachable under `dev:no-auth`, for instance), say which and why rather than leaving a silent gap.
 
 **Checklist** — always include exactly as shown above, all unchecked; the author ticks them. Add the screenshots item only when UI_CHANGED=true. Do not pre-tick items on the author's behalf — but do state plainly in the body which of them you actually verified and which you did not.
 

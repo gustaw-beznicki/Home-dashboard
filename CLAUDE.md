@@ -173,6 +173,39 @@ the repo owner too. Note that toggling repo visibility on GitHub can silently st
 protection; re-check with `gh api repos/{owner}/{repo}/branches/main/protection` after any such
 change.
 
+**Merged branches are deleted automatically** (`delete_branch_on_merge`).
+
+**PR screenshots are release assets, never commits.** They go on a `pr-<N>-images` **prerelease**
+(`gh release create … --prerelease`), and the body links
+`github.com/<owner>/<repo>/releases/download/pr-<N>-images/<file>.png`. GitHub hosts the bytes; git
+never sees them. This replaced committing them to the PR branch, which welded a few hundred kilobytes
+into `main` per merged PR — 8.1 MB of it was deleted in one go. The URLs carry neither a branch name
+nor a SHA, so auto-delete-on-merge can't break them, and cleanup is
+`gh release delete pr-<N>-images --yes --cleanup-tag`. There is no attachment API and `data:` URIs are
+stripped by GitHub's sanitiser — `pr-description` documents both dead ends so they don't get
+re-derived.
+
+Two legacy exceptions: PRs #16–#18 and #20 link SHA-pinned `raw.githubusercontent` URLs into `main`'s
+history, and `assets/pr-14` is a branch that exists solely to host PR #14's images. Neither has a PR
+of its own, so nothing deletes them automatically — leave both alone.
+
+**Personal commands shadow this repo's, not the other way round.** Precedence is enterprise >
+personal (`~/.claude/`) > project (`.claude/`) — project is *lowest*, which is the opposite of the
+intuition ([slash-commands docs](https://code.claude.com/docs/en/slash-commands)). So a
+`~/.claude/commands/<name>.md` makes the tracked copy dead code: editing the one in this repo changes
+nothing about what runs, and `skillOverrides` is no escape hatch, since hiding a name errors instead
+of falling through. This bit twice in one session — a rewritten `/prune-branches` and a rewritten
+`/pr-description` both sat inert in the repo while the personal copies ran.
+
+The fix is a **namespace directory**: personal commands live in `~/.claude/commands/personal/`, so
+they resolve as `/personal:prune-branches` and the bare names belong to this repo. The docs' naming
+table says a `commands/` file takes its name from the file alone and doesn't mention subdirectories,
+but a colon-namespaced command is what actually appears — verified against the live skill listing, not
+inferred. If you add a command here, check `~/.claude/commands/` for an un-namespaced collision.
+
+`/prune-branches` reports deletion candidates for local *and* remote branches, including which PR
+bodies would break, and never deletes anything itself.
+
 **Merging to `main` deploys to production.** `.github/workflows/deploy.yml` runs tests, builds,
 applies pending D1 migrations, then `wrangler deploy` on every push to `main`. Consequences:
 
@@ -271,9 +304,14 @@ carries no such claim. That's the same position ADR 0003 accepted with Access + 
 Access (Google SSO) → Clerk → Better Auth. Access intercepts at the edge before app code runs, so it
 and an in-app login screen can't both gate one hostname; the Access application is kept
 configured-but-bypassed for a short bake period as an emergency fallback. Because Better Auth runs *in*
-the app rather than at the edge, it can be verified in production behind a still-active Access gate
-before the Bypass policy goes on — see `docs/runbooks/better-auth-cutover.md`. Once clean, delete the
-Access application and drop the now-dead `users.clerk_user_id` column in a follow-up migration.
+the app rather than at the edge, it could be verified in production behind a still-active Access gate
+before the Bypass policy went on.
+
+`users.clerk_user_id` is gone (migration 0007). The one thing still outstanding is deleting the
+Cloudflare Access application itself, which is dashboard work and nothing in this repo depends on.
+The cutover runbook that walked through the bake period is deleted too — it described a sequence
+that has already happened, and a runbook for a completed one-off is a trap: it reads like
+instructions.
 
 ## Local development
 
