@@ -109,7 +109,7 @@ export const COPY = {
   add: 'Nowa rzecz',
   quickAddPlaceholder: 'Co jeszcze trzeba ogarnąć?',
   suggestionsLabel: 'Podpowiedzi',
-  suggestionsHint: 'Rytm i kategorię poprawisz w następnym kroku.',
+  suggestionsHint: 'Rytm poprawisz w następnym kroku.',
   loading: 'Zbieram listę…',
   loadError: 'Nie udało się pobrać listy.',
   retry: 'Spróbuj jeszcze raz',
