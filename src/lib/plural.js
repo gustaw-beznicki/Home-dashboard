@@ -89,6 +89,39 @@ export function formatDate(date, { withWeekday = false, withYear = false } = {})
   return withWeekday ? `${DNI[date.getDay()]}, ${d}` : d
 }
 
+// Three-letter abbreviations, because the day strip's caption has to fit above a
+// twelve-bar row on a 390px phone and "24 lipca – 4 sierpnia" does not. Not
+// inflected: a range reads as two labels, not as a sentence.
+const MIESIACE_SKROT = [
+  'sty',
+  'lut',
+  'mar',
+  'kwi',
+  'maj',
+  'cze',
+  'lip',
+  'sie',
+  'wrz',
+  'paź',
+  'lis',
+  'gru',
+]
+
+/**
+ * "24 lip – 4 sie", collapsing the month when both ends share one: "24 – 30 lip".
+ * The year appears only when the range crosses one, which the strip can do
+ * between late December and early January.
+ */
+export function formatDayRange(from, to) {
+  const sameMonth = from.getMonth() === to.getMonth() && from.getFullYear() === to.getFullYear()
+  const crossesYear = from.getFullYear() !== to.getFullYear()
+  const left = sameMonth ? String(from.getDate()) : `${from.getDate()} ${MIESIACE_SKROT[from.getMonth()]}`
+  const right = `${to.getDate()} ${MIESIACE_SKROT[to.getMonth()]}`
+  return crossesYear
+    ? `${left} ${from.getFullYear()} – ${right} ${to.getFullYear()}`
+    : `${left} – ${right}`
+}
+
 export function weekdayName(date) {
   return DNI[date.getDay()]
 }

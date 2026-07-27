@@ -9,7 +9,16 @@ import { countWith, FORMS, summarySentence } from '../lib/plural'
 // shape of the week is a strip of bars. `progress` is a narrower thing and came
 // back for a narrower reason — how much of *today* is off the list, which the
 // sentence states in words and the bar shows moving.
-export function HeroCard({ tasks, today, weekStats, progress, onSelectDay }) {
+export function HeroCard({
+  tasks,
+  today,
+  weekStats,
+  progress,
+  stripOffset,
+  onStripOffsetChange,
+  selectedDay,
+  onSelectDay,
+}) {
   const counts = summarise(tasks, today)
 
   return (
@@ -21,7 +30,14 @@ export function HeroCard({ tasks, today, weekStats, progress, onSelectDay }) {
             <Subline tasks={tasks} today={today} />
           </div>
           <div className="lg:min-w-0 lg:flex-1">
-            <DayStrip tasks={tasks} today={today} onSelectDay={onSelectDay} />
+            <DayStrip
+              tasks={tasks}
+              today={today}
+              offset={stripOffset}
+              onOffsetChange={onStripOffsetChange}
+              selectedDay={selectedDay}
+              onSelectDay={onSelectDay}
+            />
           </div>
         </div>
 

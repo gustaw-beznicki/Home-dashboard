@@ -91,6 +91,65 @@ describe('DayStrip', () => {
     expect(screen.getByText('dziś')).toBeInTheDocument()
   })
 
+  it('is inert when nobody wants to act on a day', () => {
+    // A button that does nothing is worse than a bar that never claimed to be one.
+    const { container } = render(<DayStrip tasks={[]} today={TODAY} days={3} />)
+    expect(container.querySelectorAll('button')).toHaveLength(0)
+    expect(container.querySelector('[aria-hidden="true"]')).toBeInTheDocument()
+  })
+
+  it('names the whole date and count for a bar you can press', () => {
+    render(<DayStrip tasks={[]} today={TODAY} days={3} onSelectDay={vi.fn()} />)
+    // The visible labels are three characters and a number; the name carries the
+    // rest, because "wt 28" on its own is not a date.
+    expect(
+      screen.getByRole('button', { name: 'piątek, 24 lipca — 0 rzeczy' })
+    ).toBeInTheDocument()
+  })
+
+  it('picks a day, and picking it again clears it', () => {
+    const onSelectDay = vi.fn()
+    const { rerender } = render(
+      <DayStrip tasks={[]} today={TODAY} days={3} onSelectDay={onSelectDay} />
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: /24 lipca/ }))
+    expect(onSelectDay).toHaveBeenCalledWith('2026-07-24')
+
+    rerender(
+      <DayStrip tasks={[]} today={TODAY} days={3} selectedDay="2026-07-24" onSelectDay={onSelectDay} />
+    )
+    const picked = screen.getByRole('button', { name: /24 lipca/ })
+    expect(picked).toHaveAttribute('aria-pressed', 'true')
+
+    fireEvent.click(picked)
+    expect(onSelectDay).toHaveBeenLastCalledWith(null)
+  })
+
+  it('pages a week at a time, and keeps both arrows while it does', () => {
+    const onOffsetChange = vi.fn()
+    const { rerender } = render(
+      <DayStrip tasks={[]} today={TODAY} days={3} offset={0} onOffsetChange={onOffsetChange} />
+    )
+
+    expect(screen.getByText('23 – 25 lip')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: COPY.stripToday })).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: COPY.stripNext }))
+    expect(onOffsetChange).toHaveBeenCalledWith(7)
+
+    rerender(
+      <DayStrip tasks={[]} today={TODAY} days={3} offset={7} onOffsetChange={onOffsetChange} />
+    )
+    // The regression this guards: the way back used to replace the forward arrow,
+    // so a second week forward was unreachable.
+    expect(screen.getByRole('button', { name: COPY.stripNext })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: COPY.stripPrev })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: COPY.stripToday }))
+    expect(onOffsetChange).toHaveBeenLastCalledWith(0)
+  })
+
   it('labels a day with its number as well as its weekday', () => {
     render(<DayStrip tasks={[]} today={TODAY} days={3} />)
     // The first bar is yesterday, which is where arrears pile up.

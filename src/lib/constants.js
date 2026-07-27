@@ -168,6 +168,11 @@ export const COPY = {
   // otherwise the day's work leaves the page and "cofnij" leaves with it.
   doneTodayTitle: 'Zrobione dziś',
   doneTodayCollapsed: 'Schowane. Rozwiń, żeby podejrzeć albo cofnąć.',
+  // The day strip doubles as the app's navigation through time.
+  stripPrev: 'Wcześniejszy tydzień',
+  stripNext: 'Następny tydzień',
+  stripToday: 'dziś',
+  dayFilterClear: 'Pokaż wszystko',
   done: 'Zrobione',
   pin: 'Trzymaj na wierzchu',
   unpin: 'Zdejmij z wierzchu',

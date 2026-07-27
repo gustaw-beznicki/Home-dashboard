@@ -336,12 +336,36 @@ export function filterByCategory(tasks, category) {
   return category ? tasks.filter((t) => t.category === category) : tasks
 }
 
-/** How much falls due on each of the next `days` days — data for the day strip. */
-export function dayLoad(tasks, today, days = 12) {
+/**
+ * The things whose next deadline falls on one ISO date — what a bar of the day
+ * strip stands for, so that clicking it can show the same set it counted.
+ *
+ * Deliberately the same `dueDate` test `dayLoad` uses. A thing ticked off today
+ * therefore appears under its *next* deadline rather than under today, which is
+ * why today's bar goes flat as the day is cleared: the bar counts work, not
+ * history.
+ */
+export function filterByDay(tasks, iso) {
+  if (!iso) return tasks
+  return tasks.filter((task) => {
+    const due = dueDate(task)
+    return due ? toISODate(due) === iso : false
+  })
+}
+
+/**
+ * How much falls due on each of `days` days — data for the day strip.
+ *
+ * `offset` shifts the window in days so the strip can be paged a week at a time;
+ * at 0 it starts yesterday, which is where arrears pile up. `isToday` and
+ * `overdue` stay measured against `today` rather than against the window, so a
+ * bar keeps meaning the same thing however far the strip has been scrolled.
+ */
+export function dayLoad(tasks, today, days = 12, offset = 0) {
   const active = tasks.filter((t) => !t.archived)
 
   return Array.from({ length: days }, (_, i) => {
-    const date = addDays(today, i - 1) // the first bar is yesterday, i.e. arrears
+    const date = addDays(today, i - 1 + offset)
     const iso = toISODate(date)
     let count = 0
     let overdue = false

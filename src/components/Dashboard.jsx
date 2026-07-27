@@ -23,8 +23,10 @@ import {
   dayClosed,
   dayProgress,
   filterByCategory,
+  filterByDay,
   filterForView,
   groupTasks,
+  parseISODate,
   sortByNextDue,
 } from '../lib/recurrence'
 import { formatDate, weekdayName } from '../lib/plural'
@@ -120,6 +122,11 @@ export function Dashboard() {
 
   const [activeView, setActiveView] = useState('all')
   const [activeCategory, setActiveCategory] = useState(null)
+  // An ISO date picked off the day strip, and how far the strip's window has been
+  // paged. Two pieces of state rather than one: scrolling to next month to look
+  // around should not clear the day you were reading.
+  const [activeDay, setActiveDay] = useState(null)
+  const [stripOffset, setStripOffset] = useState(0)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [sheet, setSheet] = useState(null) // null | { task } | { draft }
 
@@ -130,7 +137,10 @@ export function Dashboard() {
   )
 
   const sections = useMemo(() => {
-    const inView = filterByCategory(filterForView(tasks, activeView, now), activeCategory)
+    const inView = filterByDay(
+      filterByCategory(filterForView(tasks, activeView, now), activeCategory),
+      activeDay
+    )
 
     // The Schowek is a flat list: urgency stops mean nothing for things that
     // have deliberately been put away.
@@ -163,7 +173,7 @@ export function Dashboard() {
     )
     const groups = groupTasks(visible, now, sticky)
     return GROUPS.map((group) => ({ ...group, mark: group.key, tasks: groups[group.key] }))
-  }, [tasks, activeView, activeCategory, now, sticky])
+  }, [tasks, activeView, activeCategory, activeDay, now, sticky])
 
   const isEmpty = sections.every((section) => section.tasks.length === 0)
 
@@ -177,11 +187,15 @@ export function Dashboard() {
     // today's completions as the future work they are, and a second copy under
     // "Zrobione dziś" would be the same card twice on one screen.
     if (activeView === 'archive' || activeView === 'upcoming') return []
+    // A day filter asks what falls on one date. Today's completions are filed
+    // under their *next* deadline, so listing them here as well would answer a
+    // different question than the one the bar was clicked to ask.
+    if (activeDay) return []
     const inView = filterByCategory(filterForView(tasks, activeView, now), activeCategory)
     return inView.filter(
       (task) => computeStatus(task, now) === 'done' && !sticky.has(task.id)
     )
-  }, [tasks, activeView, activeCategory, now, sticky])
+  }, [tasks, activeView, activeCategory, activeDay, now, sticky])
 
   // The sticky map remembers which stop each thing was ticked off in, which is
   // what lets a "na spokojnie" thing ticked off early stay out of today's load —
@@ -196,6 +210,7 @@ export function Dashboard() {
   // completions as future work, and the Schowek is about things put away — a
   // reward for closing the day would be answering a question neither view asked.
   const dayComplete =
+    !activeDay &&
     (activeView === 'all' || activeView === 'today') &&
     dayClosed(progress, [...sections.flatMap((section) => section.tasks), ...doneToday], now)
 
@@ -204,7 +219,7 @@ export function Dashboard() {
   const emptyVariant =
     tasks.length === 0
       ? 'all'
-      : !activeCategory && (activeView === 'all' || activeView === 'today')
+      : !activeCategory && !activeDay && (activeView === 'all' || activeView === 'today')
         ? 'today'
         : 'view'
 
@@ -306,7 +321,16 @@ export function Dashboard() {
           )}
 
           <div className="mb-5.5">
-            <HeroCard tasks={tasks} today={now} weekStats={weekStats} progress={progress} />
+            <HeroCard
+              tasks={tasks}
+              today={now}
+              weekStats={weekStats}
+              progress={progress}
+              stripOffset={stripOffset}
+              onStripOffsetChange={setStripOffset}
+              selectedDay={activeDay}
+              onSelectDay={setActiveDay}
+            />
           </div>
 
           <LegacyImportBanner
@@ -344,6 +368,21 @@ export function Dashboard() {
                 className="h-[46px] rounded-full bg-cta px-5 text-[14px] font-medium text-onaccent"
               >
                 {COPY.retry}
+              </button>
+            </div>
+          )}
+
+          {activeDay && (
+            <div className="mb-4 flex flex-wrap items-center gap-2.5">
+              <span className="rounded-full bg-moss-200 px-3 py-1.5 text-[12.5px] text-moss-800 dark:bg-bark-700 dark:text-moss-300">
+                {formatDate(parseISODate(activeDay), { withWeekday: true })}
+              </span>
+              <button
+                type="button"
+                onClick={() => setActiveDay(null)}
+                className="text-[12.5px] text-moss-600 underline underline-offset-2 hover:text-moss-800 dark:text-moss-500 dark:hover:text-moss-300"
+              >
+                {COPY.dayFilterClear}
               </button>
             </div>
           )}
