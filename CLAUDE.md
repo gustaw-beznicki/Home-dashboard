@@ -137,6 +137,16 @@ Changing an interval on an already-completed task visibly moves its next deadlin
 which base to count from (`rebaseInterval`). Don't add a code path that changes an interval without
 that choice.
 
+**`RhythmEditor` asks three questions in one order: rhythm → last completion → anchor.** Each answer
+narrows the next, which is why "Ostatnio zrobione" lives in the editor rather than further down the
+sheet. The preview uses `upcomingForTask`, counted from the completion, so it shows the deadlines *this
+task* has rather than the grid seen from today — otherwise the preview says "1 sierpnia" while the card
+calls the same task overdue since 1 July. The anchor offers "od ostatniej daty" once there is one, and
+"inna data" reveals a **visible** date field: it used to be a `<label>` wrapping an `sr-only`
+`<input type="date">`, which did nothing at all, because browsers open the picker only from the
+calendar indicator or `showPicker()`. Don't put a date input behind `sr-only` again — jsdom cannot
+catch it, which is why there is an e2e case for it.
+
 `groupTasks` and `filterForView` split responsibilities: the view filter decides *which* tasks
 (including archived), the grouper decides *which stop* — pass `groupTasks` an already-filtered list.
 A task ticked off today keeps its place via the sticky-group map in `Dashboard`'s `useUndoWindow`,

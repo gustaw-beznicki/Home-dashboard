@@ -163,32 +163,18 @@ export function TaskSheet({
           })}
         </div>
 
+        {/* "Ostatnio zrobione" lives inside the editor, between the rhythm and
+            the anchor: the three answers narrow each other in that order, and the
+            deadline preview counts from the completion date. */}
         <RhythmEditor
           value={form.interval}
           onChange={(interval) => set({ interval })}
           today={today}
           lastDone={form.lastDone}
+          onLastDoneChange={(lastDone) => set({ lastDone })}
           rebaseChoice={!isNew && form.lastDone && intervalChanged ? rebase : null}
           onRebase={setRebase}
         />
-
-        <div className="mt-4.5">
-          <label
-            htmlFor="task-last-done"
-            className="mb-2 flex items-baseline gap-2 text-[13.5px] font-medium text-moss-800 dark:text-moss-300"
-          >
-            {COPY.fieldLastDone}
-            <OptionalTag />
-          </label>
-          <input
-            id="task-last-done"
-            type="date"
-            value={form.lastDone || ''}
-            max={toISODate(today)}
-            onChange={(e) => set({ lastDone: e.target.value || null })}
-            className="w-full rounded-2xl border border-moss-300 bg-transparent px-3.5 py-3 text-[14px] text-moss-900 outline-hidden focus:border-forest-600 dark:border-bark-600 dark:text-moss-100"
-          />
-        </div>
 
         <div className="mt-4.5">
           <label
