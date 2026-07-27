@@ -193,11 +193,15 @@ of its own, so nothing deletes them automatically — leave both alone.
 personal (`~/.claude/`) > project (`.claude/`) — project is *lowest*, which is the opposite of the
 intuition ([slash-commands docs](https://code.claude.com/docs/en/slash-commands)). So a
 `~/.claude/commands/<name>.md` makes the tracked copy dead code: editing the one in this repo changes
-nothing about what runs, and `skillOverrides` is no escape hatch, since hiding a name errors rather
-than falling through to the next level. The only fixes are to delete or rename the personal copy.
-`~/.claude/commands/pr-description.md` was removed for exactly this reason, after a change to the
-tracked copy silently did nothing. If you add a command here, check `~/.claude/commands/` for a
-collision first.
+nothing about what runs, and `skillOverrides` is no escape hatch, since hiding a name errors instead
+of falling through. This bit twice in one session — a rewritten `/prune-branches` and a rewritten
+`/pr-description` both sat inert in the repo while the personal copies ran.
+
+The fix is a **namespace directory**: personal commands live in `~/.claude/commands/personal/`, so
+they resolve as `/personal:prune-branches` and the bare names belong to this repo. The docs' naming
+table says a `commands/` file takes its name from the file alone and doesn't mention subdirectories,
+but a colon-namespaced command is what actually appears — verified against the live skill listing, not
+inferred. If you add a command here, check `~/.claude/commands/` for an un-namespaced collision.
 
 `/prune-branches` reports deletion candidates for local *and* remote branches, including which PR
 bodies would break, and never deletes anything itself.
