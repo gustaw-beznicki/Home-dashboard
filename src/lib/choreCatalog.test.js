@@ -56,6 +56,21 @@ describe('chore catalog', () => {
     }
   })
 
+  // A smell test, not a rule about any single entry. Before yearly rhythms
+  // existed, "co miesiąc" was the closest the model could get to anything
+  // slower, so half the catalog claimed to be monthly — including the car's
+  // technical inspection. This fails if that lazy default creeps back.
+  it('does not let every-one-month become the default cadence again', () => {
+    const monthly = CHORE_CATALOG.filter(
+      (chore) =>
+        chore.interval.type === 'monthly' &&
+        (chore.interval.unit ?? 'month') === 'month' &&
+        (chore.interval.every ?? 1) === 1
+    )
+    const share = monthly.length / CHORE_CATALOG.length
+    expect(share, `${monthly.length}/${CHORE_CATALOG.length} monthly`).toBeLessThan(0.4)
+  })
+
   it('never ships an anchor', () => {
     // startsOn is stamped from today when the suggestion is picked (ADR 0010).
     // A canned date in the catalog would be wrong for every household.
