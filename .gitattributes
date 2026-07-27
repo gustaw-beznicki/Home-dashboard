@@ -1,0 +1,18 @@
+# Without this, git on Windows warns "LF will be replaced by CRLF" on every add
+# of a text file, and whether a file lands in the index with CRLF depends on
+# each contributor's core.autocrlf. Normalising in the repo makes the committed
+# bytes the same regardless of who commits.
+* text=auto eol=lf
+
+# Shell scripts and anything a POSIX interpreter reads must not gain CR, even on
+# a Windows checkout — a stray \r turns into a "command not found" with an
+# invisible cause.
+*.sh text eol=lf
+*.mjs text eol=lf
+
+# Binary, so git never tries to normalise or diff them as text.
+*.png binary
+*.jpg binary
+*.ico binary
+*.woff binary
+*.woff2 binary
