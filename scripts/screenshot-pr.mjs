@@ -51,6 +51,38 @@ const SHOTS = [
       if (await chip.count()) await chip.first().click()
     },
   },
+  {
+    name: 'quick-add-suggestions-mobile-light',
+    route: '/',
+    viewport: MOBILE,
+    scheme: 'light',
+    action: (page) => typeIntoQuickAdd(page, 'podl'),
+  },
+  {
+    name: 'quick-add-suggestions-mobile-dark',
+    route: '/',
+    viewport: MOBILE,
+    scheme: 'dark',
+    action: (page) => typeIntoQuickAdd(page, 'podl'),
+  },
+  {
+    name: 'quick-add-suggestions-desktop-light',
+    route: '/',
+    viewport: DESKTOP,
+    scheme: 'light',
+    action: (page) => typeIntoQuickAdd(page, 'filtr'),
+  },
+  {
+    name: 'quick-add-prefilled-sheet-mobile-light',
+    route: '/',
+    viewport: MOBILE,
+    scheme: 'light',
+    action: async (page) => {
+      await typeIntoQuickAdd(page, 'smieci')
+      await page.getByRole('option').first().click()
+      await page.waitForTimeout(400) // the sheet transition is 260ms
+    },
+  },
   { name: 'admin-desktop-light', route: '/admin', viewport: DESKTOP, scheme: 'light' },
   { name: 'panel-desktop-light', route: '/panel', viewport: DESKTOP, scheme: 'light' },
   { name: 'panel-mobile-light', route: '/panel', viewport: MOBILE, scheme: 'light', fullPage: true },
@@ -65,6 +97,15 @@ const SHOTS = [
     },
   },
 ]
+
+// The chore catalog behind the suggestions is imported on first focus
+// (ADR 0014), so the list needs a moment after typing before it exists.
+async function typeIntoQuickAdd(page, query) {
+  const input = page.getByRole('combobox')
+  await input.click()
+  await input.fill(query)
+  await page.getByRole('option').first().waitFor({ timeout: 5000 })
+}
 
 async function openFirstTask(page) {
   // The card title is a stretched-link button, so it is the reliable handle.

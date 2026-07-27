@@ -212,6 +212,26 @@ for JIT) in `src/lib/constants.js`. The step-four check-off is a local demo on p
 must not tell the household a real task happened. Under `dev:no-auth` the synthetic user counts as
 already onboarded; add `--var DEV_ONBOARDING:true` to reach the wizard locally.
 
+## Quick-add suggestions
+
+`QuickAdd` is a combobox over `CHORE_CATALOG` in `src/lib/choreCatalog.js` — ~194 curated Polish
+chores with a category and a default rhythm, matched in the browser by `src/lib/choreSearch.js`
+(ADR 0014). There is no endpoint and no index: the catalog is identical for every household, so it
+is build-time data. `QuickAdd` `import()`s the search module on first focus, which keeps the 7.3 kB
+chunk off first paint — don't turn that back into a static import.
+
+Three properties are load-bearing. **Catalog entries never carry `startsOn`**; the anchor is stamped
+from `today` when a suggestion is picked, because a canned date would be wrong for everyone and an
+interval without an anchor means nothing (ADR 0010). **Free text still wins** — Enter with no
+suggestion highlighted behaves exactly as it did before the catalog existed. **Polish morphology is
+handled in the data, not the matcher**: `fold()` strips diacritics (including `ł`, which NFD leaves
+alone) and matching is token-prefix AND, so inflected forms go in each entry's `keywords`. There is
+no stemmer and shouldn't be one. `choreCatalog.test.js` enforces the data invariants; a typo there
+fails CI rather than shipping as a chore that never comes due.
+
+This is *alongside* direction 3b, not instead of it — `docs/runbooks/quickadd-ai-parse.md` stays
+live for free-form sentences the catalog can't know.
+
 ## Admin portal and Panel domu
 
 `/admin` is a separate page (not a panel), gated on `role === 'admin'` client-side and enforced
