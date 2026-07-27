@@ -19,10 +19,16 @@ export function useTasks() {
   // The card that snapped back after a failed write, so the list can pulse it
   // once rather than silently pretending nothing happened.
   const [rolledBackId, setRolledBackId] = useState(null)
+  // The write that failed, kept until it is retried or superseded: `{ id, name,
+  // retry }`. The pulse above is over in a second, whereas the change is gone
+  // for good, so something has to outlive the flash — and `retry` re-fires that
+  // same write rather than refetching, or "Ponów" would be a lie.
+  const [rollback, setRollback] = useState(null)
 
   const fetchTasks = useCallback(async () => {
     setIsLoading(true)
     setError(null)
+    setRollback(null)
     try {
       const res = await fetch('/api/tasks')
       setTasks(await assertOk(res))
@@ -49,20 +55,40 @@ export function useTasks() {
   // every tap waiting on a round trip.
   const mutate = useCallback(
     (id, updater, apiCall, onSuccess) => {
-      let previous
-      setTasks((prev) => {
-        previous = prev
-        return updater(prev)
-      })
-      apiCall()
-        .then((result) => {
-          if (onSuccess) setTasks((prev) => onSuccess(prev, result))
+      // Wrapped so a rollback can run the whole thing again. Every `updater`
+      // here is safe to re-apply, including `togglePin`'s: the rollback puts the
+      // old value back first, so flipping it a second time lands on the same
+      // target rather than undoing the intent.
+      const run = () => {
+        let previous
+        setTasks((prev) => {
+          previous = prev
+          return updater(prev)
         })
-        .catch((e) => {
-          setTasks(previous)
-          setError(e)
-          if (id) flagRollback(id)
-        })
+        apiCall()
+          .then((result) => {
+            setRollback(null)
+            if (onSuccess) setTasks((prev) => onSuccess(prev, result))
+          })
+          .catch((e) => {
+            setTasks(previous)
+            setError(e)
+            if (id) {
+              flagRollback(id)
+              setRollback({
+                id,
+                name: previous.find((t) => t.id === id)?.name ?? null,
+                retry: () => {
+                  setRollback(null)
+                  setError(null)
+                  run()
+                },
+              })
+            }
+          })
+      }
+
+      run()
     },
     [flagRollback]
   )
@@ -189,6 +215,7 @@ export function useTasks() {
     isLoading,
     error,
     rolledBackId,
+    rollback,
     retry: fetchTasks,
     addTask,
     editTask,

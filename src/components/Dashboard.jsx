@@ -11,11 +11,20 @@ import { TaskList } from './TaskList'
 import { TaskSheet } from './TaskSheet'
 import { QuickAdd } from './QuickAdd'
 import { EmptyState } from './EmptyState'
+import { DayComplete } from './DayComplete'
+import { RollbackBanner } from './RollbackBanner'
 import { CategoryFilter } from './CategoryFilter'
 import { DarkModeToggle } from './DarkModeToggle'
 import { LegacyImportBanner } from './LegacyImportBanner'
 import { COPY, GROUPS, UNDO_WINDOW_MS, VIEWS } from '../lib/constants'
-import { computeStatus, filterByCategory, filterForView, groupTasks } from '../lib/recurrence'
+import {
+  computeStatus,
+  dayClosed,
+  dayProgress,
+  filterByCategory,
+  filterForView,
+  groupTasks,
+} from '../lib/recurrence'
 import { formatDate, weekdayName } from '../lib/plural'
 
 const TICK_INTERVAL_MS = 60_000
@@ -91,6 +100,7 @@ export function Dashboard() {
     isLoading,
     error,
     rolledBackId,
+    rollback,
     retry,
     addTask,
     editTask,
@@ -136,6 +146,21 @@ export function Dashboard() {
   }, [tasks, activeView, activeCategory, now, sticky])
 
   const isEmpty = sections.every((section) => section.tasks.length === 0)
+
+  // The sticky map remembers which stop each thing was ticked off in, which is
+  // what lets a "na spokojnie" thing ticked off early stay out of today's load —
+  // count it and the denominator would grow under the thumb that just tapped it,
+  // sending the percentage backwards.
+  const progress = useMemo(
+    () => dayProgress(tasks, now, (task) => sticky.get(task.id) === 'later'),
+    [tasks, now, sticky]
+  )
+
+  const dayComplete = dayClosed(
+    progress,
+    sections.flatMap((section) => section.tasks),
+    now
+  )
 
   // "Na dziś nic. Dom się sam ogarnął." is only true of the unfiltered list —
   // a filter that happens to match nothing is a different, duller message.
@@ -244,7 +269,7 @@ export function Dashboard() {
           )}
 
           <div className="mb-5.5">
-            <HeroCard tasks={tasks} today={now} weekStats={weekStats} />
+            <HeroCard tasks={tasks} today={now} weekStats={weekStats} progress={progress} />
           </div>
 
           <LegacyImportBanner
@@ -254,10 +279,17 @@ export function Dashboard() {
             onImported={retry}
           />
 
-          {error && tasks.length > 0 && (
-            <p className="mb-4 rounded-2xl bg-amber-100 px-4 py-3 text-[13px] text-amber-500 dark:bg-[#3e3a29]">
-              {COPY.rollback}
-            </p>
+          {rollback ? (
+            <RollbackBanner name={rollback.name} onRetry={rollback.retry} />
+          ) : (
+            // Writes that never went through `mutate` — adding a thing — have no
+            // single card to name or re-fire, so they keep the flat line.
+            error &&
+            tasks.length > 0 && (
+              <p className="mb-4 rounded-2xl bg-amber-100 px-4 py-3 text-[13px] text-amber-500 dark:bg-[#3e3a29]">
+                {COPY.rollback}
+              </p>
+            )
           )}
 
           {isLoading && tasks.length === 0 && !error && (
@@ -281,6 +313,16 @@ export function Dashboard() {
 
           {!isLoading && !error && isEmpty && (
             <EmptyState tasks={tasks} today={now} variant={emptyVariant} />
+          )}
+
+          {dayComplete && (
+            <div className="mb-5.5">
+              <DayComplete
+                count={progress.done}
+                playKey={progress.done}
+                onAction={() => setActiveView('upcoming')}
+              />
+            </div>
           )}
 
           {!isEmpty && (

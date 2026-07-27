@@ -341,6 +341,51 @@ export function summarise(tasks, today) {
   }
 }
 
+/**
+ * Numbers behind the day's progress bar.
+ *
+ * The denominator is everything that fell due today or earlier *including* what
+ * has already been ticked off. Drop the ticked-off ones and the bar would stand
+ * still while the list empties, because numerator and denominator would fall
+ * together. An empty day is `{ done: 0, total: 0 }`, which the bar reads as
+ * done — nothing due is a success, not a zero.
+ *
+ * `wasLater` is asked about things completed today, so a "na spokojnie" thing
+ * ticked off early stays out of the day's load: counting it would grow the
+ * denominator at the moment of the tap and send the percentage backwards.
+ */
+export function dayProgress(tasks, today, wasLater = () => false) {
+  let done = 0
+  let total = 0
+
+  for (const task of tasks) {
+    if (task.archived) continue
+    const status = computeStatus(task, today)
+    if (status === 'later') continue
+    if (status === 'done' && wasLater(task)) continue
+    total++
+    if (status === 'done') done++
+  }
+
+  return { done, total }
+}
+
+/**
+ * Whether the day has been closed *and* the reward is allowed to say so.
+ *
+ * The second half is the part worth having a function for. "Everything due is
+ * done" is true again on every visit for the rest of the day, but the reward may
+ * only stand *above* the things just ticked off, never in their place — so it
+ * needs at least one of them still on the list to stand above. Reopen the app
+ * after the undo window has closed and the list still holds everything in "Na
+ * spokojnie": not empty, yet with nothing to take back. Testing for a non-empty
+ * list instead of for a visible completion is exactly that bug.
+ */
+export function dayClosed({ done, total }, onList, today) {
+  if (total === 0 || done !== total) return false
+  return onList.some((task) => computeStatus(task, today) === 'done')
+}
+
 /** Card-sized description: "co 3 dni", "co miesiąc, 1.", "co tydzień: pn, cz". */
 export function describeInterval(interval) {
   switch (interval.type) {

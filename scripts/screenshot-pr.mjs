@@ -13,10 +13,14 @@
 //
 // Playwright is a hard dependency of this script. The command installs it.
 
+import { execFile } from 'node:child_process'
 import { mkdir, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
+import { promisify } from 'node:util'
 import { chromium } from 'playwright'
+
+const run = promisify(execFile)
 
 const args = new Map()
 for (let i = 2; i < process.argv.length; i += 2) {
@@ -191,6 +195,37 @@ const SHOTS = [
       await page.getByLabel('Dzień tygodnia').selectOption('3')
     },
   },
+  // Closing the day. Ticking everything off is the only way to reach it, and it
+  // has to be captured while the leaves are still falling — the fall is the
+  // longest animation in the system at 2.6s, so `settle` alone would miss it.
+  {
+    name: 'day-complete-desktop-light',
+    route: '/',
+    viewport: DESKTOP,
+    scheme: 'light',
+    reseed: true,
+    action: clearTheDay,
+  },
+  {
+    name: 'day-complete-mobile-dark',
+    route: '/',
+    viewport: MOBILE,
+    scheme: 'dark',
+    reseed: true,
+    action: clearTheDay,
+  },
+  // The same state with motion allowed, which is the only way the leaves appear
+  // in an image — and the pair of shots is also the proof that reduced motion
+  // drops them rather than merely slowing them down.
+  {
+    name: 'day-complete-leaves-desktop-light',
+    route: '/',
+    viewport: DESKTOP,
+    scheme: 'light',
+    motion: 'allow',
+    reseed: true,
+    action: clearTheDay,
+  },
   { name: 'admin-desktop-light', route: '/admin', viewport: DESKTOP, scheme: 'light' },
   { name: 'panel-desktop-light', route: '/panel', viewport: DESKTOP, scheme: 'light' },
   { name: 'panel-mobile-light', route: '/panel', viewport: MOBILE, scheme: 'light', fullPage: true },
@@ -222,6 +257,35 @@ async function openEmptySheet(page) {
   await page.waitForTimeout(400) // the sheet transition is 260ms
 }
 
+// Tick off everything that fell due today. "Na spokojnie" cards carry no tick
+// button at all, so the loop runs dry exactly when the day is closed — which is
+// also the definition the progress bar uses.
+async function clearTheDay(page) {
+  for (let i = 0; i < 30; i += 1) {
+    const tick = page.getByRole('button', { name: /^Zrobione:/ })
+    if (!(await tick.count())) break
+    await tick.first().click()
+    await page.waitForTimeout(200)
+  }
+  // Long enough for the medallion (520ms) and the staggered lines, short enough
+  // that leaves are still mid-fall.
+  await page.waitForTimeout(1100)
+}
+
+// The seed truncates `tasks` and `completions` before inserting, so this puts the
+// list back to a known state. Needed by any shot that ticks things off: without
+// it the second such shot loads a database where everything is already done, the
+// undo window has long closed, and it captures a screen the person would never
+// see. `--skip-reseed` opts out for a run against a database you set up by hand.
+// Read off argv directly rather than out of `args`, which pairs every flag with
+// the token after it and would swallow the next option.
+const SKIP_RESEED = process.argv.includes('--skip-reseed')
+
+async function reseed() {
+  if (SKIP_RESEED) return
+  await run('npm', ['run', 'db:seed:local'], { shell: true })
+}
+
 async function openFirstTask(page) {
   // The card title is a stretched-link button, so it is the reliable handle.
   const card = page.locator('article').first()
@@ -242,12 +306,16 @@ const written = []
 const failed = []
 
 for (const shot of SHOTS) {
+  if (shot.reseed) await reseed()
   const context = await browser.newContext({
     viewport: shot.viewport,
     colorScheme: shot.scheme,
     deviceScaleFactor: 2,
-    // Motion is decoration here; freezing it keeps the images reproducible.
-    reducedMotion: 'reduce',
+    // Motion is decoration here; freezing it keeps the images reproducible. The
+    // one exception is a shot whose subject *is* the motion — `motion: 'allow'`
+    // is how the falling leaves get captured at all, since under `reduce` they
+    // are removed outright and the shot would silently prove nothing.
+    reducedMotion: shot.motion === 'allow' ? 'no-preference' : 'reduce',
   })
   const page = await context.newPage()
   const problems = []

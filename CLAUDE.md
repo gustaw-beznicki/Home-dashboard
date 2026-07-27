@@ -142,9 +142,30 @@ that choice.
 A task ticked off today keeps its place via the sticky-group map in `Dashboard`'s `useUndoWindow`,
 then drops off the list when the undo window closes.
 
+**The day has a progress bar again, and it is not the one that was removed** (ADR 0016). `dayProgress`
+measures *today* — what fell due today or earlier, with the already-ticked-off kept in the
+denominator, so the bar climbs from `0 z 6` to `6 z 6` instead of dividing by a backlog and barely
+moving. It always shows the count beside the percentage, an empty day reads 100% rather than 0%, and a
+"na spokojnie" thing ticked off early is excluded via the sticky map — count it and the tap that gets
+ahead of the week would send the percentage backwards. `DayProgress` lives on the hero card only: its
+two colours are measured against a surface that is dark in **both** themes, so they are literals, not
+theme roles that flip.
+
+**`DayComplete` stands above the completions, never in their place.** The guard is `dayClosed`, and it
+tests for a *visible* completion rather than for a non-empty list — reopen the app once the undo window
+has closed and the list still holds everything in "Na spokojnie", which is a non-empty list with
+nothing to take back. Keep the sticky groups: the design kit moves completions into a separate
+"Zrobione dziś" section, and the invariant that motivates it is already met here. The falling leaves
+are removed outright under `prefers-reduced-motion` (`[data-leaf]`), not slowed down, and `playKey` is
+what keeps the celebration playing once.
+
 `src/hooks/useTasks.js` applies changes to local state immediately, fires the API call, then merges
 the server response or rolls back on failure. Its exported shape is intentionally stable so the
-presentational components don't care that a backend exists.
+presentational components don't care that a backend exists. A failed write is also *remembered*, as
+`rollback: { id, name, retry }`, because the card's one-second flash outlives nothing while the lost
+change outlives everything — and `retry` re-fires that same write rather than refetching, or the
+banner's "Ponów" would be a lie. Adding a thing doesn't go through `mutate`, so it has no card to name
+and keeps the older flat message.
 
 The `completions` table is append-only history (who completed what, when) — `tasks.last_done_by_*`
 is only a denormalized cache of the latest row, kept in sync by the `/complete` endpoint. Don't

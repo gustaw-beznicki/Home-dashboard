@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
   computeStatus,
+  dayClosed,
   dayLoad,
+  dayProgress,
   daysUntilDue,
   describeInterval,
   dueDate,
@@ -556,5 +558,79 @@ describe('nth weekday rules beyond the first Saturday', () => {
       lastDone: '2026-01-03',
     })
     expect(toISODate(dueDate(task))).toBe('2026-04-04')
+  })
+})
+
+describe('dayProgress', () => {
+  // The bar's denominator is the interesting part: it has to hold still while
+  // the numerator climbs, or ticking things off would move the bar nowhere.
+  it('keeps things ticked off today in the denominator', () => {
+    const tasks = [
+      baseTask({ id: 'a', lastDone: toISODate(TODAY) }),
+      baseTask({ id: 'b' }),
+      baseTask({ id: 'c' }),
+    ]
+    expect(dayProgress(tasks, TODAY)).toEqual({ done: 1, total: 3 })
+  })
+
+  it('leaves "na spokojnie" out of the day, so the day can be finished', () => {
+    const later = baseTask({
+      id: 'later',
+      interval: { type: 'everyNDays', n: 30, startsOn: toISODate(TODAY) },
+      lastDone: toISODate(TODAY),
+    })
+    // Anchored today and already done, its next deadline is a month out.
+    expect(computeStatus(later, TODAY)).toBe('done')
+
+    const tasks = [baseTask({ id: 'a', lastDone: toISODate(TODAY) }), later]
+    // Told it was ticked off out of the quiet group, the whole day reads as
+    // closed: one thing fell due today and one thing got done.
+    expect(dayProgress(tasks, TODAY, (t) => t.id === 'later')).toEqual({ done: 1, total: 1 })
+    // Without that, the same tap would have grown the denominator instead.
+    expect(dayProgress(tasks, TODAY)).toEqual({ done: 2, total: 2 })
+  })
+
+  it('counts arrears as part of today', () => {
+    const tasks = [
+      baseTask({ id: 'overdue', interval: { type: 'daily', startsOn: daysAgo(10) }, lastDone: daysAgo(4) }),
+      baseTask({ id: 'due' }),
+    ]
+    expect(computeStatus(tasks[0], TODAY)).toBe('overdue')
+    expect(dayProgress(tasks, TODAY)).toEqual({ done: 0, total: 2 })
+  })
+
+  it('ignores the archive, and reads an empty day as zero of zero', () => {
+    const tasks = [baseTask({ id: 'shelved', archived: true })]
+    expect(dayProgress(tasks, TODAY)).toEqual({ done: 0, total: 0 })
+    expect(dayProgress([], TODAY)).toEqual({ done: 0, total: 0 })
+  })
+})
+
+describe('dayClosed', () => {
+  const closed = { done: 2, total: 2 }
+
+  it('is false unless everything due is done', () => {
+    const onList = [baseTask({ id: 'a', lastDone: toISODate(TODAY) })]
+    expect(dayClosed({ done: 1, total: 2 }, onList, TODAY)).toBe(false)
+    expect(dayClosed({ done: 0, total: 0 }, onList, TODAY)).toBe(false)
+  })
+
+  it('needs something ticked off still on the list to stand above', () => {
+    const done = baseTask({ id: 'done', lastDone: toISODate(TODAY) })
+    expect(dayClosed(closed, [done], TODAY)).toBe(true)
+  })
+
+  it('stays away on a later visit, when there is nothing left to take back', () => {
+    // The undo window has closed, so the completions have dropped off the list
+    // and only the quiet group is left. Non-empty, but nothing to undo — which is
+    // why the test is for a visible completion and not for a non-empty list.
+    const quiet = baseTask({
+      id: 'quiet',
+      interval: { type: 'everyNDays', n: 30, startsOn: daysAgo(-10) },
+      lastDone: null,
+    })
+    expect(computeStatus(quiet, TODAY)).toBe('later')
+    expect(dayClosed(closed, [quiet], TODAY)).toBe(false)
+    expect(dayClosed(closed, [], TODAY)).toBe(false)
   })
 })
