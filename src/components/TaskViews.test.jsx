@@ -152,14 +152,15 @@ describe('EmptyState', () => {
 })
 
 describe('RhythmEditor', () => {
-  function renderEditor(interval) {
+  function renderEditor(interval, { lastDone = null, onLastDoneChange = vi.fn() } = {}) {
     const onChange = vi.fn()
     render(
       <RhythmEditor
         value={interval}
         onChange={onChange}
         today={TODAY}
-        lastDone={null}
+        lastDone={lastDone}
+        onLastDoneChange={onLastDoneChange}
         rebaseChoice={null}
         onRebase={vi.fn()}
       />
@@ -520,3 +521,89 @@ describe('RhythmEditor February warning', () => {
     }
   )
 })
+
+describe('RhythmEditor: the two dates a rhythm hangs off', () => {
+  function renderWith(interval, lastDone) {
+    const onChange = vi.fn()
+    const onLastDoneChange = vi.fn()
+    render(
+      <RhythmEditor
+        value={interval}
+        onChange={onChange}
+        today={TODAY}
+        lastDone={lastDone}
+        onLastDoneChange={onLastDoneChange}
+        rebaseChoice={null}
+        onRebase={vi.fn()}
+      />
+    )
+    return { onChange, onLastDoneChange }
+  }
+
+  const monthly = { type: 'monthly', unit: 'month', every: 1, day: 'first', startsOn: '2026-01-01' }
+
+  it('asks the three questions in the order that narrows them', () => {
+    // Rhythm, then when it was last done, then what to count from: each answer
+    // constrains the next, and the preview needs both dates.
+    renderWith(monthly, '2026-06-01')
+    const headings = screen.getAllByText(/Jak często\?|Ostatnio zrobione|Od kiedy liczymy\?/)
+    expect(headings.map((el) => el.textContent.replace(/opcjonalne$/, '').trim())).toEqual([
+      'Jak często?',
+      'Ostatnio zrobione',
+      'Od kiedy liczymy?',
+    ])
+  })
+
+  it('previews the deadlines this task actually has, counted from the completion', () => {
+    // Anchored 1 January and last done 1 June, so the next deadline is 1 July —
+    // which is in the past on 24 July, i.e. the thing is overdue. Counting from
+    // today instead would have previewed 1 August and quietly disagreed with the
+    // card, which says the same task is late.
+    renderWith(monthly, '2026-06-01')
+    expect(screen.getByText('1 lipca')).toBeInTheDocument()
+    expect(screen.getByText('1 sierpnia')).toBeInTheDocument()
+    expect(screen.getByText('1 września')).toBeInTheDocument()
+  })
+
+  it('reports the last completion upwards rather than keeping its own copy', () => {
+    const { onLastDoneChange } = renderWith(monthly, null)
+    fireEvent.change(screen.getByLabelText(/Ostatnio zrobione/), {
+      target: { value: '2026-07-20' },
+    })
+    expect(onLastDoneChange).toHaveBeenCalledWith('2026-07-20')
+  })
+
+  it('offers "od ostatniej daty" only once there is one', () => {
+    renderWith(monthly, null)
+    expect(screen.queryByRole('button', { name: 'od ostatniej daty' })).not.toBeInTheDocument()
+  })
+
+  it('anchors on the last completion when asked to', () => {
+    const { onChange } = renderWith(monthly, '2026-06-01')
+    fireEvent.click(screen.getByRole('button', { name: 'od ostatniej daty' }))
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ startsOn: '2026-06-01' }))
+  })
+
+  it('"inna data" reveals a date field that can actually be used', () => {
+    // The regression: it used to be a label wrapping an `sr-only` date input, so
+    // the click landed on a one-pixel field and no picker ever opened.
+    // Anchored today, so the field starts closed behind the shortcut.
+    const { onChange } = renderWith({ ...monthly, startsOn: '2026-07-24' }, null)
+    expect(screen.queryByLabelText('Od kiedy liczymy?')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'inna data' }))
+    const field = screen.getByLabelText('Od kiedy liczymy?')
+    expect(field).toBeVisible()
+
+    fireEvent.change(field, { target: { value: '2026-03-05' } })
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ startsOn: '2026-03-05' }))
+  })
+
+  it('opens that field already showing an anchor that is none of the shortcuts', () => {
+    // Otherwise an existing task's anchor would be hidden behind a button nobody
+    // has a reason to press.
+    renderWith(monthly, null)
+    expect(screen.getByLabelText('Od kiedy liczymy?')).toHaveValue('2026-01-01')
+  })
+})
+

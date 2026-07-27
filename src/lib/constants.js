@@ -200,8 +200,11 @@ export const COPY = {
   // fixes the month and the day, so a second control could only contradict it.
   yearlyDateHint: 'Dzień i miesiąc bierzemy z daty poniżej.',
   fieldAnchor: 'Od kiedy liczymy?',
+  anchorFromLastDone: 'od ostatniej daty',
+  anchorCustom: 'inna data',
   fieldAnchorHint: 'To ta data wyznacza, kiedy zadanie wypadnie następnym razem.',
   fieldLastDone: 'Ostatnio zrobione',
+  fieldLastDoneHint: 'Od tej daty liczymy następne terminy. Puste = jeszcze ani razu.',
   fieldNote: 'Notatka',
   notePlaceholder: 'np. filtr leży w szafce pod zlewem',
   cancel: 'Anuluj',

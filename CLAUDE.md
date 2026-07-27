@@ -137,6 +137,16 @@ Changing an interval on an already-completed task visibly moves its next deadlin
 which base to count from (`rebaseInterval`). Don't add a code path that changes an interval without
 that choice.
 
+**`RhythmEditor` asks three questions in one order: rhythm → last completion → anchor.** Each answer
+narrows the next, which is why "Ostatnio zrobione" lives in the editor rather than further down the
+sheet. The preview uses `upcomingForTask`, counted from the completion, so it shows the deadlines *this
+task* has rather than the grid seen from today — otherwise the preview says "1 sierpnia" while the card
+calls the same task overdue since 1 July. The anchor offers "od ostatniej daty" once there is one, and
+"inna data" reveals a **visible** date field: it used to be a `<label>` wrapping an `sr-only`
+`<input type="date">`, which did nothing at all, because browsers open the picker only from the
+calendar indicator or `showPicker()`. Don't put a date input behind `sr-only` again — jsdom cannot
+catch it, which is why there is an e2e case for it.
+
 `groupTasks` and `filterForView` split responsibilities: the view filter decides *which* tasks
 (including archived), the grouper decides *which stop* — pass `groupTasks` an already-filtered list.
 A task ticked off today keeps its place via the sticky-group map in `Dashboard`'s `useUndoWindow`,
@@ -151,6 +161,13 @@ bars count work, not history); and the way back to today sits *beside* the range
 place of the forward arrow — replacing it made a second week forward unreachable, and there is a test
 for that. `DoneToday` and the reward are suppressed while a day is selected, since both summarise today
 as a whole.
+
+**Scheduling questions are keyed off dates, never off the derived status** (ADR 0018). `computeStatus`
+says what is true *today* — and `done` is true only until midnight — so anything asking *when* uses
+`filterForView('upcoming')` on `daysUntilDue`, `sortByNextDue`, `filterByDay` on `dueDate`, or
+`upcomingForTask`. Three user-visible bugs came from reaching for the status instead, the last one after
+the previous had been fixed, which is why it is a rule now rather than three fixes. `upcomingOccurrences`
+still answers "what does this *rule* produce", which is what a task with no completion shows.
 
 **Two of the four views are flat, and `upcoming` is flat for a reason worth knowing.** *Najbliższy
 tydzień* asks *when does this next fall due* — nothing else. So it filters on `daysUntilDue`

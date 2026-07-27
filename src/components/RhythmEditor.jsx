@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react'
 import { AlertTriangle, CalendarDays } from 'lucide-react'
 import {
   COPY,
@@ -9,7 +10,14 @@ import {
   YEAR_STEPS,
 } from '../lib/constants'
 import { useHomeSettings } from '../hooks/useHomeSettings'
-import { addDays, describeInterval, isoWeekday, parseISODate, toISODate, upcomingOccurrences } from '../lib/recurrence'
+import {
+  addDays,
+  describeInterval,
+  isoWeekday,
+  parseISODate,
+  toISODate,
+  upcomingForTask,
+} from '../lib/recurrence'
 import {
   countWith,
   FORMS,
@@ -25,15 +33,26 @@ const REBASE_OPTIONS = [
 ]
 
 /**
- * Rhythm and "from when" are always shown together, because the anchor is what
- * the whole repetition hangs off: without it "every 3 days" has nothing to
- * count from and the user is left guessing. That is why `startsOn` is never
- * collapsed away, and why the next three deadlines are previewed before saving.
+ * Rhythm, last completion and "from when", in that order and in one place,
+ * because each answer narrows the next: the rhythm decides which grid, the last
+ * completion decides where on it this thing already is, and the anchor decides
+ * where the grid begins. The anchor is never collapsed away — without it "every 3
+ * days" has nothing to count from — and the next three deadlines are previewed
+ * before saving, counted from the last completion so the preview and the card
+ * cannot disagree about the same task.
  */
-export function RhythmEditor({ value, onChange, today, lastDone, rebaseChoice, onRebase }) {
+export function RhythmEditor({
+  value,
+  onChange,
+  today,
+  lastDone,
+  onLastDoneChange,
+  rebaseChoice,
+  onRebase,
+}) {
   const interval = value
   const startsOn = interval.startsOn ? parseISODate(interval.startsOn) : today
-  const preview = upcomingOccurrences(interval, today, 3)
+  const preview = upcomingForTask(interval, lastDone, today, 3)
 
   // "Tydzień zaczyna się od" (Panel domu) decides which day leads the weekday
   // chips. Presentation only — the stored ISO weekday keys don't change.
@@ -321,58 +340,43 @@ export function RhythmEditor({ value, onChange, today, lastDone, rebaseChoice, o
         </div>
       )}
 
+      {/* Between the rhythm and the anchor on purpose: it is the answer that
+          narrows the anchor, and it is what the preview counts from. */}
+      <div>
+        <label
+          htmlFor="task-last-done"
+          className="mb-2 flex items-baseline gap-2 text-[13.5px] font-medium text-moss-800 dark:text-moss-300"
+        >
+          {COPY.fieldLastDone}
+          <span className="text-[11.5px] font-normal text-moss-600 dark:text-moss-500">
+            {COPY.fieldOptional}
+          </span>
+        </label>
+        <p className="mb-2.5 text-[12.5px] leading-relaxed text-moss-600 dark:text-moss-500">
+          {COPY.fieldLastDoneHint}
+        </p>
+        <input
+          id="task-last-done"
+          type="date"
+          value={lastDone || ''}
+          max={toISODate(today)}
+          onChange={(e) => onLastDoneChange(e.target.value || null)}
+          className="w-full rounded-2xl border border-moss-300 bg-transparent px-3.5 py-3 text-[14px] text-moss-900 outline-hidden focus:border-forest-600 dark:border-bark-600 dark:text-moss-100"
+        />
+      </div>
+
       {interval.type === 'manual' ? (
         <p className="rounded-2xl bg-moss-100 px-3.5 py-3.5 text-[13px] leading-relaxed text-moss-700 dark:bg-bark-700 dark:text-moss-400">
           Nic samo nie wróci na listę. Zadanie siedzi w „Na spokojnie”, dopóki go nie przypniesz.
         </p>
       ) : (
-        <div>
-          <p className="text-[13.5px] font-medium text-moss-800 dark:text-moss-300">
-            {COPY.fieldAnchor}
-          </p>
-          <p className="mb-2.5 mt-1 text-[12.5px] leading-relaxed text-moss-600 dark:text-moss-500">
-            {COPY.fieldAnchorHint}
-          </p>
-          <div className="mb-2.5 flex gap-1.5">
-            {[
-              { label: 'od dziś', date: today },
-              { label: 'od jutra', date: addDays(today, 1) },
-            ].map((quick) => {
-              const active = interval.startsOn === toISODate(quick.date)
-              return (
-                <button
-                  key={quick.label}
-                  type="button"
-                  aria-pressed={active}
-                  onClick={() => set({ startsOn: toISODate(quick.date) })}
-                  className={[
-                    'flex-1 rounded-2xl py-2.5 text-[13.5px]',
-                    active
-                      ? 'bg-forest-600 font-medium text-onaccent'
-                      : 'bg-moss-100 text-moss-700 dark:bg-bark-700 dark:text-moss-400',
-                  ].join(' ')}
-                >
-                  {quick.label}
-                </button>
-              )
-            })}
-            <label className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-2xl bg-moss-100 py-2.5 text-[13.5px] text-moss-700 focus-within:ring-2 focus-within:ring-forest-500 dark:bg-bark-700 dark:text-moss-400">
-              <CalendarDays size={16} strokeWidth={1.8} />
-              inna data
-              <input
-                type="date"
-                aria-label={COPY.fieldAnchor}
-                value={interval.startsOn || toISODate(today)}
-                onChange={(e) => e.target.value && set({ startsOn: e.target.value })}
-                className="sr-only"
-              />
-            </label>
-          </div>
-          <p className="text-[13px] text-moss-700 dark:text-moss-400">
-            {weekdayName(startsOn)},{' '}
-            {formatDate(startsOn, { withYear: startsOn.getFullYear() !== today.getFullYear() })}
-          </p>
-        </div>
+        <AnchorField
+          interval={interval}
+          today={today}
+          lastDone={lastDone}
+          startsOn={startsOn}
+          onSet={set}
+        />
       )}
 
       {/* Editing an existing task: changing the rhythm moves the next deadline,
@@ -434,3 +438,103 @@ export function RhythmEditor({ value, onChange, today, lastDone, rebaseChoice, o
     </div>
   )
 }
+
+/**
+ * "Od kiedy liczymy", with the shortcuts that actually come up plus a real date
+ * field for everything else.
+ *
+ * That field is visible rather than a native picker behind a label, which is what
+ * "inna data" used to be: an `<input type="date" class="sr-only">` inside a
+ * `<label>`. Clicking the label moved focus into a one-pixel clipped input, and
+ * browsers only open the date picker from the calendar indicator or from
+ * `showPicker()` — so the control did nothing at all. A field you can see is also
+ * a field you can type into, and it needs no feature detection.
+ */
+function AnchorField({ interval, today, lastDone, startsOn, onSet }) {
+  const shortcuts = [
+    { key: 'today', label: 'od dziś', iso: toISODate(today) },
+    { key: 'tomorrow', label: 'od jutra', iso: toISODate(addDays(today, 1)) },
+    // Only worth offering once there is a completion to count from, and it is the
+    // answer most people want on an existing task: start the grid where the last
+    // one landed.
+    ...(lastDone ? [{ key: 'lastDone', label: COPY.anchorFromLastDone, iso: lastDone }] : []),
+  ]
+
+  const matched = shortcuts.some((shortcut) => shortcut.iso === interval.startsOn)
+  // An anchor that is none of the shortcuts is already a custom date, so the
+  // field opens showing it instead of hiding an existing value behind a button.
+  const [open, setOpen] = useState(!matched)
+  const inputRef = useRef(null)
+
+  useEffect(() => {
+    if (open) inputRef.current?.focus()
+  }, [open])
+
+  return (
+    <div>
+      <p className="text-[13.5px] font-medium text-moss-800 dark:text-moss-300">
+        {COPY.fieldAnchor}
+      </p>
+      <p className="mb-2.5 mt-1 text-[12.5px] leading-relaxed text-moss-600 dark:text-moss-500">
+        {COPY.fieldAnchorHint}
+      </p>
+
+      <div className="mb-2.5 flex flex-wrap gap-1.5">
+        {shortcuts.map((shortcut) => {
+          const active = interval.startsOn === shortcut.iso
+          return (
+            <button
+              key={shortcut.key}
+              type="button"
+              aria-pressed={active}
+              onClick={() => {
+                setOpen(false)
+                onSet({ startsOn: shortcut.iso })
+              }}
+              className={[
+                'rounded-2xl px-3.5 py-2.5 text-[13.5px]',
+                active
+                  ? 'bg-forest-600 font-medium text-onaccent'
+                  : 'bg-moss-100 text-moss-700 dark:bg-bark-700 dark:text-moss-400',
+              ].join(' ')}
+            >
+              {shortcut.label}
+            </button>
+          )
+        })}
+        <button
+          type="button"
+          aria-pressed={open}
+          aria-expanded={open}
+          onClick={() => setOpen((wasOpen) => !wasOpen)}
+          className={[
+            'flex items-center gap-2 rounded-2xl px-3.5 py-2.5 text-[13.5px]',
+            open
+              ? 'bg-forest-600 font-medium text-onaccent'
+              : 'bg-moss-100 text-moss-700 dark:bg-bark-700 dark:text-moss-400',
+          ].join(' ')}
+        >
+          <CalendarDays size={16} strokeWidth={1.8} />
+          {COPY.anchorCustom}
+        </button>
+      </div>
+
+      {open && (
+        <input
+          ref={inputRef}
+          type="date"
+          aria-label={COPY.fieldAnchor}
+          value={interval.startsOn || toISODate(today)}
+          onChange={(e) => e.target.value && onSet({ startsOn: e.target.value })}
+          className="mb-2.5 w-full rounded-2xl border border-moss-300 bg-transparent px-3.5 py-3 text-[14px] text-moss-900 outline-hidden focus:border-forest-600 dark:border-bark-600 dark:text-moss-100"
+        />
+      )}
+
+      <p className="text-[13px] text-moss-700 dark:text-moss-400">
+        {weekdayName(startsOn)},{' '}
+        {formatDate(startsOn, { withYear: startsOn.getFullYear() !== today.getFullYear() })}
+      </p>
+    </div>
+  )
+}
+

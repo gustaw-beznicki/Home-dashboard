@@ -229,3 +229,58 @@ test.describe('phone, dark', () => {
     await shot(page, 'task-sheet-name-required-mobile-dark', { fullPage: true })
   })
 })
+
+// The two dates a rhythm hangs off, in a real browser. Worth it here because the
+// bug was a browser-behaviour bug: "inna data" was a `<label>` around an
+// `sr-only` date input, and browsers only open the date picker from the calendar
+// indicator or `showPicker()` — so the control was inert in a way jsdom cannot
+// notice, since jsdom has no picker to fail to open.
+test.describe('anchor shortcuts, desktop light', () => {
+  test.use({ viewport: DESKTOP, colorScheme: 'light' })
+
+  test('"inna data" opens a field you can type into', async ({ page }) => {
+    await openSheet(page)
+    const dialog = page.getByRole('dialog')
+
+    // A fresh sheet is anchored today, so the custom field starts closed.
+    await dialog.getByRole('button', { name: 'od dziś' }).click()
+    const field = dialog.getByLabel('Od kiedy liczymy?')
+    await expect(field).toBeHidden()
+
+    await dialog.getByRole('button', { name: 'inna data' }).click()
+    await expect(field).toBeVisible()
+
+    await field.fill('2026-03-05')
+    await expect(dialog.getByText('czwartek, 5 marca')).toBeVisible()
+    await shot(page, 'anchor-custom-date-desktop-light')
+  })
+
+  test('the last completion drives the preview, and can be the anchor', async ({ page }) => {
+    await openSheet(page)
+    const dialog = page.getByRole('dialog')
+
+    // With no completion there is nothing to count from, so no shortcut for it.
+    await expect(dialog.getByRole('button', { name: 'od ostatniej daty' })).toBeHidden()
+
+    await dialog.getByRole('button', { name: 'co miesiąc' }).click()
+    await dialog.getByText('pierwszego dnia').click()
+    await dialog.locator('#task-last-done').fill('2026-06-01')
+
+    // A fresh sheet is anchored today, and the anchor means "not before this", so
+    // a completion from June is behind the grid and correctly ignored: the first
+    // deadline is still the next 1st.
+    const fromLast = dialog.getByRole('button', { name: 'od ostatniej daty' })
+    await expect(fromLast).toBeVisible()
+    await expect(dialog.locator('#task-last-done')).toHaveValue('2026-06-01')
+    await expect(dialog.getByText('1 lipca')).toBeHidden()
+
+    // Which is exactly what the shortcut is for: move the grid back to the
+    // completion, and the preview starts from the deadline that followed it.
+    await fromLast.click()
+    await expect(fromLast).toHaveAttribute('aria-pressed', 'true')
+    await expect(dialog.getByText('poniedziałek, 1 czerwca')).toBeVisible()
+    await expect(dialog.getByText('1 lipca')).toBeVisible()
+    await expect(dialog.getByText('1 sierpnia')).toBeVisible()
+  })
+})
+

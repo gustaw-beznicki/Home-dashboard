@@ -205,6 +205,33 @@ export function upcomingOccurrences(interval, from, count = 3) {
   return out
 }
 
+/**
+ * The next `count` deadlines a *task* has, as opposed to the grid points an
+ * interval has in the abstract: the first one is `dueDate`, and the rest follow
+ * it. That is the difference between "co 3 dni od 1 lipca" as a rule and what
+ * this particular thing is actually waiting for, and the editor's preview needs
+ * the second one — anchored to the same last completion the card is anchored to,
+ * or the preview and the list would disagree about the same task.
+ *
+ * With no last completion there is nothing to count from, so it falls back to the
+ * grid seen from today, which is what a brand-new task shows.
+ */
+export function upcomingForTask(interval, lastDone, today, count = 3) {
+  if (!lastDone) return upcomingOccurrences(interval, today, count)
+
+  const out = []
+  let cursor = parseISODate(lastDone)
+  for (let i = 0; i < count; i++) {
+    // Strictly after the cursor, so a completion that landed exactly on a grid
+    // point doesn't preview itself as the next deadline.
+    const next = nextOccurrenceAfter(interval, cursor)
+    if (!next) break
+    out.push(next)
+    cursor = next
+  }
+  return out
+}
+
 /** The date a task is currently scheduled for. Null for manual rhythms. */
 export function dueDate(task) {
   const { interval, lastDone } = task

@@ -43,6 +43,13 @@ grid of deadlines. The first deadline is `startsOn`; subsequent ones step from i
 been completed, its next deadline is the first grid point strictly after `lastDone`. The interval
 model becomes:
 
+> **Amended by [0015](0015-express-yearly-rhythms-as-a-monthly-multiple.md).** "The first deadline is
+> `startsOn`" is no longer true: the anchor means *not before this*, and the first deadline is the first
+> grid point **on or after** it. Returning the anchor verbatim fired one occurrence no rule had asked
+> for — "co miesiąc, pierwszego" anchored on the 27th previewed `27.07 → 01.09 → 01.10`. Everything else
+> in this record stands; 0015 also widened the monthly arm with `every` / `unit`, so the model below is
+> the pre-0008 shape.
+
 ```js
 { type: 'daily',      startsOn }
 { type: 'everyNDays', n, startsOn }

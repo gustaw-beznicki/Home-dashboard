@@ -16,6 +16,7 @@ import {
   sortByUrgency,
   summarise,
   toISODate,
+  upcomingForTask,
   upcomingOccurrences,
 } from './recurrence'
 
@@ -768,5 +769,45 @@ describe('filterByDay', () => {
   it('is a no-op without a date', () => {
     const tasks = [baseTask({ id: 'a' })]
     expect(filterByDay(tasks, null)).toBe(tasks)
+  })
+})
+
+describe('upcomingForTask', () => {
+  const monthly = { type: 'monthly', unit: 'month', every: 1, day: 'first', startsOn: '2026-01-01' }
+
+  it('counts from the last completion, not from today', () => {
+    // Last done 1 June, so the next deadline is 1 July — already missed on 24
+    // July. Counting from today would preview 1 August and disagree with the card,
+    // which reports the same task overdue.
+    expect(upcomingForTask(monthly, '2026-06-01', TODAY, 3).map(toISODate)).toEqual([
+      '2026-07-01',
+      '2026-08-01',
+      '2026-09-01',
+    ])
+  })
+
+  it('agrees with dueDate on the first one, by construction', () => {
+    const task = baseTask({ interval: monthly, lastDone: '2026-06-01' })
+    expect(toISODate(upcomingForTask(monthly, task.lastDone, TODAY, 1)[0])).toBe(
+      toISODate(dueDate(task))
+    )
+  })
+
+  it('does not preview a completion that landed exactly on a grid point', () => {
+    expect(upcomingForTask(monthly, '2026-07-01', TODAY, 1).map(toISODate)).toEqual(['2026-08-01'])
+  })
+
+  it('falls back to the grid from today when nothing has been done yet', () => {
+    const daily = { type: 'everyNDays', n: 2, startsOn: toISODate(TODAY) }
+    expect(upcomingForTask(daily, null, TODAY, 3).map(toISODate)).toEqual([
+      '2026-07-24',
+      '2026-07-26',
+      '2026-07-28',
+    ])
+  })
+
+  it('previews nothing for a rhythmless thing, done or not', () => {
+    expect(upcomingForTask({ type: 'manual' }, '2026-06-01', TODAY, 3)).toEqual([])
+    expect(upcomingForTask({ type: 'manual' }, null, TODAY, 3)).toEqual([])
   })
 })
