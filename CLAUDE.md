@@ -115,6 +115,24 @@ is that `interval.startsOn` is never optional in the UI — `RhythmEditor` alway
 reaches `computeStatus` with no anchor is reported `overdue` on purpose: visible and correctable
 beats silently invisible.
 
+**The anchor means "not before this", not "the first deadline"** (ADR 0015). The first deadline is the
+first grid point *on or after* `startsOn`, which is why `firstOnGrid` exists. Returning the anchor
+verbatim used to fire one occurrence no rule had asked for — "co miesiąc, pierwszego" anchored on the
+27th previewed `27.07 → 01.09 → 01.10`. Daily and `everyNDays` need no snapping; they are grid point
+zero.
+
+**Yearly is `monthly` with a unit, not its own type** (ADR 0015). Intervals are
+`{ type: 'monthly', every, unit: 'month' | 'year', day, startsOn }`, and a year is read as
+`every * 12` months so both units share one code path — which is also what makes 29 February clamp
+correctly with no special case. `interval_type` carries a `CHECK` constraint D1 can't `ALTER`, so a
+real `yearly` type would have meant the whole table-rebuild dance for a tidier discriminant and
+nothing else. Absent `every`/`unit` read as `every: 1, unit: 'month'`, which is what every pre-0008
+row is. **With `unit: 'year'` there is no day rule** — the anchor holds the month and the day, the
+editor hides that panel, and `intervalColumns` clears `interval_day` so a leftover rule can't
+contradict the anchor. Keep `intervalKey` normalising both fields: without it a pre-0008 row wouldn't
+compare equal to the same rhythm rebuilt by the editor, and the sheet would ask about a rebase nobody
+requested.
+
 Changing an interval on an already-completed task visibly moves its next deadline, so the editor asks
 which base to count from (`rebaseInterval`). Don't add a code path that changes an interval without
 that choice.

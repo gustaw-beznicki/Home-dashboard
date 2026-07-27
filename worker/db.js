@@ -22,6 +22,13 @@ function serializeMonthlyDay(day) {
   return String(day)
 }
 
+// The cadence multiplier. Anything absent, non-numeric or below 1 is 1: a
+// zero would make `nextOccurrenceAfter` step nowhere and loop.
+function normaliseEvery(raw) {
+  const n = Math.floor(Number(raw))
+  return Number.isFinite(n) && n >= 1 ? n : 1
+}
+
 function parseWeekdays(raw) {
   if (!raw) return undefined
   try {
@@ -46,8 +53,16 @@ function serializeTask(row) {
       if (weekdays) interval.weekdays = weekdays
     }
     if (row.interval_type === 'monthly') {
-      const day = parseMonthlyDay(row.interval_day)
-      if (day !== undefined) interval.day = day
+      // Always present in the JSON, even for rows written before migration
+      // 0008, so the frontend never has to special-case a missing cadence.
+      interval.every = normaliseEvery(row.interval_every)
+      interval.unit = row.interval_unit === 'year' ? 'year' : 'month'
+      // A yearly rhythm takes its month and day from the anchor, so a day rule
+      // left over from a spell as a monthly one would be a lie.
+      if (interval.unit === 'month') {
+        const day = parseMonthlyDay(row.interval_day)
+        if (day !== undefined) interval.day = day
+      }
     }
   }
 
@@ -66,9 +81,12 @@ function serializeTask(row) {
   }
 }
 
-// The four interval columns always move together — writing one without
-// clearing the others would leave a weekly task carrying a stale monthly rule.
+// All six interval columns always move together — writing one without clearing
+// the others would leave a weekly task carrying a stale monthly rule.
 function intervalColumns(interval = {}) {
+  const monthly = interval.type === 'monthly'
+  const yearly = monthly && interval.unit === 'year'
+
   return {
     type: interval.type,
     n: interval.type === 'everyNDays' ? (interval.n ?? null) : null,
@@ -77,7 +95,11 @@ function intervalColumns(interval = {}) {
       interval.type === 'weekly' && interval.weekdays?.length
         ? JSON.stringify(interval.weekdays)
         : null,
-    day: interval.type === 'monthly' ? serializeMonthlyDay(interval.day) : null,
+    // Cleared for a yearly rhythm: the anchor holds the month and the day, so a
+    // stored rule could only contradict it.
+    day: monthly && !yearly ? serializeMonthlyDay(interval.day) : null,
+    every: monthly ? normaliseEvery(interval.every) : null,
+    unit: monthly ? (yearly ? 'year' : 'month') : null,
   }
 }
 
@@ -95,8 +117,8 @@ export async function createTask(env, draft, user) {
   const interval = intervalColumns(draft.interval)
 
   await env.DB.prepare(
-    `INSERT INTO tasks (id, name, last_done, interval_type, interval_n, interval_starts_on, interval_weekdays, interval_day, note, category, pinned, archived, created_by_email)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO tasks (id, name, last_done, interval_type, interval_n, interval_starts_on, interval_weekdays, interval_day, interval_every, interval_unit, note, category, pinned, archived, created_by_email)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   )
     .bind(
       id,
@@ -107,6 +129,8 @@ export async function createTask(env, draft, user) {
       interval.startsOn,
       interval.weekdays,
       interval.day,
+      interval.every,
+      interval.unit,
       draft.note ?? '',
       draft.category,
       draft.pinned ? 1 : 0,
@@ -133,9 +157,19 @@ export async function updateTask(env, id, patch) {
       'interval_n = ?',
       'interval_starts_on = ?',
       'interval_weekdays = ?',
-      'interval_day = ?'
+      'interval_day = ?',
+      'interval_every = ?',
+      'interval_unit = ?'
     )
-    values.push(interval.type, interval.n, interval.startsOn, interval.weekdays, interval.day)
+    values.push(
+      interval.type,
+      interval.n,
+      interval.startsOn,
+      interval.weekdays,
+      interval.day,
+      interval.every,
+      interval.unit
+    )
   }
   // The rhythm editor lets you correct when something was last done — the whole
   // schedule is counted from it, so it has to be editable rather than only

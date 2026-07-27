@@ -27,6 +27,8 @@ const INSERT_COLUMNS = [
   'interval_starts_on',
   'interval_weekdays',
   'interval_day',
+  'interval_every',
+  'interval_unit',
   'note',
   'category',
   'pinned',
@@ -172,11 +174,62 @@ describe('interval round-trip', () => {
     ['an nth weekday', { nth: 1, weekday: 6 }],
   ])('keeps the monthly rule when it is %s', async (_label, day) => {
     const env = makeEnv()
+    // `every` and `unit` come back on every monthly interval, filled in even for
+    // a draft that omitted them, so the frontend never has to special-case a
+    // row written before migration 0008.
     expect(await roundTrip(env, { type: 'monthly', day, startsOn: '2026-07-03' })).toEqual({
       type: 'monthly',
       day,
+      every: 1,
+      unit: 'month',
       startsOn: '2026-07-03',
     })
+  })
+
+  it.each([
+    ['every month', { every: 1, unit: 'month', day: 15 }],
+    ['every quarter', { every: 3, unit: 'month', day: 15 }],
+    ['every year', { every: 1, unit: 'year' }],
+    ['every second year', { every: 2, unit: 'year' }],
+  ])('keeps the cadence when it is %s', async (_label, extra) => {
+    const env = makeEnv()
+    expect(await roundTrip(env, { type: 'monthly', startsOn: '2026-03-12', ...extra })).toEqual({
+      type: 'monthly',
+      startsOn: '2026-03-12',
+      ...extra,
+    })
+  })
+
+  it('drops a day rule on a yearly rhythm, where the anchor holds the date', async () => {
+    const env = makeEnv()
+    const stored = await roundTrip(env, {
+      type: 'monthly',
+      every: 2,
+      unit: 'year',
+      day: 'last',
+      startsOn: '2026-03-12',
+    })
+    // Keeping it would let the rule contradict the anchor: "co 2 lata" already
+    // means 12 March, so "ostatniego" could only fight with it.
+    expect(stored).toEqual({ type: 'monthly', every: 2, unit: 'year', startsOn: '2026-03-12' })
+  })
+
+  it.each([
+    ['absent', undefined],
+    ['zero', 0],
+    ['negative', -3],
+    ['not a number', 'often'],
+  ])('falls back to every 1 when the cadence is %s', async (_label, every) => {
+    const env = makeEnv()
+    // A zero would make nextOccurrenceAfter step nowhere and spin.
+    const stored = await roundTrip(env, {
+      type: 'monthly',
+      unit: 'month',
+      day: 1,
+      every,
+      startsOn: '2026-03-12',
+    })
+    expect(stored.every).toBe(1)
   })
 
   it('carries no anchor on a manual rhythm', async () => {
@@ -205,7 +258,10 @@ describe('updateTask', () => {
     // A stale monthly rule left behind here would resurface the moment the
     // rhythm was switched back.
     expect(updated.interval).toEqual({ type: 'weekly', weekdays: [2], startsOn: '2026-07-05' })
-    expect(env.DB.tasks.get(task.id).interval_day).toBeNull()
+    const row = env.DB.tasks.get(task.id)
+    expect(row.interval_day).toBeNull()
+    expect(row.interval_every).toBeNull()
+    expect(row.interval_unit).toBeNull()
   })
 
   it('accepts lastDone, which the rhythm editor needs to be correctable', async () => {

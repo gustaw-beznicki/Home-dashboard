@@ -23,6 +23,7 @@ export const FORMS = {
   dzien: ['dzień', 'dni', 'dni'],
   tydzien: ['tydzień', 'tygodnie', 'tygodni'],
   miesiac: ['miesiąc', 'miesiące', 'miesięcy'],
+  rok: ['rok', 'lata', 'lat'],
   rzecz: ['rzecz', 'rzeczy', 'rzeczy'],
   domownik: ['domownik', 'domowników', 'domowników'],
   zalegla: ['zaległość', 'zaległości', 'zaległości'],
@@ -80,8 +81,11 @@ const MIESIACE = [
 ]
 const DNI = ['niedziela', 'poniedziałek', 'wtorek', 'środa', 'czwartek', 'piątek', 'sobota']
 
-export function formatDate(date, { withWeekday = false } = {}) {
-  const d = `${date.getDate()} ${MIESIACE[date.getMonth()]}`
+// `withYear` matters for anything that can span years: a yearly rhythm's preview
+// read "27 lipca · 27 lipca · 27 lipca" without it, three correct dates two years
+// apart rendered identically.
+export function formatDate(date, { withWeekday = false, withYear = false } = {}) {
+  const d = `${date.getDate()} ${MIESIACE[date.getMonth()]}${withYear ? ` ${date.getFullYear()}` : ''}`
   return withWeekday ? `${DNI[date.getDay()]}, ${d}` : d
 }
 

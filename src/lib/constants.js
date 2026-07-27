@@ -72,12 +72,39 @@ export const VIEWS = [
   { key: 'archive', label: 'Schowek' },
 ]
 
+// `key` identifies the chip; `type` and `unit` are what the interval carries.
+// Months and years are the same stored type (`monthly` + `unit`) because D1
+// can't widen the `interval_type` CHECK constraint — see migration 0008 — but
+// they are separate chips, since burying "co 2 lata" inside a monthly panel
+// would make it unfindable.
 export const RHYTHMS = [
-  { type: 'daily', label: 'codziennie' },
-  { type: 'everyNDays', label: 'co kilka dni' },
-  { type: 'weekly', label: 'co tydzień' },
-  { type: 'monthly', label: 'co miesiąc' },
-  { type: 'manual', label: 'bez rytmu' },
+  { key: 'daily', type: 'daily', label: 'codziennie' },
+  { key: 'everyNDays', type: 'everyNDays', label: 'co kilka dni' },
+  { key: 'weekly', type: 'weekly', label: 'co tydzień' },
+  { key: 'monthly', type: 'monthly', unit: 'month', label: 'co miesiąc' },
+  { key: 'yearly', type: 'monthly', unit: 'year', label: 'co rok' },
+  { key: 'manual', type: 'manual', label: 'bez rytmu' },
+]
+
+// Cadence multipliers. Labelled as the span alone, not "co <span>", so they
+// complete the "Co ile?" heading instead of repeating the rhythm chip above —
+// two buttons reading "co miesiąc" in one panel is ambiguous for a person and
+// for a screen reader alike. Named where Polish has a word for the span
+// ("kwartał" over "3 miesiące"), numeric where it doesn't.
+export const MONTH_STEPS = [
+  { every: 1, label: 'miesiąc' },
+  { every: 2, label: '2 miesiące' },
+  { every: 3, label: 'kwartał' },
+  { every: 6, label: 'pół roku' },
+]
+
+// 4 is deliberately absent: nothing in a household runs on a four-year cycle,
+// and 5 covers the long end (fire extinguisher, water filter housing).
+export const YEAR_STEPS = [
+  { every: 1, label: 'rok' },
+  { every: 2, label: '2 lata' },
+  { every: 3, label: '3 lata' },
+  { every: 5, label: '5 lat' },
 ]
 
 export const MONTHLY_MODES = [
@@ -137,6 +164,10 @@ export const COPY = {
   fieldRhythm: 'Jak często?',
   fieldWeekdays: 'W które dni?',
   weekdaysRequired: 'Zaznacz przynajmniej jeden dzień.',
+  fieldCadence: 'Co ile?',
+  // A yearly rhythm has no day picker on purpose: the anchor below already
+  // fixes the month and the day, so a second control could only contradict it.
+  yearlyDateHint: 'Dzień i miesiąc bierzemy z daty poniżej.',
   fieldAnchor: 'Od kiedy liczymy?',
   fieldAnchorHint: 'To ta data wyznacza, kiedy zadanie wypadnie następnym razem.',
   fieldLastDone: 'Ostatnio zrobione',

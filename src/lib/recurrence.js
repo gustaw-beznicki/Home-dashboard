@@ -6,16 +6,43 @@
 //   { type: 'daily',       startsOn }
 //   { type: 'everyNDays',  n, startsOn }
 //   { type: 'weekly',      weekdays: [1..7], startsOn }   // 1 = Monday
-//   { type: 'monthly',     day: 1..28 | 'first' | 'last' | { nth: 1..4, weekday: 1..7 }, startsOn }
+//   { type: 'monthly',     every, unit: 'month' | 'year', day, startsOn }
 //   { type: 'manual' }
 //
-// `startsOn` is the anchor: an ISO date that fixes the grid of deadlines. The
-// first deadline is `startsOn` itself; later ones are counted from it, and once
-// a task is completed the next deadline is the first grid point after
-// `lastDone`. Without an anchor "every 3 days" has nothing to hang off, which
-// is the whole reason it is never hidden in the editor.
+// The monthly `day` rule is `1..28 | 'first' | 'last' | { nth: 1..4, weekday: 1..7 }`
+// and applies to `unit: 'month'` only. With `unit: 'year'` the month *and* the
+// day both come from the anchor — "przegląd 12 marca co 2 lata" needs no day
+// rule, and "ostatniego dnia" would mean something different at year scale — so
+// the editor hides that panel entirely rather than offering a meaningless choice.
+// `every` defaults to 1, which is what every pre-0008 row reads back as.
+//
+// A year is modelled as twelve months rather than as its own arm, so both units
+// share one code path. That is also what makes 29 February behave: the day rule
+// clamps to the length of the target month, so a leap-day anchor lands on the
+// 28th in common years instead of skipping to March.
+//
+// `startsOn` is the anchor: an ISO date that fixes the grid of deadlines. It
+// means "not before this", **not** "the first deadline" — the first deadline is
+// the first grid point on or after it. Anchoring "co miesiąc, pierwszego" on the
+// 27th used to fire once on the 27th and only then settle onto the 1st, which
+// read as a bug every time. Without an anchor "every 3 days" has nothing to hang
+// off at all, which is why it is never hidden in the editor.
+
+import { countWith, FORMS } from './plural.js'
 
 const DAY = 86400000
+
+// For `describeInterval` only: "w pierwszą **sobotę**" needs the accusative, so
+// the nominative names in plural.js can't be reused here.
+const WEEKDAY_ACCUSATIVE = {
+  1: 'poniedziałek',
+  2: 'wtorek',
+  3: 'środę',
+  4: 'czwartek',
+  5: 'piątek',
+  6: 'sobotę',
+  7: 'niedzielę',
+}
 
 export function toMidnight(date) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate())
@@ -69,6 +96,71 @@ function anchorOf(interval) {
   return interval.startsOn ? parseISODate(interval.startsOn) : null
 }
 
+// A year is `every * 12` months and takes its day from the anchor; a month is
+// `every` months and takes it from the rule. One shape, so `nextOccurrenceAfter`
+// has a single monthly arm rather than two that drift apart.
+function monthlyGrid(interval, start) {
+  const every = Math.max(1, interval.every ?? 1)
+  const yearly = interval.unit === 'year'
+  return {
+    stepMonths: yearly ? every * 12 : every,
+    rule: yearly ? start.getDate() : (interval.day ?? start.getDate()),
+  }
+}
+
+/**
+ * The first monthly grid point at or after `boundary` (`inclusive`) or strictly
+ * after it. Walks forward from an estimated index rather than computing one,
+ * because an nth-weekday rule can be absent from a given month — "the fifth
+ * Saturday" simply doesn't exist in most of them.
+ */
+function monthlyPointFrom(interval, start, boundary, inclusive) {
+  const { stepMonths, rule } = monthlyGrid(interval, start)
+  const monthsAhead =
+    (boundary.getFullYear() - start.getFullYear()) * 12 + (boundary.getMonth() - start.getMonth())
+  const first = Math.max(0, Math.floor(monthsAhead / stepMonths))
+
+  for (let k = first; k <= first + 24; k++) {
+    const probe = new Date(start.getFullYear(), start.getMonth() + k * stepMonths, 1)
+    const date = monthlyDateFor(probe.getFullYear(), probe.getMonth(), rule)
+    if (!date || date < start) continue
+    if (inclusive ? date >= boundary : date > boundary) return date
+  }
+  return null
+}
+
+/**
+ * The first deadline for an interval whose task has never been completed: the
+ * first grid point on or after the anchor. For daily and everyNDays that is the
+ * anchor itself — it *is* grid point zero — but weekly and monthly rules have
+ * their own grid, and honouring the anchor literally would fire one deadline
+ * that no rule in the editor asked for.
+ */
+function firstOnGrid(interval, start) {
+  switch (interval.type) {
+    case 'weekly': {
+      const days = weekdaysOf(interval, start)
+      for (let i = 0; i < 7; i++) {
+        const candidate = addDays(start, i)
+        if (days.includes(isoWeekday(candidate))) return candidate
+      }
+      return start
+    }
+    case 'monthly':
+      return monthlyPointFrom(interval, start, start, true)
+    default:
+      return start
+  }
+}
+
+// An empty chip list is reachable in the editor, and the grid has to mean
+// something regardless; the anchor's own weekday is the least surprising answer.
+function weekdaysOf(interval, start) {
+  const days =
+    interval.weekdays && interval.weekdays.length ? interval.weekdays : [isoWeekday(start)]
+  return [...days].sort((a, b) => a - b)
+}
+
 /**
  * First grid point strictly after `after` — or `startsOn` itself when the task
  * has never been done. Null for manual rhythms and for anchorless intervals.
@@ -77,7 +169,9 @@ export function nextOccurrenceAfter(interval, after) {
   if (interval.type === 'manual') return null
   const start = anchorOf(interval)
   if (!start) return null
-  if (!after || toMidnight(after) < start) return start
+  // Never completed, or completed before the grid even began: snap onto the
+  // grid rather than returning the anchor verbatim.
+  if (!after || toMidnight(after) < start) return firstOnGrid(interval, start)
 
   const from = toMidnight(after)
 
@@ -93,11 +187,7 @@ export function nextOccurrenceAfter(interval, after) {
     }
 
     case 'weekly': {
-      const days = (
-        interval.weekdays && interval.weekdays.length ? interval.weekdays : [isoWeekday(start)]
-      )
-        .slice()
-        .sort((a, b) => a - b)
+      const days = weekdaysOf(interval, start)
       for (let i = 1; i <= 7; i++) {
         const candidate = addDays(from, i)
         if (days.includes(isoWeekday(candidate))) return candidate
@@ -105,16 +195,8 @@ export function nextOccurrenceAfter(interval, after) {
       return addDays(from, 7)
     }
 
-    case 'monthly': {
-      const rule = interval.day ?? start.getDate()
-      // 14 probes rather than 1: an nth-weekday rule can miss a short month.
-      for (let i = 0; i <= 14; i++) {
-        const probe = new Date(from.getFullYear(), from.getMonth() + i, 1)
-        const date = monthlyDateFor(probe.getFullYear(), probe.getMonth(), rule)
-        if (date && date > from && date >= start) return date
-      }
-      return null
-    }
+    case 'monthly':
+      return monthlyPointFrom(interval, start, from, false)
 
     default:
       return null
@@ -284,12 +366,23 @@ export function describeInterval(interval) {
       return days ? `co tydzień: ${days}` : 'co tydzień'
     }
     case 'monthly': {
-      if (interval.day === 'first') return 'co miesiąc, 1.'
-      if (interval.day === 'last') return 'co miesiąc, ostatniego'
-      if (typeof interval.day === 'object' && interval.day !== null) {
-        return 'co miesiąc, w pierwszą sobotę'
+      const every = Math.max(1, interval.every ?? 1)
+
+      // A year carries no day rule — the anchor holds the month and the day —
+      // so there is nothing to append after the cadence.
+      if (interval.unit === 'year') {
+        return every === 1 ? 'co rok' : `co ${countWith(every, FORMS.rok)}`
       }
-      return `co miesiąc, ${interval.day}.`
+
+      const cadence = every === 1 ? 'co miesiąc' : `co ${countWith(every, FORMS.miesiac)}`
+      if (interval.day === 'first') return `${cadence}, 1.`
+      if (interval.day === 'last') return `${cadence}, ostatniego`
+      if (typeof interval.day === 'object' && interval.day !== null) {
+        const nth = ['pierwszą', 'drugą', 'trzecią', 'czwartą'][interval.day.nth - 1] ?? 'pierwszą'
+        return `${cadence}, w ${nth} ${WEEKDAY_ACCUSATIVE[interval.day.weekday] ?? 'sobotę'}`
+      }
+      if (interval.day === undefined || interval.day === null) return cadence
+      return `${cadence}, ${interval.day}.`
     }
     case 'manual':
     default:
@@ -309,6 +402,12 @@ export function intervalKey(interval) {
     startsOn: interval.startsOn ?? null,
     weekdays: interval.weekdays ?? null,
     day: interval.day ?? null,
+    // Normalised rather than passed through: a row written before migration
+    // 0008 reads back without these, and it must compare equal to the same
+    // rhythm rebuilt by the editor, or the sheet would ask about a rebase
+    // nobody requested.
+    every: interval.type === 'monthly' ? Math.max(1, interval.every ?? 1) : null,
+    unit: interval.type === 'monthly' ? (interval.unit === 'year' ? 'year' : 'month') : null,
   })
 }
 
