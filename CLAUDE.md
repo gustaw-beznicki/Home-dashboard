@@ -214,11 +214,12 @@ already onboarded; add `--var DEV_ONBOARDING:true` to reach the wizard locally.
 
 ## Quick-add suggestions
 
-`QuickAdd` is a combobox over `CHORE_CATALOG` in `src/lib/choreCatalog.js` — ~194 curated Polish
-chores with a category and a default rhythm, matched in the browser by `src/lib/choreSearch.js`
-(ADR 0014). There is no endpoint and no index: the catalog is identical for every household, so it
-is build-time data. `QuickAdd` `import()`s the search module on first focus, which keeps the 7.3 kB
-chunk off first paint — don't turn that back into a static import.
+`QuickAdd` is a combobox over `CHORE_CATALOG` in `src/lib/choreCatalog.js` — a couple of hundred
+curated Polish chores with a category and a default rhythm, matched in the browser by
+`src/lib/choreSearch.js` (ADR 0014). There is no endpoint and no index: the catalog is identical for
+every household, so it is build-time data. `QuickAdd` `import()`s the search module on first focus,
+which keeps the catalog in its own chunk rather than on the path to first paint — don't turn that
+back into a static import.
 
 Three properties are load-bearing. **Catalog entries never carry `startsOn`**; the anchor is stamped
 from `today` when a suggestion is picked, because a canned date would be wrong for everyone and an
